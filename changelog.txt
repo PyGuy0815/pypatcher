@@ -36,6 +36,15 @@ Versionen: siehe manifest.txt Abschnitt 16.
     (- Patch, + Datei) bzw. "Inhalt gleich, Einrueckung weicht ab".
   - Einheit nicht gefunden: aehnliche bzw. vorhandene Einheiten.
 
+  Python (R005):
+  - Neue Einheiten: @imports (Import-Block am Modulanfang) und
+    Zuweisungen mit einem Namen auf oberster Ebene und in Klassen
+    ("LIMIT", "Config.port", auch dataclass-Felder "name: str").
+  - UCOPY as= benennt auch Zuweisungen um; zwischen Zuweisungen wird ohne
+    Leerzeilen eingefuegt.
+  - create nutzt die neuen Einheiten (z.B. UNIT @imports statt
+    Textblock).
+
 0.0.1 (2026-10-30) - erste Freigabe
 -----------------------------------
   Patchformat pypatcher/1 (Befehlsliste + Datenbloecke):

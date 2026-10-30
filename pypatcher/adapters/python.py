@@ -16,6 +16,8 @@ from .base import Adapter, Info, ParseError, Unit
 
 CODING_RE = re.compile(r"^[ \t\f]*#.*?coding[:=][ \t]*([-\w.]+)")
 DEF_TYPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+IMPORT_TYPES = (ast.Import, ast.ImportFrom)
+IMPORTS = "@imports"
 DOC_OWNERS = (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
 SKIP_FIELDS = frozenset(("ctx", "type_comment", "kind"))
 if sys.version_info < (3, 9):
@@ -106,6 +108,20 @@ def _head_lines(lines):
 
 
 RENAME_RE = re.compile(r"^(\t*(?:async[ \t]+)?(?:def|class)[ \t]+)([A-Za-z_]\w*)")
+RENAME_ASSIGN_RE = re.compile(r"^(\t*)([A-Za-z_]\w*)(?=[ \t]*(?::|=(?!=)))")
+SIMPLE_RE = re.compile(r"^[ \t]*(?:@|(?:async[ \t]+)?def\b|class\b)")
+
+
+def _target(stmt):
+    """Name einer Zuweisung mit genau einem einfachen Ziel (R005), sonst None:
+    X = ..., X: int = ..., X: int (z.B. Felder einer dataclass)."""
+    if isinstance(stmt, ast.Assign) and len(stmt.targets) == 1:
+        target = stmt.targets[0]
+    elif isinstance(stmt, ast.AnnAssign) and stmt.simple:
+        target = stmt.target
+    else:
+        return None
+    return target.id if isinstance(target, ast.Name) else None
 
 
 class PythonAdapter(Adapter):
@@ -129,7 +145,19 @@ class PythonAdapter(Adapter):
             match = RENAME_RE.match(line)
             if match:
                 return rel_lines[:i] + [match.group(1) + name + line[match.end(2):]] + rel_lines[i + 1:]
-        raise PatchInvalid("keine def/class-Zeile zum Umbenennen gefunden")
+        for i, line in enumerate(rel_lines):
+            if not line.strip() or line.lstrip().startswith("#"):
+                continue
+            match = RENAME_ASSIGN_RE.match(line)
+            if match:
+                return rel_lines[:i] + [match.group(1) + name + line[match.end(2):]] + rel_lines[i + 1:]
+            break
+        raise PatchInvalid("keine def/class-Zeile bzw. Zuweisung zum Umbenennen gefunden")
+
+    def simple(self, line):
+        """Zeile einer kleinen Einheit (Zuweisung/Import) statt def/class:
+        zwischen solchen Zeilen kein Leerzeilen-Abstand beim Einfuegen."""
+        return bool(line.strip()) and not SIMPLE_RE.match(line)
 
     def parse(self, doc):
         source = "\n".join(doc.lines) + "\n"
@@ -148,6 +176,9 @@ class PythonAdapter(Adapter):
         lines = doc.lines
         header_end, header_doc = self._header(lines, tree)
         units = [Unit("@header", "header", header_doc, 0, header_end, "", None)]
+        imports = self._imports(tree, lines, header_end, header_doc)
+        if imports is not None:
+            units.append(imports)
         self._collect(tree.body, "", None, lines, header_end, units)
         return Info(lines, units, tree=tree, header_end=header_end, header_doc=header_doc)
 
@@ -167,15 +198,36 @@ class PythonAdapter(Adapter):
                 return body[0].end_lineno, body[0]
         return end, None
 
+    def _imports(self, tree, lines, header_end, header_doc):
+        """@imports: zusammenhaengende Import-Anweisungen am Modulanfang (R005)."""
+        body = [st for st in tree.body if st is not header_doc]
+        run = []
+        for st in body:
+            if not isinstance(st, IMPORT_TYPES):
+                break
+            run.append(st)
+        if not run:
+            return None
+        start = run[0].lineno - 1
+        while start - 1 >= header_end and lines[start - 1].startswith("#"):
+            start -= 1
+        node = ast.Module(body=run, type_ignores=[])
+        return Unit(IMPORTS, "imports", node, start, run[-1].end_lineno, "", None)
+
     def _collect(self, body, prefix, parent, lines, header_end, out):
-        defs = [st for st in body if isinstance(st, DEF_TYPES)]
-        counts = Counter(st.name for st in defs)
+        named = []
+        for st in body:
+            if isinstance(st, DEF_TYPES):
+                named.append((st.name, st))
+            elif _target(st) is not None:
+                named.append((_target(st), st))
+        counts = Counter(name for name, _ in named)
         seen = Counter()
-        for st in defs:
-            seen[st.name] += 1
-            label = st.name if counts[st.name] == 1 else "%s#%d" % (st.name, seen[st.name])
+        for name, st in named:
+            seen[name] += 1
+            label = name if counts[name] == 1 else "%s#%d" % (name, seen[name])
             path = prefix + "." + label if prefix else label
-            first = min([d.lineno for d in st.decorator_list] + [st.lineno]) - 1
+            first = min([d.lineno for d in getattr(st, "decorator_list", ())] + [st.lineno]) - 1
             indent = leading_ws(lines[first])
             floor = header_end if parent is None else parent.node.lineno
             start = first
@@ -184,11 +236,14 @@ class PythonAdapter(Adapter):
                 start -= 1
             if isinstance(st, ast.ClassDef):
                 kind = "class"
+            elif not isinstance(st, DEF_TYPES):
+                kind = "assign"
             else:
                 kind = "method" if parent is not None and parent.kind == "class" else "function"
             unit = Unit(path, kind, st, start, st.end_lineno, indent, parent)
             out.append(unit)
-            self._collect(st.body, path, unit, lines, header_end, out)
+            if isinstance(st, DEF_TYPES):
+                self._collect(st.body, path, unit, lines, header_end, out)
 
     def position(self, info, pos):
         """-> (zeilenindex, grundtiefe, oberste_ebene) fuer Positionsangaben (7.5)."""

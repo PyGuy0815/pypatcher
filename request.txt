@@ -14,7 +14,7 @@ R003  OFFEN     Signierte Patches (HMAC-SHA256 oder Ed25519) als
                 zusaetzliche Kopfangabe.
 R004  OFFEN     Patch-Buendel: mehrere Patches in einer Datei/Archiv
                 uebertragen und in Reihenfolge anwenden.
-R005  IN ARBEIT (0.0.2) Python-Adapter erweitern: Modul-Konstanten/Zuweisungen,
+R005  ERLEDIGT (0.0.2-pre1) Python-Adapter erweitern: Modul-Konstanten/Zuweisungen,
                 Import-Block als eigene Einheit "@imports".
 R006  ERLEDIGT (0.0.2-pre1) Konfliktanzeige: aehnlichste Stelle als Diff
                 bei nicht gefundenen Suchbloecken, Hinweis bei reiner

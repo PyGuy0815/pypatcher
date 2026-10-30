@@ -54,6 +54,11 @@ class Adapter(object):
     def validate(self, doc):
         pass
 
+    def simple(self, line):
+        """Gehoert die Zeile zu einer kleinen Einheit, zwischen denen beim
+        Einfuegen kein Abstand steht (Python: Zuweisungen/Imports)?"""
+        return False
+
     def detect_unit(self, doc, info=None):
         return detect_generic(doc.lines)
 

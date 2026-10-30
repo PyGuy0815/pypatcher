@@ -748,6 +748,11 @@ Beispiel (Pruefstufe std):
     name#2               zweite Definition gleichen Namens
                          (z.B. @property und @x.setter)
     @header              Kopf der Datei
+    @imports             zusammenhaengende Imports am Modulanfang (0.0.2)
+    LIMIT, Klasse.port   Zuweisung mit genau einem Namen als Ziel auf
+                         oberster Ebene oder in einer Klasse (0.0.2):
+                         X = ..., X: int = ..., X: int (dataclass-Feld);
+                         nicht: a = b = 1, a, b = ..., x += 1, self.x = ...
   JavaScript:
     name                 function name / class name /
                          const|let|var name = function|(..) => {..}|class
@@ -803,6 +808,12 @@ Beispiel (Pruefstufe std):
                 - Modul-Docstring               -> funktional (E11)
               Endet vor der ersten Zeile, die nicht dazugehoert.
               Imports gehoeren NICHT zum Header.
+  @imports    Die Import-Anweisungen am Modulanfang (nach @header), solange
+              sie ohne andere Anweisung aufeinander folgen, inkl.
+              Kommentarzeilen direkt darueber. Aendern: UNIT @imports
+              mit dem kompletten neuen Import-Block.
+  Zuweisung:  Kommentarzeilen direkt darueber + Anweisung (auch ueber
+              mehrere Zeilen).
   Funktion/Klasse/Methode:
                 - zusammenhaengende Kommentarzeilen DIREKT darueber
                   (ohne Leerzeile dazwischen, gleiche Einrueckung)
@@ -815,7 +826,9 @@ Beispiel (Pruefstufe std):
   delete_unit, copy_unit und move_unit halten den ueblichen Abstand ein:
     Einfuegen : 2 Leerzeilen auf oberster Ebene, 1 Leerzeile in Klassen
                 (vor und nach dem Block; vorhandene Leerzeilen zaehlen
-                mit; direkt nach einer Zeile mit ":" keine).
+                mit; direkt nach einer Zeile mit ":" keine). Zwischen
+                einer eingefuegten Zuweisung und einer benachbarten
+                Zuweisung/Import gleicher Tiefe keine (0.0.2).
     Entfernen : von den Leerzeilen davor und danach bleibt die groessere
                 Anzahl stehen.
   Der Text-Hash aendert sich dadurch, der Funktions-Hash nicht.

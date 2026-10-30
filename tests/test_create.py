@@ -87,7 +87,7 @@ class Create(ProjectCase):
         self.assertIn("delete_unit", ops)
         self.assertIn("add_unit", ops)
         replaced = [ch["unit"] for ch in entry["changes"] if ch["op"] == "replace_unit"]
-        self.assertEqual(replaced, ["Calc.run"])
+        self.assertEqual(replaced, ["@imports", "Calc.run"])
         actions = dict((e["path"], e["action"]) for e in patch["files"])
         self.assertEqual(actions["src/other.py"], "move")
         self.assertEqual(actions["old.txt"], "delete")

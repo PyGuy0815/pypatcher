@@ -192,14 +192,22 @@ def _insert(ua, doc, idx, block, top):
     pre = _blank_run(reversed(before))
     post = _blank_run(after)
     add_pre = add_post = 0
+    first = next((l for l in block if l.strip() and not l.lstrip().startswith("#")), "")
+    base = lay.leading_ws(first)
+    small = ua.simple(first)
+
+    def tight(line):        # kleine Einheit neben kleiner Einheit gleicher Tiefe
+        return small and ua.simple(line) and lay.leading_ws(line) == base
+
     if any(l.strip() for l in before):
         prev = before[len(before) - pre - 1]
         if not ua.opens_block(prev):
-            add_pre = max(0, gap - pre)
+            add_pre = 0 if tight(prev) else max(0, gap - pre)
     if any(l.strip() for l in after):
         nxt = after[post]
         if not ua.closes_block(nxt):
-            add_post = max(0, (ua.gap_top if not lay.leading_ws(nxt) else gap) - post)
+            add_post = 0 if tight(nxt) else \
+                max(0, (ua.gap_top if not lay.leading_ws(nxt) else gap) - post)
     new = before + [""] * add_pre + list(block) + [""] * add_post + after
     return doc.with_lines(new), idx + add_pre
 
