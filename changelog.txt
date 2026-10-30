@@ -1,13 +1,29 @@
-PATCHER - CHANGELOG
-===================
+PYPATCHER - CHANGELOG
+=====================
 Format: Version (Datum) - Aenderungen. Neueste Version oben.
 
+0.2.0 (2026-10-30)
+  - Konzept ueberarbeitet nach Klaerung der offenen Punkte
+    (manifest.txt Abschnitt 2 "Entscheidungen"):
+    - Patchformat jetzt JSON (*.ppatch.json), Textinhalte als Zeilenlisten,
+      Patch-Hash ueber kanonisches JSON.
+    - Aenderungen je Datei gesammelt; Pruefkette mit Zwischen-Hashes fuer
+      jede einzelne Aenderung (Abschnitt 4.6). Standard-Pruefmodus "file".
+    - Kommentare direkt ueber Funktionen gehoeren zur Einheit; Datei-Kopf
+      ist eigene Einheit "@header" (Abschnitt 6.3).
+    - Zeilenenden: Hash ueber normalisierten Text, EOL/BOM/Encoding der
+      Zieldatei bleiben erhalten; neuer Befehl "doctor" prueft vorab die
+      Umgebung.
+    - Adapter-Schnittstelle fuer beliebige Sprachen/Formate; 1.0 mit
+      Python- und Text-Adapter. Neuer Befehl "units".
+    - Signatur im Format vorgesehen (Feld "signature"), nicht umgesetzt.
+    - Architektur als Paket (pypatcher/) statt Einzeldatei.
+
 0.1.0 (2026-10-30)
-  - Konzept erstellt (manifest.txt): Patchformat .ppatch, Hash-Konzept
+  - Erstes Konzept erstellt (manifest.txt): Patchformat, Hash-Konzept
     (Datei, Einheit, Zustand, Patch), Operationen, Journal, Rollback,
     Atomaritaet, Befehle, Exit-Codes, Architektur.
   - Dokumentation angelegt: readme.txt, changelog.txt, request.txt,
     manifest.txt.
   - Ablageort festgelegt: eigenes privates Repository "pypatcher"
     (nicht in simple_converters).
-  - Noch keine Implementierung; offene Punkte siehe manifest.txt Abschn. 13.

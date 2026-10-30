@@ -1,17 +1,18 @@
-PATCHER - README
-================
+PYPATCHER - README
+==================
 
-Status: KONZEPTPHASE (Version 0.1.0) - das Programm ist noch nicht
+Status: KONZEPTPHASE (Version 0.2.0) - das Programm ist noch nicht
 implementiert. Die ausfuehrliche Beschreibung steht in manifest.txt.
 
 Was macht der Patcher?
 ----------------------
 Er uebertraegt Aenderungen an einem Projekt mit einer einzigen Patchdatei
-(*.ppatch) in eine andere Umgebung - ohne ganze Dateien zu kopieren.
+(*.ppatch.json) in eine andere Umgebung - ohne ganze Dateien zu kopieren.
 Aenderungen koennen bis auf einzelne Funktionen/Methoden genau beschrieben
-werden ("ersetze in Datei X die Funktion Y"). Jede Aenderung wird per
-SHA-256-Hash geprueft (Datei und Funktion, vorher und nachher). Jeder
-angewendete Patch laesst sich wieder zuruecknehmen.
+werden ("ersetze in Datei X die Funktion Y"). Jede Datei und jede einzelne
+Aenderung wird per SHA-256-Hash geprueft (vorher und nachher). Jeder
+angewendete Patch laesst sich wieder zuruecknehmen. Windows-Zeilenenden
+(CRLF) werden erkannt und beibehalten.
 
 Voraussetzungen
 ---------------
@@ -20,18 +21,19 @@ Python 3.8 oder neuer, keine weiteren Pakete.
 Typischer Ablauf
 ----------------
 Entwicklung:
-  patcher.py create alter_stand/ neuer_stand/ -o 0002-fix.ppatch
-oder Entwurf von Hand schreiben und versiegeln:
-  patcher.py seal entwurf.txt --base projekt/ -o 0002-fix.ppatch
+  patcher.py create alter_stand/ neuer_stand/ -o 0002-fix.ppatch.json
+oder Entwurf (JSON ohne Hashes) schreiben und versiegeln:
+  patcher.py seal entwurf.json --base projekt/ -o 0002-fix.ppatch.json
 
 Zielumgebung:
+  patcher.py doctor   -p projekt/          (Umgebung pruefen, einmalig)
   patcher.py init     -p projekt/          (einmalig)
-  patcher.py check    0002-fix.ppatch -p projekt/   (Probelauf)
-  patcher.py apply    0002-fix.ppatch -p projekt/
+  patcher.py check    0002-fix.ppatch.json -p projekt/   (Probelauf)
+  patcher.py apply    0002-fix.ppatch.json -p projekt/
   patcher.py status   -p projekt/
   patcher.py rollback -p projekt/          (letzten Patch zuruecknehmen)
 
-Alle Befehle: siehe manifest.txt, Abschnitt 10.
+Alle Befehle: siehe manifest.txt, Abschnitt 12.
 
 Dokumentation
 -------------
