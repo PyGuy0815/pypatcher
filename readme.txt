@@ -92,7 +92,7 @@ Aenderungen und wendet sie nach Rueckfrage in einem Schritt an
 Meldung an die KI zurueckgeben.
 
 ki-beispiele.txt zeigt fertige Auftraege mit Antworten (Python, JS/CSS,
-HTML, JSON, C, Antwort ueber zwei Nachrichten). Optional mit dem Prompt
+HTML, JSON, C, Antwort ueber zwei Nachrichten, neue Einheiten). Optional mit dem Prompt
 an die KI geben - die Beispiele werden getestet und sind gueltig.
 
 Kann die KI Code ausfuehren (Code-Interpreter o.ae.), ihr zusaetzlich die

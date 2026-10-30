@@ -6,7 +6,7 @@ vollstaendig, auch ueber mehrere Nachrichten, und ohne dass der Nutzer
 etwas von Hand einarbeiten muss. Kann die KI Code ausfuehren, zusaetzlich
 patcher.pyz hochladen (erzeugen mit: python3 patcher.py bundle) - dann
 gilt Abschnitt 10. Weitere getestete Beispiele (Python, JS/CSS, HTML,
-JSON, C, zwei Nachrichten): ki-beispiele.txt - bei Bedarf mitgeben.
+JSON, C, zwei Nachrichten, neue Einheiten): ki-beispiele.txt - bei Bedarf mitgeben.
 
 ----------------------------------------------------------------- ab hier
 Du lieferst Aenderungen an Dateien des Nutzers nicht als Erklaerung oder
@@ -40,8 +40,12 @@ sichert vorher und kann alles zuruecknehmen.
    end-of:einheit, start, end.
 
 3. EINHEITEN (bevorzugt - robust und je Funktion geprueft)
-   Python: name, Klasse.methode, @header (Dateikopf)
-   JS:     name (function/class/const f = ...), Klasse.methode
+   Python: name, Klasse.methode, @header (Dateikopf), @imports (Import-
+           Block am Anfang), Zuweisungen wie LIMIT oder Klasse.feld
+   JS:     name (function/class/const f = ...), Klasse.methode,
+           aussen.innen (Funktion in Funktion), objekt.methode und
+           objekt.sub.methode bei const objekt = {...} (Kommas richtet
+           das Programm)
    CSS:    Selektor wie im Original, z.B. .btn:hover;
            verschachtelt "@media (max-width: 600px)/.btn"
    HTML/XML: #id, sonst Pfad mit Tag, Klassen, Nummer:
@@ -100,11 +104,16 @@ sichert vorher und kann alles zuruecknehmen.
    Erster Einsatz im Projekt: vorher einmal
      python3 patcher.py init -p <projekt>
    Probelauf: run -n ...   Zuruecknehmen: python3 patcher.py rollback -p <projekt>
+   Hat das Projekt Tests, den Testbefehl anhaengen - dann genuegt ein
+   Befehl, der mit einer Zeile antwortet ("OK <id> | ... | Tests OK"):
+     python3 patcher.py run aenderung.ppatch -p <projekt> -y -q --test "<testbefehl>"
 
 9. WENN ETWAS NICHT PASST
    - Meldet das Programm einen Konflikt (Einheit/Block nicht gefunden,
-     nicht eindeutig, Syntaxfehler), wurde NICHTS geaendert. Den Nutzer
-     um die Meldung und ggf. um die betroffene Datei oder die Ausgabe von
+     nicht eindeutig, Syntaxfehler), wurde NICHTS geaendert. Die Meldung
+     zeigt meist schon die aehnlichste Stelle der Datei (- Patch, + Datei)
+     oder aehnliche Einheiten - damit korrigieren. Sonst den Nutzer
+     um die betroffene Datei oder die Ausgabe von
        python3 patcher.py units <datei>
      bitten (zeigt alle Einheiten mit Zeilen) und einen korrigierten
      Entwurf mit derselben id liefern.
@@ -113,6 +122,14 @@ sichert vorher und kann alles zuruecknehmen.
 
 10. WENN DU CODE AUSFUEHREN KANNST (Sandbox, Code-Interpreter)
    Dann benutze pypatcher selbst - das spart Ausgabe und Fehler:
+   0) Zu Beginn EINMAL anfordern: das Projekt (z.B. als ZIP) und
+      patcher.pyz (der Nutzer erzeugt sie im pypatcher-Ordner mit
+      "python3 patcher.py bundle -o patcher.pyz"). Befehle und Optionen
+      selbst nachsehen (python3 patcher.pyz -h, ... BEFEHL -h) statt den
+      Nutzer nach Hilfe-Ausgaben zu fragen. Keine Optionen erfinden.
+      Ignore-Regeln stehen in <projekt>/.patcherignore (eine Maske je
+      Zeile); .patcher/, .git, __pycache__, *.ppatch, .DS_Store u.ae.
+      sind schon ausgenommen.
    a) Projektdateien des Nutzers (hochgeladen) in einen Ordner legen,
       z.B. projekt/, und einmal: python3 patcher.pyz init -p projekt
    b) Aenderung erzeugen - je nach Umfang:
@@ -136,9 +153,13 @@ sichert vorher und kann alles zuruecknehmen.
          ausgeben. --compress spart rund die Haelfte der Zeichen (die
          Befehlsliste bleibt lesbar); Tokens spart es kaum - Base64 ist
          fuer Sprachmodelle teuer. Nur bei Zeichengrenzen nutzen.
-   f) Dem Nutzer sagen: bei versiegelten Patches
-        python3 patcher.py apply p.ppatch -p <projekt>
-      (oder run - prueft dann die Hashes).
+   f) Dem Nutzer genau EINEN Befehl je Patch nennen (Patches z.B. unter
+      <projekt>/patches/ ablegen lassen):
+        python3 patcher.py run patches/p.ppatch -p <projekt> -y -q --test "<testbefehl>"
+      Ohne Tests "--test ..." weglassen. Die Antwort ist eine Zeile
+      ("OK ..." oder "FEHLER ..." mit Meldung); mehr braucht es nicht.
+      Den Testbefehl kann der Nutzer einmal als "test" in
+      <projekt>/.patcher/config.json eintragen - dann entfaellt --test.
 
 11. AUSGABE SPAREN
    - Code nur einmal ausgeben: im Patch, nicht zusaetzlich in der

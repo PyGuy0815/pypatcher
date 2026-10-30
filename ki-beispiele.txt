@@ -191,3 +191,33 @@ Export: `python3 -c "import export"`
 Beide Codebloecke nacheinander in eine Datei kopieren, dann:
 python3 patcher.py run aenderung.ppatch -p <projekt>
 === ENDE ===
+
+=== BEISPIEL 7: Imports, Konstante, Objekt-Methode ===
+Auftrag: Der Pfad der Notizdatei soll neben app.py liegen. Ausserdem
+brauche ich ein Tastenkuerzel zum Leeren der Liste.
+
+Antwort:
+```
+#PPATCH 1 0007-pfad-kuerzel 1/1
+TITLE Notizdatei neben app.py, Kuerzel clear
+FILE app.py
+  UNIT @imports @1
+  UNIT NOTES_FILE @2
+FILE static/app.js
+  UADD end-of:keys @3
+@1 .
+import json
+import os
+@.
+@2 .
+NOTES_FILE = os.path.join(os.path.dirname(__file__), "notes.json")
+@.
+@3 .
+clear(app) {
+  render([]);
+}
+@.
+```
+Imports, Konstanten und Objekt-Methoden sind eigene Einheiten; das
+Komma nach save(...) {...} setzt das Programm.
+=== ENDE ===

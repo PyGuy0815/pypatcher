@@ -16,3 +16,10 @@ export class App {
     render(notes);
   }
 }
+
+// Tastenkuerzel
+export const keys = {
+  save(app) {
+    return app.refresh();
+  }
+};

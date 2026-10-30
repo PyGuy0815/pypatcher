@@ -678,10 +678,13 @@ Beispiel (Pruefstufe std):
   Python, JS/CSS, HTML, JSON, C und eine Antwort ueber zwei Nachrichten
   (alle am Beispielprojekt examples/ki/projekt getestet).
   Kann die KI Code ausfuehren, nutzt sie pypatcher selbst (Einzeldatei
-  patcher.pyz, "bundle"): Projekt einlesen, Entwurf schreiben oder eine
+  patcher.pyz, "bundle"; zu Beginn einmal mit dem Projekt anfordern,
+  Hilfe selbst mit -h nachsehen): Projekt einlesen, Entwurf schreiben oder eine
   Kopie bearbeiten und "create" nutzen, mit "run -n" selbst pruefen,
   versiegeln und als Datei liefern; nur ohne Download als Text, bei
-  Zeichengrenzen mit "pack --compress --max-size N".
+  Zeichengrenzen mit "pack --compress --max-size N". Dem Nutzer nennt
+  sie je Patch genau einen Befehl (run ... -y -q --test "..."), der mit
+  einer Zeile antwortet.
 
 6.10 Komprimierung (optional)
   seal/create/pack --compress: alle Datenbloecke werden gemeinsam mit

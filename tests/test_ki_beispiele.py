@@ -15,6 +15,7 @@ EXPECT = {
     4: ((), "config.json", (b'"port": 8080', b'"export"', b'"debug": false')),
     5: ((), "native/calc.c", (b"return 0;", b"int chars;")),
     6: ((), "export.py", (b"def export(notes, path):", b"    return len(notes)\n")),
+    7: ((), "static/app.js", (b"    return app.refresh();\n  },\n\n  clear(app) {\n",)),
 }
 
 

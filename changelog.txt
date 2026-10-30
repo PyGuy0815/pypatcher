@@ -53,6 +53,15 @@ Versionen: siehe manifest.txt Abschnitt 16.
   - Kommas zwischen Objekt-Eintraegen werden beim Einfuegen, Ersetzen und
     Kopieren gerichtet; UCOPY as= benennt auch "name: function" um.
 
+  KI-Prompt und Beispiele:
+  - Startablauf fuer KIs mit Code-Ausfuehrung: Projekt und patcher.pyz
+    einmal anfordern, Hilfe selbst mit -h nachsehen (im Praxistest fragte
+    die KI mehrfach nach Hilfe-Ausgaben), keine Optionen erfinden.
+  - Je Patch genau ein Befehl fuer den Nutzer: run ... -y -q --test.
+  - Konfliktmeldungen mit aehnlichster Stelle zur Korrektur nutzen.
+  - Neue Einheiten (Imports, Zuweisungen, innere Funktionen, Objekt-
+    Methoden) im Prompt und als Beispiel 7 in ki-beispiele.txt.
+
 0.0.1 (2026-10-30) - erste Freigabe
 -----------------------------------
   Patchformat pypatcher/1 (Befehlsliste + Datenbloecke):
