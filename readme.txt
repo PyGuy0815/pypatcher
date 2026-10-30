@@ -71,6 +71,11 @@ Typischer Ablauf
    python3 patcher.py status   -p projekt/
    python3 patcher.py verify   -p projekt/          (Ist-Stand pruefen)
    python3 patcher.py rollback -p projekt/          (letzten Patch zuruecknehmen)
+   Ein Befehl je Patch - pruefen, anwenden, Journal pruefen, testen:
+   python3 patcher.py run p.ppatch -p projekt/ -y -q --test "python3 -m unittest"
+   -> OK 0002-fix | 1 Datei | Journal OK | Tests OK
+   Den Testbefehl kann man in projekt/.patcher/config.json als "test"
+   hinterlegen; --rollback-on-failure nimmt bei Fehlern sofort zurueck.
    Bei Paketen genuegt ein beliebiges Paket als Angabe; die uebrigen
    muessen im selben Verzeichnis liegen.
 
@@ -106,7 +111,7 @@ Weitere Befehle: log, units, recover - siehe "python3 patcher.py -h" und
 manifest.txt Abschnitt 13. Spaeter: doctor, canon, invert.
 
 Exit-Codes: 0 OK, 1 Bedienfehler, 2 Patch ungueltig, 3 Konflikt,
-4 Journalfehler, 5 interner Fehler.
+4 Journalfehler, 5 interner Fehler, 6 Tests fehlgeschlagen.
 
 Beispiel ausprobieren
 ---------------------

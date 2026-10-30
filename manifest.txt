@@ -1073,7 +1073,7 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
   check     0.0.1    patcher.py check PATCH [-p PROJEKT]
                      Probelauf, aendert nichts
   apply     0.0.1    patcher.py apply PATCH [-p PROJEKT]
-                     [--match file|state|unit] [--exact]
+                     [--match file|state|unit] [--exact] [TESTS]
   pack      0.0.1    patcher.py pack PATCH -o DATEI [--compress] [--max-size N]
                      Patch/Entwurf umpacken (komprimieren, entpacken,
                      teilen); Inhalt und Hashes bleiben (6.10)
@@ -1081,6 +1081,7 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
                      pypatcher als eine Datei (zipapp, ca. 70 KB), z.B.
                      fuer eine KI-Sandbox; Aufruf python3 patcher.pyz ...
   run       0.0.1    patcher.py run PATCH [-p PROJEKT] [-n] [--set V=W ...]
+                     [TESTS]
                      Entwurf (z.B. von einer KI) oder Patch direkt
                      pruefen und anwenden; -n = Probelauf (6.9)
   rollback  0.0.1    patcher.py rollback [-p PROJEKT] [--to ID]
@@ -1113,11 +1114,26 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
   PATCH (show, check, apply, run): Patchdatei oder ein beliebiges Paket;
                Teile duerfen in einer Datei stehen.
   --set V=W (check, apply, run): Antwort auf INPUT vorgeben (6.8).
+  TESTS (apply, run; 0.0.2): ein Befehl je Patch. Nach dem Anwenden
+               wird das Journal geprueft (vor den Tests, die Dateien
+               anlegen duerfen), dann der Testbefehl im Projekt
+               ausgefuehrt, zuletzt eine Ergebniszeile ausgegeben - auch
+               mit -q, z.B. "OK 0005-x | 2 Dateien | Journal OK | Tests OK".
+               --test BEFEHL     Testbefehl (Shell), Vorgabe: "test" aus
+                                 .patcher/config.json
+               --no-test         keine Tests, auch nicht aus config.json
+               --rollback-on-failure  bei fehlgeschlagenen Tests sofort
+                                 zuruecknehmen; sonst bleibt der Patch
+                                 zur Untersuchung angewendet
+               Exit-Code 6 bei fehlgeschlagenen Tests, 3 bei Abweichungen
+               im Journal. Mit -q erscheint die Ausgabe der Tests nur,
+               wenn sie fehlschlagen.
 
 Exit-Codes:
   0 OK | 1 Bedienfehler | 2 Patch ungueltig/beschaedigt
   3 Konflikt (Hash stimmt nicht) | 4 Journal-/Transaktionsfehler
-  5 interner Fehler | 6 Umgebung ungeeignet (doctor)
+  5 interner Fehler | 6 Tests fehlgeschlagen (apply/run --test)
+  7 Umgebung ungeeignet (doctor, spaeter)
 
 
 --------------------------------------------------------------------------------

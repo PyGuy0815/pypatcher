@@ -19,3 +19,7 @@ class Conflict(PatcherError):
 
 class JournalError(PatcherError):
     exit_code = 4
+
+
+class TestsFailed(PatcherError):
+    exit_code = 6

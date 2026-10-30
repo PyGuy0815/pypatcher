@@ -4,6 +4,7 @@ import argparse
 import copy
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import zipapp
@@ -11,7 +12,7 @@ import zipapp
 from . import __version__, adapters, diff, engine, fileio, flow, journal as jr, patchfile
 from . import profile as pf
 from .adapters import ParseError
-from .errors import Conflict, PatchInvalid, PatcherError, UsageError
+from .errors import Conflict, PatchInvalid, PatcherError, TestsFailed, UsageError
 from .hashing import state_hash
 
 QUIET = False
@@ -148,7 +149,7 @@ def cmd_apply(args):
         return 1
     journal.commit_apply(patch, ctx, answers)
     out("Patch %s angewendet." % patch["id"])
-    return 0
+    return _after_apply(args, journal, patch, ctx)
 
 
 def cmd_run(args):
@@ -179,7 +180,62 @@ def cmd_run(args):
         return 1
     journal.commit_apply(patch, ctx, answers)
     out("Patch %s angewendet (zuruecknehmen: patcher.py rollback)." % patch["id"])
-    return 0
+    return _after_apply(args, journal, patch, ctx)
+
+
+def _test_command(args, journal):
+    if args.no_test:
+        return None
+    command = args.test or journal.config().get("test")
+    if command is not None and not isinstance(command, str):
+        raise UsageError("config.json: \"test\" muss ein Befehl (Text) sein")
+    return command or None
+
+
+def _run_tests(command, root):
+    """Testbefehl im Projekt ausfuehren; mit -q wird die Ausgabe nur bei
+    Fehlern gezeigt. -> True bei Erfolg."""
+    out("Tests: %s" % command)
+    sys.stdout.flush()
+    try:
+        result = subprocess.run(command, shell=True, cwd=root, stdin=subprocess.DEVNULL,
+                                stdout=subprocess.PIPE if QUIET else None,
+                                stderr=subprocess.STDOUT if QUIET else None)
+    except OSError as exc:
+        raise UsageError("Testbefehl nicht ausfuehrbar: %s" % exc)
+    if result.returncode and QUIET and result.stdout:
+        sys.stderr.write(result.stdout.decode("utf-8", "replace"))
+    return result.returncode == 0
+
+
+def _after_apply(args, journal, patch, ctx):
+    """Nach dem Anwenden: Journal pruefen (vor den Tests - Tests duerfen
+    Dateien anlegen), Tests (--test oder config.json "test"), eine
+    Ergebniszeile (auch mit -q)."""
+    count = len(ctx.touched())
+    parts = ["%d Datei%s" % (count, "" if count == 1 else "en")]
+    errors, notes = journal.verify()
+    for note in notes:
+        out("Hinweis: " + note)
+    for err in errors:
+        print("FEHLER: " + err)
+    parts.append("Journal OK" if not errors else "Journal: %d Abweichung%s"
+                 % (len(errors), "" if len(errors) == 1 else "en"))
+    command = _test_command(args, journal)
+    tests_ok = True
+    if command:
+        tests_ok = _run_tests(command, journal.root)
+        parts.append("Tests OK" if tests_ok else "Tests FEHLGESCHLAGEN")
+    if not tests_ok:
+        if args.rollback_on_failure:
+            journal.rollback_one(journal.history()["applied"][-1])
+            parts.append("zurueckgenommen")
+        print("FEHLER %s | %s" % (patch["id"], " | ".join(parts)))
+        raise TestsFailed("Tests fehlgeschlagen - Patch %s %s" % (
+            patch["id"], "zurueckgenommen" if args.rollback_on_failure else
+            "bleibt angewendet (zuruecknehmen: patcher.py rollback)"))
+    print("%s %s | %s" % ("OK" if not errors else "FEHLER", patch["id"], " | ".join(parts)))
+    return Conflict.exit_code if errors else 0
 
 
 def cmd_rollback(args):
@@ -601,12 +657,21 @@ def build_parser():
     p.add_argument("-o", "--output", required=True, help="Ausgabe *.ppatch")
     p.add_argument("--compress", action="store_true", help="Datenbloecke komprimieren")
     p.add_argument("--max-size", type=int, help="in Pakete mit hoechstens N Zeichen teilen")
+    def test_options(p):
+        p.add_argument("--test", metavar="BEFEHL",
+                       help='nach dem Anwenden ausfuehren, z.B. "python3 -m unittest" '
+                       '(Vorgabe: "test" aus .patcher/config.json)')
+        p.add_argument("--no-test", action="store_true", help="keine Tests ausfuehren")
+        p.add_argument("--rollback-on-failure", action="store_true",
+                       help="bei fehlgeschlagenen Tests automatisch zuruecknehmen")
+
     p = add("run", cmd_run, "Entwurf (z.B. von einer KI) direkt pruefen und anwenden",
             (common, project))
     p.add_argument("patch", help="Patch/Entwurf; Teile duerfen in einer Datei stehen")
     p.add_argument("-n", "--dry-run", action="store_true", help="nur pruefen, nichts aendern")
     p.add_argument("--set", action="append", metavar="NAME=WERT",
                    help="Antwort auf eine INPUT-Frage vorgeben (mehrfach moeglich)")
+    test_options(p)
     p = add("show", cmd_show, "Patch lesbar anzeigen und Hashes pruefen")
     p.add_argument("patch", help="Patchdatei (bei Paketen: eine beliebige davon)")
     p.add_argument("--no-diff", dest="diff", action="store_false", help="ohne Inhalte")
@@ -658,6 +723,8 @@ def build_parser():
                        help="zusaetzlich Text-Hashes pruefen (Kommentare/Leerraum exakt)")
         p.add_argument("--set", action="append", metavar="NAME=WERT",
                        help="Antwort auf eine INPUT-Frage vorgeben (mehrfach moeglich)")
+        if name == "apply":
+            test_options(p)
     p = add("rollback", cmd_rollback, "Patches zuruecknehmen", (common, project))
     p.add_argument("--to", metavar="ID", help="alle Patches nach ID zuruecknehmen")
     add("recover", cmd_recover, "Unterbrochene Transaktion bereinigen", (common, project))

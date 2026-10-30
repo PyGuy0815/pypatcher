@@ -61,7 +61,7 @@ R025  ERLEDIGT (0.0.2-pre1) Aus dem Praxistest mit einer anderen KI:
                 .DS_Store, Thumbs.db, desktop.ini, *.ppatch; "!muster"
                 nimmt eine Vorgabe zurueck), geaenderte Ignore-Regeln wirken
                 sofort, init --force (nur ohne angewendete Patches).
-R026  IN ARBEIT (0.0.2) Ein Befehl je Patch: run --test BEFEHL (auch
+R026  ERLEDIGT (0.0.2-pre1) Ein Befehl je Patch: run --test BEFEHL (auch
                 "test" in config.json), kompakte Ergebniszeile, Exit-Code 6
                 bei fehlgeschlagenen Tests, --rollback-on-failure.
 R027  IN ARBEIT (0.0.2) ki-prompt.txt: Startablauf fuer KIs mit

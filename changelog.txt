@@ -22,6 +22,15 @@ Versionen: siehe manifest.txt Abschnitt 16.
   - init --force legt das Journal neu an (nur ohne angewendete Patches);
     vorher musste .patcher/ von Hand verschoben werden.
 
+  Ein Befehl je Patch (apply/run):
+  - --test BEFEHL bzw. "test" in .patcher/config.json: nach dem Anwenden
+    Journal pruefen und Tests ausfuehren; --no-test schaltet ab.
+  - Ergebniszeile, auch mit -q: "OK <id> | n Dateien | Journal OK |
+    Tests OK". Statt check, apply, Tests, verify, status einzeln.
+  - Exit-Code 6 bei fehlgeschlagenen Tests; --rollback-on-failure nimmt
+    den Patch dann zurueck, sonst bleibt er zur Untersuchung angewendet.
+    (Exit-Code fuer doctor, spaeter, wird 7.)
+
 0.0.1 (2026-10-30) - erste Freigabe
 -----------------------------------
   Patchformat pypatcher/1 (Befehlsliste + Datenbloecke):
