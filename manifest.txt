@@ -115,6 +115,8 @@ Kernanforderungen:
       Block-Kodierungen.
   E27 KI mit Werkzeugen nutzt pypatcher selbst (patcher.pyz): prueft,
       versiegelt und liefert den Patch als Datei (6.9, ki-prompt.txt).
+  E28 Viele Sprachen und Datenformate: zusaetzlich C/C++ (Grundlage fuer
+      weitere Sprachen der C-Familie) und JSON (5.6.4, 5.6.5).
 
 
 --------------------------------------------------------------------------------
@@ -391,11 +393,36 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
   - Syntaxpruefung: xml streng (expat); html ist fehlertolerant wie
     Browser, geprueft wird nur die Lesbarkeit.
 
-5.6.4 Spaeter (nach Bedarf, request.txt)
+5.6.4 mode "c" und "cpp" - Normalform c/1 (umgesetzt)
+  c fuer *.c, *.h; cpp fuer *.cpp, *.cc, *.cxx, *.c++, *.hpp, *.hh, *.hxx,
+  *.ipp, *.tpp. Eigener Tokenizer (Kommentare, Zeichenketten mit Praefix,
+  Raw-Strings R"x(...)x", Zeichenliterale, Zahlen mit ' als Trenner,
+  Praeprozessorzeilen inkl. Fortsetzung mit \).
+  - Kommentare und Leerraum zaehlen nicht; Zeichenketten exakt.
+  - Praeprozessorzeilen (#include, #define ...) zaehlen, ihr Leerraum ist
+    vereinheitlicht; Kommentare darin zaehlen nicht.
+  - Syntaxpruefung: Tokens gueltig, Klammern ausgeglichen (kein
+    vollstaendiger Compiler-Parser).
+  - Einheiten werden heuristisch erkannt; Zweifelsfaelle sind keine
+    Einheit (dann Textbefehle).
+  Gleiche Grundlage spaeter fuer Java, C#, Go, PHP, Rust (R023).
+
+5.6.5 mode "json" - Normalform json/1 (umgesetzt)
+  *.json, *.geojson, *.webmanifest. Normalform = die Daten selbst:
+  - Formatierung zaehlt nicht; Reihenfolge der Schluessel standardmaessig
+    auch nicht (aendert die Daten nicht) - mit keyorder=keep zaehlt sie.
+  - Reihenfolge in Listen zaehlt; Zahlen behalten ihre Art (1 != 1.0);
+    doppelte Schluessel bleiben erhalten.
+  - Syntaxpruefung streng (wie json.loads); keine Kommentare (JSONC).
+  - Kommas: nach Einfuegen/Loeschen/Ersetzen von Einheiten werden an den
+    Grenzen fehlende Kommas ergaenzt und ueberzaehlige (vor } bzw. ])
+    entfernt (repair) - nur dort, wo die Datei sonst ungueltig waere.
+
+5.6.6 Spaeter (nach Bedarf, request.txt)
   ts / tsx / jsx    TypeScript und JSX auf Basis des JS-Tokenizers
+  java, cs, go, php, rust  auf Basis des C-Tokenizers
   shell             Kommentare entfernt, Leerraum zwischen Woertern
                     vereinheitlicht, Zeilenumbrueche bleiben
-  json              parsen, Schluessel sortiert, kompakt ausgeben
   yaml              parsen (Einrueckung funktional)
   ini               Abschnitte/Schluessel/Werte getrimmt, Kommentare weg
   make              Tabs am Zeilenanfang funktional
@@ -721,6 +748,18 @@ Beispiel (Pruefstufe std):
     direkt darueber gehoeren dazu. start-of:/end-of: verlangen, dass
     Start- und End-Tag jeweils allein in ihrer Zeile stehen.
     UCOPY as= wird nicht unterstuetzt.
+  C/C++:
+    add                  Funktion; struct/union/enum/class ueber ihren Namen
+    app::Box::get        Namespace/Klasse/Methode wie im Code mit "::";
+                         auch Definitionen ausserhalb: "Box::get" (Template-
+                         Argumente entfallen: Box<int>::get -> Box::get)
+    operator==, ~Box     Operatoren, Destruktoren
+    Kommentarzeilen direkt darueber gehoeren dazu; Felder, Deklarationen
+    ohne Rumpf und Initialisierungen sind keine Einheiten.
+  JSON:
+    server/port          Eintrag ueber den Pfad (Schluessel, Listen-Index)
+    plugins/0/name       "/" und "~" in Schluesseln als ~1 bzw. ~0
+    UCOPY as= benennt den Schluessel um.
   Nicht gefunden oder nicht eindeutig -> Konflikt, Abbruch.
   Einheiten muessen zeilenweise abgrenzbar sein (Anfang am Zeilenanfang,
   Ende am Zeilenende); was sich eine Zeile mit anderem Code teilt, ist
@@ -831,10 +870,12 @@ Beispiel (Pruefstufe std):
   js       Funktionen, Klassen, Methoden; Normalform js/1
   css/scss Regeln und At-Regeln (verschachtelt); Normalform css/1
   html/xml Elemente (robuste Adressen); Normalform html/1, xml/1
+  c/cpp    Funktionen, struct/union/enum, Klassen, Methoden, namespace
+  json     Eintraege von Objekten und Listen (Pfade); Kommas automatisch
 
 8.3 Geplant (siehe request.txt)
-  ts/tsx/jsx; spaeter shell, json, yaml, ini,
-  markdown, make, c/c++, java - jeweils mit eigener Normalform
+  ts/tsx/jsx; java/cs/go/php/rust (C-Grundlage); spaeter shell, yaml,
+  ini, markdown, make - jeweils mit eigener Normalform
   (Abschnitt 5.6). Keine Aenderung am Patchformat noetig, nur neue
   Profilnamen.
 
@@ -1083,6 +1124,9 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre1):
                           Einrueckungs-Signatur)
       js.py               mode js: Tokenizer, Einheiten, Normalform js/1
       css.py              mode css/scss: Tokenizer, Parser, Normalform css/1
+      clike.py            mode c/cpp: Tokenizer, Einheiten, Normalform c/1
+      jsondata.py         mode json: Parser mit Positionen, Pfade,
+                          Normalform json/1, Kommakorrektur (repair)
       markup.py           mode html/xml: Elementbaum mit Positionen,
                           Adressen, Normalform html/1, xml/1
     engine.py             alle Patch-Befehle im Speicher (seal + apply)
@@ -1109,6 +1153,8 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre1):
                           script), Adressen, Befehle, create
     test_script.py        Ablaufsteuerung, run mit Chat-Entwuerfen in
                           Teilen, seal ueber alle Ablaeufe, Prompt-Beispiel
+    test_clike.py         C/C++: Normalform, Einheiten, Befehle, create
+    test_json.py          JSON: Normalform, Pfade, Kommas, Befehle, create
     test_pack.py          Komprimierung, USES/unbekannte Funktionen, pack,
                           bundle (Einzeldatei)
   ki-prompt.txt           Anleitung fuer KI-Assistenten

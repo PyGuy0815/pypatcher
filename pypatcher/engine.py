@@ -237,7 +237,7 @@ def op_replace_unit(ctx, path, doc, ch, prof, fs, what):
     unit = _find(ua, info, ch.get("unit"), what)
     ctx.expect(ch, "unit_hash_before", adapters.unit_hash(doc, info, unit, prof), what, "unit")
     new = _abs(ch, "new", unit.indent, fs, what, fs.literal(ch))
-    nd = doc.with_lines(doc.lines[:unit.start] + new + doc.lines[unit.end:])
+    nd = ua.repair(doc.with_lines(doc.lines[:unit.start] + new + doc.lines[unit.end:]))
     if unit.kind == "header":
         info2 = _info(ua, nd, what, result=True)
         if info2.units[0].end != len(new):
@@ -256,6 +256,7 @@ def _place_unit(ua, ctx, doc, ch, prof, fs, what):
     if not new:
         raise PatchInvalid("%s: new ist leer" % what)
     nd, start = _insert(ua, doc, idx, new, top)
+    nd = ua.repair(nd)
     _unit_after(ua, ctx, ch, nd, start, start + len(new), prof, what, key="unit")
     return nd
 
@@ -269,7 +270,7 @@ def op_delete_unit(ctx, path, doc, ch, prof, fs, what):
     info = _info(ua, doc, what)
     unit = _find(ua, info, ch.get("unit"), what)
     ctx.expect(ch, "unit_hash_before", adapters.unit_hash(doc, info, unit, prof), what, "unit")
-    return _remove(ua, doc, unit.start, unit.end)
+    return ua.repair(_remove(ua, doc, unit.start, unit.end))
 
 
 def _split_from(value, path, what):
@@ -334,10 +335,11 @@ def op_move_unit(ctx, path, doc, ch, prof, fs, what):
     rel = lay.to_rel(block, unit.indent, fs.unit)
     if rel is None:
         raise Conflict("%s: Einheit ist nicht relativ darstellbar - move nicht moeglich" % what)
-    nd1 = _remove(ua, doc, unit.start, unit.end)
+    nd1 = ua.repair(_remove(ua, doc, unit.start, unit.end))
     idx, base, top = _position(ua, _info(ua, nd1, what, result=True), ch, what)
     new = lay.to_abs(rel, base, fs.unit)
     nd, start = _insert(ua, nd1, idx, new, top)
+    nd = ua.repair(nd)
     _unit_after(ua, ctx, ch, nd, start, start + len(new), prof, what)
     return nd
 

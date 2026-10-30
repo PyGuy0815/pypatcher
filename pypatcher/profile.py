@@ -41,6 +41,24 @@ MODES = {
         "eol": ("normalize", "keep"),
         "encoding": None,
     }),
+    "c": (1, {
+        "comments": ("ignore", "keep"),
+        "whitespace": ("ignore", "keep"),
+        "eol": ("normalize", "keep"),
+        "encoding": None,
+    }),
+    "cpp": (1, {
+        "comments": ("ignore", "keep"),
+        "whitespace": ("ignore", "keep"),
+        "eol": ("normalize", "keep"),
+        "encoding": None,
+    }),
+    "json": (1, {
+        "keyorder": ("ignore", "keep"),
+        "whitespace": ("ignore", "keep"),
+        "eol": ("normalize", "keep"),
+        "encoding": None,
+    }),
     "html": (1, {
         "comments": ("ignore", "keep"),
         "whitespace": ("keep", "ignore"),
@@ -61,6 +79,9 @@ EXTENSIONS = {
     "css": (".css",),
     "scss": (".scss", ".less"),
     "html": (".html", ".htm", ".xhtml"),
+    "c": (".c", ".h"),
+    "json": (".json", ".geojson", ".webmanifest"),
+    "cpp": (".cpp", ".cc", ".cxx", ".c++", ".hpp", ".hh", ".hxx", ".ipp", ".tpp"),
     "xml": (".xml", ".svg", ".xsd", ".xsl", ".xslt"),
 }
 

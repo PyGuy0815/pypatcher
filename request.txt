@@ -6,10 +6,10 @@ R001  ERLEDIGT (0.0.1-pre1) Erste Implementierung gemaess manifest.txt
                 (Modi raw, text, python mit Normalform python/1,
                 Vergleichsprofile, Befehle "pre1" aus Abschnitt 13,
                 alle Patch-Befehle aus Abschnitt 7.1, create).
-R002  IN ARBEIT  Weitere Modi/Normalformen: js, css/scss, html/xml
-                (ERLEDIGT 0.0.1-pre1); ts/tsx/jsx (R016, hinten angestellt);
-                spaeter cpp, c, java, shell, json, yaml, ini, markdown,
-                make.
+R002  IN ARBEIT  Weitere Modi/Normalformen: js, css/scss, html/xml, c/cpp,
+                json (ERLEDIGT 0.0.1-pre1); ts/tsx/jsx (R016, hinten
+                angestellt); weitere C-Sprachen (R023); spaeter shell,
+                yaml, ini, markdown, make.
 R003  OFFEN     Signierte Patches (HMAC-SHA256 oder Ed25519) als
                 zusaetzliche Kopfangabe.
 R004  OFFEN     Patch-Buendel: mehrere Patches in einer Datei/Archiv
@@ -52,3 +52,7 @@ R021  OFFEN     Weitere Kodierungen bei Bedarf (z.B. z85, lzma) - als neue
 R022  OFFEN     Token-sparende Entwurfsbefehle fuer KIs (z.B. Ersetzen
                 einzelner Zeilen per eindeutigem Muster), wenn sich in der
                 Praxis Bedarf zeigt.
+R023  OFFEN     Weitere Sprachen der C-Familie auf Basis von clike.py:
+                Java, C#, Go, PHP, Rust (je nach Bedarf).
+R024  OFFEN     JSON mit Kommentaren (JSONC, z.B. tsconfig/VS-Code-
+                Einstellungen) und JSON5.

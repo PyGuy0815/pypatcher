@@ -3,15 +3,17 @@
 from ..hashing import sha256_bytes, sha256_text
 from ..profile import profile_id
 from .base import ParseError
+from .clike import CAdapter, CppAdapter
 from .css import CssAdapter, ScssAdapter
 from .js import JsAdapter
+from .jsondata import JsonAdapter
 from .markup import HtmlAdapter, XmlAdapter
 from .python import PythonAdapter
 from .text import TextAdapter
 
 ADAPTERS = {"text": TextAdapter(), "python": PythonAdapter(), "js": JsAdapter(),
             "css": CssAdapter(), "scss": ScssAdapter(), "html": HtmlAdapter(),
-            "xml": XmlAdapter()}
+            "xml": XmlAdapter(), "c": CAdapter(), "cpp": CppAdapter(), "json": JsonAdapter()}
 PY = ADAPTERS["python"]
 
 __all__ = ["ADAPTERS", "PY", "ParseError", "get", "file_hash", "unit_hash", "text_hash"]

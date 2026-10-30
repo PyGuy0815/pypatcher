@@ -96,6 +96,17 @@ Versionen: siehe manifest.txt Abschnitt 16 (Beginn 0.0.1-pre1).
     pruefen, versiegeln, als Datei liefern) und Hinweise zum Sparen von
     Ausgabe.
 
+  Weitere Sprachen und Datenformate:
+  - mode c (*.c, *.h) und cpp (*.cpp, *.hpp ...): Normalform c/1
+    (Kommentare/Leerraum egal, Zeichenketten und Praeprozessor zaehlen),
+    Einheiten Funktionen, struct/union/enum, Klassen, Methoden, namespace
+    ("app::Box::get"); Zugriffsangaben (public:) werden beachtet.
+  - mode json (*.json ...): Normalform json/1 (Daten statt Formatierung,
+    Schluesselreihenfolge optional), Einheiten ueber Pfade
+    ("server/port"), Kommas werden beim Einfuegen/Loeschen gerichtet.
+  - Adapter koennen nach Einheiten-Aenderungen Trennzeichen richten
+    (repair, z.B. JSON-Kommas).
+
   Selbsttest: die Aenderungen an pypatcher werden selbst als Patch
   erzeugt (create) und angewendet - siehe patch/.
 

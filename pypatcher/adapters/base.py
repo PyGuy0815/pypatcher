@@ -95,6 +95,11 @@ class Adapter(object):
     def rename(self, rel_lines, name):
         raise PatchInvalid("as= wird bei %s nicht unterstuetzt" % self.label)
 
+    def repair(self, doc):
+        """Nach Einfuegen/Loeschen/Ersetzen von Einheiten: formatbedingte
+        Trennzeichen richten (JSON: Kommas). Standard: nichts aendern."""
+        return doc
+
     # -- gemeinsame Hilfen ----------------------------------------------
 
     @staticmethod

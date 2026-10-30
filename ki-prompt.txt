@@ -45,6 +45,10 @@ sichert vorher und kann alles zuruecknehmen.
            verschachtelt "@media (max-width: 600px)/.btn"
    HTML/XML: #id, sonst Pfad mit Tag, Klassen, Nummer:
            html/body/main/div.card[2]
+   C/C++:  name, struct/class-Name, Klasse::methode, ns::Klasse::methode
+   JSON:   Pfad aus Schluesseln/Indizes, z.B. server/port, plugins/0
+           (Kommas beim Einfuegen/Loeschen richtet das Programm)
+   Andere Dateien (Shell, YAML, Markdown ...): nur TEXT/TINS/TDEL/ADD/REP.
    Adressen mit Leerzeichen in "..." setzen.
    Zum Ersetzen einer Einheit gehoert alles dazu: Kommentare direkt
    darueber, Decorators, Kopfzeile und Rumpf.
