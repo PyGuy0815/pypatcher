@@ -3,6 +3,27 @@ PYPATCHER - CHANGELOG
 Format: Version (Datum) - Aenderungen. Neueste oben.
 Versionen: siehe manifest.txt Abschnitt 16 (Beginn 0.0.1-pre1).
 
+0.0.1-pre1 (2026-10-30)
+-----------------------
+  Erste Implementierung gemaess manifest.txt.
+  - Befehle: init, status, verify, log, units, show, seal, check, apply,
+    rollback, recover.
+  - Patch-Befehle: Dateien add/delete/replace/move/copy; Einheiten
+    replace_unit/add_unit/delete_unit/copy_unit/move_unit (auch zwischen
+    Dateien, Paar ueber move_id); Text replace_text/insert_text/
+    delete_text mit optionalem scope.
+  - Vergleichsprofile raw/text/python; Normalform python/1 aus
+    Syntaxbaum + Einrueckungs-Signatur; Hash auf Python 3.8, 3.11, 3.12
+    und 3.13 identisch (f-String-Teile werden vereinheitlicht, da
+    Python 3.12 abweichende Baeume erzeugt).
+  - Relative Einrueckung im Patch, layout als Check, Ausweichform literal.
+  - Journal mit Sicherung, atomarem Schreiben, exaktem Rollback (auch
+    --to), recover nach Absturz; verify unterscheidet funktionale und
+    kosmetische Abweichungen.
+  - Entwurf: "source" fuer add/replace, Binaerdateien automatisch raw,
+    seal --state.
+  - Beispiel examples/ und 45 Tests (unittest).
+
 Konzeptphase (ohne Version)
 ---------------------------
 2026-10-30  Konzept Stufe 6

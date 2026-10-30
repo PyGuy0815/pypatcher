@@ -2,8 +2,8 @@
  PYPATCHER - MANIFEST (ausfuehrliche Programmbeschreibung / Konzept)
 ================================================================================
 Programm      : patcher.py
-Version       : keine (Konzeptphase). Erste Version: 0.0.1-pre1
-Status        : KONZEPT - bereit zur Umsetzung
+Version       : 0.0.1-pre1
+Status        : VORABVERSION (noch nicht freigegeben)
 Sprache       : Python >= 3.8, nur Standardbibliothek (keine Fremdpakete)
 Repository    : pypatcher (privat, eigenstaendig)
 Stand         : 2026-10-30
@@ -145,8 +145,12 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
 
 4.4 Zustands-Hash (Projekt)
   SHA-256 ueber die sortierte Liste "relativer_pfad\0hash\n" aller
-  verwalteten Dateien. Ignoriert werden ".patcher/" und Muster aus
+  verwalteten Dateien. Ignoriert werden ".patcher/", die Vorgaben
+  .git, __pycache__, *.pyc, Muster aus config.json ("ignore") und aus
   ".patcherignore" (eine fnmatch-Maske je Zeile, # = Kommentar).
+  Profil je Datei fuer den Zustands-Hash: vom Patch beruehrte Dateien
+  mit dem Profil aus dem Patch, alle anderen automatisch (Binaerdatei ->
+  raw, *.py und parsebar -> python, sonst text).
 
 4.5 Pruefkette innerhalb einer Datei
   Jeder Dateieintrag hat hash_before und hash_after der ganzen Datei.
@@ -296,6 +300,10 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
     - versionsbedingte Knoten werden vereinheitlicht (z.B. Index/
       ExtSlice aus Python 3.8 -> Form ab 3.9)
     - Konstanten mit Typkennung: str/bytes/int/float/complex/bool/None
+    - f-Strings: leere Textteile entfallen, benachbarte Textteile werden
+      zusammengefasst (Python 3.12 erzeugt sonst abweichende Baeume)
+    Gepruefte Stabilitaet: identischer Hash auf Python 3.8, 3.11, 3.12
+    und 3.13 (Referenzwert in tests/test_normalform.py).
   Laesst sich eine Datei nicht parsen (Syntaxfehler), wird sie
   abgelehnt; ein Patch kann fuer diese Datei mode "text" festlegen.
 
@@ -461,12 +469,23 @@ Dateieintrag:
   compare       Vergleichsprofil (Abschnitt 5.2). Von seal/create immer
                 vollstaendig ausgeschrieben, damit der Patch eindeutig ist.
   to            nur bei move/copy: neuer Pfad (Ziel darf nicht existieren).
+  literal       true: Zeilen stehen exakt wie in der Datei (6.1).
+  old_literal   nur replace: old steht exakt wie in der Datei.
+  newline       optional bei add/replace: lf | crlf | cr (Vorgabe: bei
+                replace wie bisher, bei add lf).
   hash_before / hash_after             Funktions-Hash (null bei add/delete)
   text_hash_before / text_hash_after   Text-Hash (informativ, --exact)
   old / new     bei add/delete/replace: ganzer Inhalt (Zeilen bzw. base64).
   layout        optionaler Einrueckungs-Check (Abschnitt 6.1).
   final_newline bei add/replace (Textmodi): endet die Datei mit Umbruch.
   changes       nur bei modify: Liste der Aenderungen (Abschnitt 7).
+
+Felder einer Aenderung (zusaetzlich zu den Angaben aus Abschnitt 7):
+  file_hash_before / file_hash_after   Datei-Zwischenstaende (4.5)
+  unit_hash_before / unit_hash_after   Einheit vorher/nachher
+  unit_after        Unit-Pfad nach replace_unit/move_unit (z.B. nach
+                    Umbenennung)
+  source_unit_hash  copy_unit/move_unit aus Quelle: Hash der Quelle
 
 Da alte UND neue Inhalte enthalten sind, ist jeder Patch IN SICH
 UMKEHRBAR (funktional): Rollback ist auch ohne Journal allein aus der
@@ -502,8 +521,10 @@ Patchdatei moeglich. Mit Journal wird zusaetzlich der exakte Text
     insert_text    Text vor/nach einem Anker einfuegen
                    ("anchor": [Zeilen], "position": "before"|"after")
     delete_text    Textblock entfernen
-    Der Block bzw. Anker wird ueber die Normalform gesucht und muss GENAU
-    EINMAL vorkommen, sonst Konflikt.
+    Der Block bzw. Anker muss GENAU EINMAL vorkommen, sonst Konflikt.
+    Suche: zeilenweise; relative Einrueckung exakt (Grundtiefe = Tiefe
+    der Zeile, an der der Block beginnt); bei whitespace=ignore zaehlen
+    Leerzeichen/Tabs am Zeilenende und reine Leerraum-Zeilen nicht.
     Optional "scope": "<unit>" - gesucht wird nur innerhalb dieser
     Einheit (z.B. wenige Zeilen in einer grossen Funktion aendern).
     Geprueft werden dann zusaetzlich unit_hash_before/after der Einheit.
@@ -541,8 +562,13 @@ Patchdatei moeglich. Mit Journal wird zusaetzlich der exakte Text
               Vorrang: Was zum @header gehoert, gehoert nie zu einer
               Funktion - auch wenn die Funktion ohne Leerzeile folgt.
   Leerzeilen zwischen Einheiten gehoeren zu keiner Einheit; add_unit,
-  delete_unit, copy_unit und move_unit halten den in der Datei ueblichen
-  Abstand ein (Python: 2 Leerzeilen oben, 1 Leerzeile in Klassen).
+  delete_unit, copy_unit und move_unit halten den ueblichen Abstand ein:
+    Einfuegen : 2 Leerzeilen auf oberster Ebene, 1 Leerzeile in Klassen
+                (vor und nach dem Block; vorhandene Leerzeilen zaehlen
+                mit; direkt nach einer Zeile mit ":" keine).
+    Entfernen : von den Leerzeilen davor und danach bleibt die groessere
+                Anzahl stehen.
+  Der Text-Hash aendert sich dadurch, der Funktions-Hash nicht.
 
 7.4 Kopieren und Verschieben von Einheiten
   copy_unit (im Dateieintrag der ZIELdatei):
@@ -551,7 +577,8 @@ Patchdatei moeglich. Mit Journal wird zusaetzlich der exakte Text
     "as"        optional: neuer Name der Kopie (nur der Name in der
                 def/class-Zeile wird geaendert)
     "new"       der eingefuegte Text (im Patch gespeichert -> Patch
-                bleibt selbsterklaerend und umkehrbar)
+                bleibt selbsterklaerend und umkehrbar). Fehlt er im
+                Entwurf, traegt seal ihn aus der Quelle ein.
     Pruefung: source_unit_hash == Hash der Quelle zum Zeitpunkt der
     Ausfuehrung; unit_hash_after der Kopie; Datei-Hash-Kette.
     Die Quelle bleibt unveraendert.
@@ -646,12 +673,18 @@ Ein Entwurf ist ein Patch ohne Hashes und ohne old-Inhalte. Minimal:
 "patcher.py seal entwurf.json --base PROJEKT -o 0003-udf.ppatch.json"
 liest den Ist-Stand aus PROJEKT, ergaenzt fehlende Profil-Optionen mit
 Vorgaben, das layout als Check (aus der Datei erkannt, ausser
---no-layout),
-old-Inhalte und alle Hashes, prueft die Einrueckung (python),
-wendet den Patch probeweise im Speicher an (inkl. validate) und schreibt
-den fertigen Patch inkl. patch_hash. Aendert ein Entwurf nur Kommentare
-oder unwichtigen Leerraum (Funktions-Hash vorher == nachher), weist seal
-darauf hin.
+--no-layout), old-Inhalte und alle Hashes, prueft die Einrueckung
+(python), wendet den Patch probeweise im Speicher an (inkl. validate)
+und schreibt den fertigen Patch inkl. patch_hash. Aendert ein Entwurf
+nur Kommentare oder unwichtigen Leerraum (Funktions-Hash vorher ==
+nachher), weist seal darauf hin.
+
+Zusaetzlich im Entwurf:
+  "source": "pfad"   bei add/replace: Inhalt aus dieser Datei lesen
+                     (relativ zum Verzeichnis des Entwurfs). Binaer-
+                     dateien werden automatisch mode raw.
+  --state            traegt state_before/state_after ein (match=state).
+Beispiel: examples/entwurf-beispiel.json
 
 
 --------------------------------------------------------------------------------
@@ -659,7 +692,7 @@ darauf hin.
 --------------------------------------------------------------------------------
   Entwicklungsumgebung                       Zielumgebung
   --------------------                       ------------
-  (a) automatisch:                           patcher.py doctor   (einmalig)
+  (a) automatisch (spaeter):                 patcher.py doctor (spaeter)
       patcher.py create ALT NEU -o p.json    patcher.py init     (einmalig)
   (b) von Hand:                              patcher.py check p.json
       Entwurf schreiben ->                   patcher.py apply p.json
@@ -686,8 +719,11 @@ Verzeichnis ".patcher/" in der Projektwurzel:
     history.json         Stapel der angewendeten Patches: ID, Zeitpunkt,
                          patch_hash, Zustand vorher/nachher
     patches/<ID>.ppatch.json   Kopie jedes angewendeten Patches
-    backups/<ID>/        exakte Originaldateien vor dem Patch
+    backups/<ID>/files/  exakte Originaldateien vor dem Patch
+    backups/<ID>/meta.json     welche Dateien vorher existierten
     txn.json             nur waehrend einer laufenden Transaktion
+  history.json enthaelt je Patch und Datei einen Fingerabdruck vorher
+  und nachher (Profil, hash, text_hash, Hash der rohen Bytes).
 
 Rollback:
   - Standard: nur der zuletzt angewendete Patch (LIFO).
@@ -696,6 +732,9 @@ Rollback:
     dem Patch entspricht (hash_after). Dann werden die exakten
     Originaldateien aus backups/<ID>/ zurueckgeschrieben (inkl.
     Kommentare und Formatierung). Weicht der Ist-Stand ab -> Abbruch.
+    Durch den Patch angelegte Dateien werden entfernt, dadurch leer
+    gewordene Verzeichnisse ebenfalls. Danach werden Sicherung und
+    Patch-Kopie geloescht; der Patch kann erneut angewendet werden.
   - Fehlt das Journal, kann der Patch umgekehrt angewendet werden
     ("invert"): old <-> new, add <-> delete, Hashes getauscht,
     Aenderungen in umgekehrter Reihenfolge.
@@ -718,9 +757,14 @@ apply laeuft in drei Phasen:
                 schreiben, dann os.replace() (atomar je Datei). Danach
                 history.json und state.json aktualisieren, txn.json
                 loeschen.
-Findet ein Programmstart eine vorhandene txn.json (Absturz), verweigert
-der Patcher alle Aktionen ausser "recover", das den Stand aus
-backups/<ID>/ wiederherstellt. Dateirechte bleiben erhalten.
+Schlaegt das Schreiben fehl, wird sofort aus der Sicherung
+wiederhergestellt. Findet ein Programmstart eine vorhandene txn.json
+(Absturz), verweigern apply/rollback die Arbeit; "recover" bereinigt:
+  - apply unterbrochen, Patch noch nicht im Journal -> Ausgangsstand aus
+    backups/<ID>/ wiederherstellen
+  - apply unterbrochen, Patch bereits im Journal -> nur txn.json loeschen
+  - rollback unterbrochen -> Rollback zu Ende fuehren
+Dateirechte bleiben erhalten.
 
 
 --------------------------------------------------------------------------------
@@ -740,10 +784,10 @@ backups/<ID>/ wiederherstellt. Dateirechte bleiben erhalten.
   log       pre1     patcher.py log [-p PROJEKT]
   units     pre1     patcher.py units DATEI [--compare P]
                      Einheiten einer Datei + Hashes
-  show      pre1     patcher.py show PATCH
-                     Lesbare Zusammenfassung / Diff
+  show      pre1     patcher.py show PATCH [--no-diff]
+                     Lesbare Zusammenfassung / Diff, prueft patch_hash
   seal      pre1     patcher.py seal ENTWURF --base PROJEKT -o DATEI
-                     [--no-layout]
+                     [--no-layout] [--state]
   check     pre1     patcher.py check PATCH [-p PROJEKT]
                      Probelauf, aendert nichts
   apply     pre1     patcher.py apply PATCH [-p PROJEKT]
@@ -764,8 +808,9 @@ backups/<ID>/ wiederherstellt. Dateirechte bleiben erhalten.
 
   Alle Patch-Befehle aus Abschnitt 7.1 (inkl. copy/move, delete_text,
   scope) sind ab pre1 enthalten.
-  Allgemein: -v (ausfuehrlich), -q (still), -y (keine Rueckfragen),
-             --allow-mixed-eol, --version
+  Allgemein: -v (ausfuehrlich, bei internen Fehlern mit Details),
+             -q (still), -y (keine Rueckfragen; ohne Terminal wird
+             ohnehin nicht gefragt), --allow-mixed-eol, --version
   --compare P: Profil als Kurzform, z.B. "python" oder
                "text,whitespace=keep" oder "raw".
 
@@ -776,36 +821,39 @@ Exit-Codes:
 
 
 --------------------------------------------------------------------------------
-14. ARCHITEKTUR (geplant)
+14. ARCHITEKTUR
 --------------------------------------------------------------------------------
-Ein Paket mit einem Einstiegsskript:
+Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre1):
 
   patcher.py              Einstieg (CLI)
   pypatcher/
-    __init__.py           __version__
-    hashing.py            Hashes, Text/Binaer-Erkennung
+    __init__.py           __version__, Formatversion
+    errors.py             Fehlerklassen mit Exit-Codes
+    hashing.py            SHA-256, Zustands-Hash
     profile.py            Vergleichsprofile: Rangfolge, Pruefung,
                           Kennung, Mindestprofile
     fileio.py             Lesen/Schreiben mit Erhalt von EOL/BOM/Encoding,
                           atomares Schreiben
-    patchfile.py          JSON-Format lesen/schreiben/validieren,
-                          patch_hash, (signature)
+    layout.py             relative Einrueckung (Umrechnung, Erkennung)
+    patchfile.py          JSON-Format lesen/schreiben/validieren, patch_hash
     adapters/
-      base.py             Adapter-Schnittstelle + Registry
-      raw.py              mode raw
+      __init__.py         Registry, Datei-/Unit-/Text-Hash (raw direkt)
       text.py             mode text
-      python.py           mode python, Normalform python/1
-                          (Syntaxbaum + Einrueckungs-Signatur)
-    ops.py                Operationen inkl. apply() und invert()
-    engine.py             Transaktion: pruefen, sichern, schreiben
-    journal.py            .patcher/-Verwaltung, Historie, Rollback, Recover
-    diff.py               "create": Baumvergleich, Einheiten-Erkennung
+      python.py           mode python: Einheiten, Positionen,
+                          Normalform python/1 (Syntaxbaum +
+                          Einrueckungs-Signatur)
+    engine.py             alle Patch-Befehle im Speicher (seal + apply)
+    journal.py            .patcher/: Zustand, Historie, Sicherung,
+                          Schreiben, Rollback, Recover, Verify
     cli.py                argparse, Befehle, Ausgaben
-  tests/                  unittest (Standardbibliothek); insbesondere
-                          Normalform-Tests: Kommentar-/Leerraum-Aenderung
-                          -> gleicher hash; funktionale Aenderung,
-                          Einrueckungstiefe, Tab/Leerzeichen -> anderer
-                          hash; je Profil-Option ein Testfall.
+  tests/                  unittest (Standardbibliothek):
+    test_normalform.py    Normalform je Profil-Option, Referenz-Hash
+    test_units.py         Einheiten, Kopf, Einrueckungs-Umrechnung
+    test_flow.py          seal/apply/rollback/recover aller Befehle,
+                          Konflikte, CRLF, Manipulation, Zustand
+  examples/               Beispiel-Entwurf
+  Spaeter: diff.py fuer "create".
+  Tests ausfuehren: cd tests && python3 -m unittest
 
 Fuer die Weitergabe kann spaeter optional eine Einzeldatei bzw. ein
 .pyz-Archiv (zipapp) erzeugt werden.
