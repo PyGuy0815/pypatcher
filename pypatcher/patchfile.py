@@ -356,8 +356,17 @@ def split(patch_id, body, max_size, hash_len=DEFAULT_HASH_LEN, draft=False):
             raise PatchInvalid("Zeile mit %d Zeichen passt nicht in ein Paket (--max-size)"
                                % len(line))
         if size + len(line) > budget:
-            chunks.append("".join(cur))
-            cur, size = [], 0
+            # Leerzeilen und Zaeune am Paketende entfernt der Leser (Chat-Reste) -
+            # solche Zeilen daher ins naechste Paket nehmen
+            keep = len(cur)
+            while keep and (not cur[keep - 1].strip() or cur[keep - 1].strip().startswith(FENCE)):
+                keep -= 1
+            carry = cur[keep:] if keep else []
+            if sum(map(len, carry)) + len(line) > budget:
+                raise PatchInvalid("--max-size %d ist zu klein (Leerzeilen am Paketende)"
+                                   % max_size)
+            chunks.append("".join(cur[:keep] if keep else cur))
+            cur, size = carry, sum(map(len, carry))
         cur.append(line)
         size += len(line)
     chunks.append("".join(cur))
@@ -409,26 +418,72 @@ def _read_parts(path):
     except UnicodeDecodeError as exc:
         raise PatchInvalid("%s: kein UTF-8 (%s)" % (path, exc))
     text = text.replace("\r\n", "\n").lstrip("\ufeff")
-    parts, current = [], None
+    parts, current, previous = [], None, ""
+    block = [None, 0]               # Datenblock: None | "count" (rest) | "dot"
     for line in text.split("\n"):
-        if line.startswith(MAGIC + " "):
-            tokens = line.split()
+        tokens = line.split() if line.startswith(MAGIC + " ") else None
+        if tokens and current is not None and (block[0] or not _first(parts[0]["head"])) \
+                and (len(tokens) < 3 or tokens[2] != current["head"][0]):
+            # Kopfzeile mit fremder Kennung in einem Datenblock = Inhalt (z.B.
+            # eine Datei, die selbst Patches enthaelt). Beginnt die Datei mit
+            # einem spaeteren Paket, ist der Blockzustand unbekannt.
+            tokens = None
+        if tokens:
             if len(tokens) < 3:
                 raise PatchInvalid("%s: Kopfzeile unvollstaendig: %s" % (path, line))
             if tokens[1] != FORMAT_VERSION:
                 raise PatchInvalid("%s: Formatversion %s wird nicht unterstuetzt" % (path, tokens[1]))
-            current = {"head": tokens[2:], "lines": [], "path": path}
+            # Teil in einem Code-Zaun (aus dem Chat kopiert): endet am letzten Zaun
+            current = {"head": tokens[2:], "lines": [], "path": path,
+                       "fenced": previous.strip().startswith(FENCE)}
             parts.append(current)
         elif current is not None:
             current["lines"].append(line)
+            _track(block, line)
+        if line.strip():
+            previous = line
     if not parts:
         raise PatchInvalid("%s: keine pypatcher-Datei (Zeile '%s 1 ...' erwartet)" % (path, MAGIC))
-    for part in parts:
+    for index, part in enumerate(parts):
         lines = part.pop("lines")
+        if part["fenced"]:
+            while lines and not lines[-1].strip():
+                lines.pop()
+            # Zaun, der den naechsten Teil oeffnet, gehoert nicht dazu
+            if index + 1 < len(parts) and parts[index + 1]["fenced"] and lines:
+                lines.pop()
+            fences = [i for i, l in enumerate(lines) if l.strip().startswith(FENCE)]
+            if fences:
+                lines = lines[:fences[-1]]
         while lines and (lines[-1] == "" or lines[-1].strip() == FENCE):
             lines.pop()
         part["body"] = "\n".join(lines) + "\n" if lines else ""
     return parts
+
+
+def _first(head):
+    """Beginnt der Teil am Anfang des Patches (kein Folgepaket)?"""
+    for token in head[1:]:
+        if "/" in token:
+            return token.split("/", 1)[0] == "1"
+    return True
+
+
+def _track(block, line):
+    """Datenblock-Zustand beim Zerlegen in Teile fortschreiben."""
+    if block[0] == "count":
+        block[1] -= 1
+        if block[1] <= 0:
+            block[0] = None
+    elif block[0] == "dot":
+        if line == "@.":
+            block[0] = None
+    else:
+        match = BLOCK_RE.match(line)
+        if match and match.group(2) == ".":
+            block[0] = "dot"
+        elif match and match.group(2) and int(match.group(2)) > 0:
+            block[0], block[1] = "count", int(match.group(2))
 
 
 def _trim(body, state):
@@ -511,7 +566,7 @@ def _complete(parts, kind, path):
 
 
 def _join_parts(path, parts, pid, sealed):
-    found, count = {}, None
+    found, fenced, count = {}, {}, None
     for part in parts:
         head = part["head"]
         if sealed:
@@ -528,6 +583,7 @@ def _join_parts(path, parts, pid, sealed):
         if index in found and found[index] != part["body"]:
             raise PatchInvalid("Patch %s: Teil %d doppelt mit verschiedenem Inhalt" % (pid, index))
         found[index] = part["body"]
+        fenced[index] = part["fenced"]
     if count is None:
         raise PatchInvalid("Patch %s: Gesamtzahl der Teile unbekannt - der letzte Teil muss "
                            "z.B. 3/3 angeben" % pid)
@@ -537,7 +593,8 @@ def _join_parts(path, parts, pid, sealed):
     if sealed:
         return "".join(found[i] for i in range(1, count + 1))
     state = ["cmd", 0]
-    return "".join(_trim(found[i], state) for i in range(1, count + 1))
+    return "".join(found[i] if fenced[i] else _trim(found[i], state)
+                   for i in range(1, count + 1))
 
 
 def load(path, verify=True):
@@ -551,7 +608,8 @@ def load(path, verify=True):
         if len(parts) > 1:
             raise PatchInvalid("%s: mehrere Patches in einer Datei" % path)
         total = head[1] if len(head) > 1 else None
-        body = parts[0]["body"] if total else _trim(parts[0]["body"], ["cmd", 0])
+        body = parts[0]["body"] if total or parts[0]["fenced"] else \
+            _trim(parts[0]["body"], ["cmd", 0])
     else:
         same = [p for p in parts if p["head"][0] == pid and _kind(p["head"]) == kind]
         if len(same) != len(parts):

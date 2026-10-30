@@ -1,7 +1,7 @@
 PYPATCHER - README
 ==================
 
-Version 0.0.1-pre1 (Vorabversion, Testphase).
+Version 0.0.1 (erste Freigabe).
 Die ausfuehrliche Beschreibung steht in manifest.txt.
 
 Was macht der Patcher?
@@ -86,6 +86,10 @@ Aenderungen und wendet sie nach Rueckfrage in einem Schritt an
 (zuruecknehmen: rollback). Bei einer Meldung wurde nichts geaendert - die
 Meldung an die KI zurueckgeben.
 
+ki-beispiele.txt zeigt fertige Auftraege mit Antworten (Python, JS/CSS,
+HTML, JSON, C, Antwort ueber zwei Nachrichten). Optional mit dem Prompt
+an die KI geben - die Beispiele werden getestet und sind gueltig.
+
 Kann die KI Code ausfuehren (Code-Interpreter o.ae.), ihr zusaetzlich die
 Einzeldatei patcher.pyz geben (python3 patcher.py bundle). Sie prueft den
 Patch dann selbst gegen Ihre Dateien, versiegelt ihn und liefert ihn als
@@ -123,3 +127,4 @@ Dokumentation
   changelog.txt  Aenderungshistorie
   request.txt    Wuensche fuer kuenftige Aenderungen
   ki-prompt.txt  Anleitung fuer KI-Assistenten
+  ki-beispiele.txt  Beispiele fuer KI-Assistenten

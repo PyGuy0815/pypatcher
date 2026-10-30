@@ -2,8 +2,8 @@
  PYPATCHER - MANIFEST (ausfuehrliche Programmbeschreibung / Konzept)
 ================================================================================
 Programm      : patcher.py
-Version       : 0.0.1-pre1
-Status        : VORABVERSION (noch nicht freigegeben)
+Version       : 0.0.1
+Status        : FREIGEGEBEN
 Sprache       : Python >= 3.8, nur Standardbibliothek (keine Fremdpakete)
 Repository    : pypatcher (privat, eigenstaendig)
 Stand         : 2026-10-30
@@ -87,7 +87,7 @@ Kernanforderungen:
       delete_text mit optionalem "scope" (Abschnitt 7.1).
   E16 Kopieren und Verschieben von Dateien und Einheiten (copy/move),
       auch zwischen Dateien (Abschnitt 7.4).
-  E17 Umfang 0.0.1-pre1 und spaeter: Abschnitt 13.
+  E17 Umfang 0.0.1 und spaeter: Abschnitt 13.
   E18 Pruefstufen waehlbar (min/std/full): nur Datei, zusaetzlich
       Funktionen, oder alles - so sicher und informativ wie gewuenscht;
       Hash-Laenge einstellbar (Abschnitt 6.6).
@@ -528,7 +528,15 @@ Beispiel (Pruefstufe std):
   Mehrere Teile duerfen hintereinander in EINER Datei stehen. Text vor
   der ersten Kopfzeile und Code-Zaeune (```) werden ignoriert; bei
   Entwuerfen beendet ein Code-Zaun ausserhalb eines Datenblocks den Teil
-  (folgender Chat-Text bis zur naechsten Kopfzeile entfaellt).
+  (folgender Chat-Text bis zur naechsten Kopfzeile entfaellt). Steht ein
+  Teil in einem Code-Zaun (Zeile davor beginnt mit ```), endet er am
+  schliessenden Zaun - auch mitten in einem Datenblock, der im naechsten
+  Teil weiterlaeuft; der oeffnende Zaun des naechsten Teils und Chat-Text
+  dazwischen gehoeren nicht dazu.
+  Eine Kopfzeile mit fremder Kennung innerhalb eines Datenblocks (oder in
+  einem Folgepaket) ist Inhalt - Patches koennen so Dateien uebertragen,
+  die selbst Patches enthalten. Beim Teilen endet ein Paket nie mit einer
+  Leerzeile oder Zaun-Zeile (diese kommen ins naechste Paket).
 
 6.3 Kopfangaben
   TITLE text       Pflicht, Kurzbeschreibung
@@ -649,7 +657,10 @@ Beispiel (Pruefstufe std):
   vorkommen, das Ergebnis muss gueltige Syntax haben (Python/JS/CSS/
   XML). Dann Vorschau, Rueckfrage, Sicherung, atomares Schreiben;
   Rollback wie immer. Versiegelte Patches prueft run ueber die Hashes.
-  Die Anleitung fuer die KI steht in ki-prompt.txt (wird getestet).
+  Die Anleitung fuer die KI steht in ki-prompt.txt (wird getestet);
+  ki-beispiele.txt enthaelt durchgespielte Auftraege mit Antworten fuer
+  Python, JS/CSS, HTML, JSON, C und eine Antwort ueber zwei Nachrichten
+  (alle am Beispielprojekt examples/ki/projekt getestet).
   Kann die KI Code ausfuehren, nutzt sie pypatcher selbst (Einzeldatei
   patcher.pyz, "bundle"): Projekt einlesen, Entwurf schreiben oder eine
   Kopie bearbeiten und "create" nutzen, mit "run -n" selbst pruefen,
@@ -1030,40 +1041,40 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
 --------------------------------------------------------------------------------
 13. BEFEHLE (KOMMANDOZEILE)
 --------------------------------------------------------------------------------
-  Spalte "Ab": pre1 = in 0.0.1-pre1, spaeter = folgende Vorabstaende.
+  Spalte "Ab": Version, in der der Befehl enthalten ist; spaeter = folgt.
 
   Befehl    Ab       Aufruf / Zweck
   --------  -------  ---------------------------------------------------
-  init      pre1     patcher.py init [-p PROJEKT]
+  init      0.0.1    patcher.py init [-p PROJEKT]
                      Journal anlegen, Ist-Stand als Ausgangszustand
-  status    pre1     patcher.py status [-p PROJEKT]
+  status    0.0.1    patcher.py status [-p PROJEKT]
                      Angewendete Patches, Zustand
-  verify    pre1     patcher.py verify [-p PROJEKT]
+  verify    0.0.1    patcher.py verify [-p PROJEKT]
                      Ist-Stand gegen state.json; funktionale
                      Abweichungen (Fehler) und kosmetische (Hinweis)
-  log       pre1     patcher.py log [-p PROJEKT]
-  units     pre1     patcher.py units DATEI [--compare P]
+  log       0.0.1    patcher.py log [-p PROJEKT]
+  units     0.0.1    patcher.py units DATEI [--compare P]
                      Einheiten einer Datei + Hashes
-  show      pre1     patcher.py show PATCH [--no-diff] [--indent N|tab|file]
+  show      0.0.1    patcher.py show PATCH [--no-diff] [--indent N|tab|file]
                      Lesbare Darstellung, prueft Patch-/Paket-Hashes
-  seal      pre1     patcher.py seal ENTWURF --base PROJEKT -o DATEI
+  seal      0.0.1    patcher.py seal ENTWURF --base PROJEKT -o DATEI
                      [--no-layout] [--state] [AUSGABE]
-  check     pre1     patcher.py check PATCH [-p PROJEKT]
+  check     0.0.1    patcher.py check PATCH [-p PROJEKT]
                      Probelauf, aendert nichts
-  apply     pre1     patcher.py apply PATCH [-p PROJEKT]
+  apply     0.0.1    patcher.py apply PATCH [-p PROJEKT]
                      [--match file|state|unit] [--exact]
-  pack      pre1     patcher.py pack PATCH -o DATEI [--compress] [--max-size N]
+  pack      0.0.1    patcher.py pack PATCH -o DATEI [--compress] [--max-size N]
                      Patch/Entwurf umpacken (komprimieren, entpacken,
                      teilen); Inhalt und Hashes bleiben (6.10)
-  bundle    pre1     patcher.py bundle [-o patcher.pyz]
+  bundle    0.0.1    patcher.py bundle [-o patcher.pyz]
                      pypatcher als eine Datei (zipapp, ca. 70 KB), z.B.
                      fuer eine KI-Sandbox; Aufruf python3 patcher.pyz ...
-  run       pre1     patcher.py run PATCH [-p PROJEKT] [-n] [--set V=W ...]
+  run       0.0.1    patcher.py run PATCH [-p PROJEKT] [-n] [--set V=W ...]
                      Entwurf (z.B. von einer KI) oder Patch direkt
                      pruefen und anwenden; -n = Probelauf (6.9)
-  rollback  pre1     patcher.py rollback [-p PROJEKT] [--to ID]
-  recover   pre1     patcher.py recover [-p PROJEKT]
-  create    pre1     patcher.py create ALT NEU -o DATEI --id ID --title T
+  rollback  0.0.1    patcher.py rollback [-p PROJEKT] [--to ID]
+  recover   0.0.1    patcher.py recover [-p PROJEKT]
+  create    0.0.1    patcher.py create ALT NEU -o DATEI --id ID --title T
                      [--description D] [--author A] [--requires ID ...]
                      [--compare P] [--level unit|text|file]
                      [--include-cosmetic] [--no-layout] [AUSGABE]
@@ -1078,7 +1089,7 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
                      Rueckwaerts-Patch erzeugen
 
   Alle Patch-Befehle aus Abschnitt 7.1 (inkl. copy/move, delete_text,
-  scope) sind ab pre1 enthalten.
+  scope) sind ab 0.0.1 enthalten.
   Allgemein: -v (ausfuehrlich, bei internen Fehlern mit Details),
              -q (still), -y (keine Rueckfragen; ohne Terminal wird
              ohnehin nicht gefragt), --allow-mixed-eol, --version
@@ -1101,7 +1112,7 @@ Exit-Codes:
 --------------------------------------------------------------------------------
 14. ARCHITEKTUR
 --------------------------------------------------------------------------------
-Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre1):
+Ein Paket mit einem Einstiegsskript (Stand 0.0.1):
 
   patcher.py              Einstieg (CLI)
   pypatcher/
@@ -1157,12 +1168,17 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre1):
     test_json.py          JSON: Normalform, Pfade, Kommas, Befehle, create
     test_pack.py          Komprimierung, USES/unbekannte Funktionen, pack,
                           bundle (Einzeldatei)
+    test_ki_beispiele.py  alle Beispiele aus ki-beispiele.txt, Pakete
+                          aus dem Chat kopiert
   ki-prompt.txt           Anleitung fuer KI-Assistenten
-  examples/               Beispiel-Entwurf
+  ki-beispiele.txt        Beispiel-Auftraege mit Antworten fuer KIs
+  examples/               demo/ + entwurf-beispiel.ppatch (readme.txt),
+                          ki/projekt/ (Beispielprojekt fuer
+                          ki-beispiele.txt)
   Tests ausfuehren: cd tests && python3 -m unittest
 
-Fuer die Weitergabe kann spaeter optional eine Einzeldatei bzw. ein
-.pyz-Archiv (zipapp) erzeugt werden.
+Fuer die Weitergabe erzeugt "patcher.py bundle" die Einzeldatei
+patcher.pyz (zipapp).
 
 
 --------------------------------------------------------------------------------
@@ -1200,6 +1216,6 @@ Fuer die Weitergabe kann spaeter optional eine Einzeldatei bzw. ein
     mit -pre1 beginnend (z.B. 0.0.2-pre1).
   - Version steht in pypatcher/__init__.py (__version__), wird mit
     --version ausgegeben und in jeden erzeugten Patch eingetragen
-    (Kopfangabe "GEN pypatcher 0.0.1-pre1").
+    (Kopfangabe "GEN pypatcher 0.0.1").
   - Formatversion ("pypatcher/<n>") und Normalform-Versionen
     ("python/<n>") werden davon unabhaengig gezaehlt.

@@ -1,0 +1,193 @@
+PYPATCHER - BEISPIELE FUER KI-ASSISTENTEN
+=========================================
+Optional zusammen mit ki-prompt.txt an die KI geben. Jedes Beispiel zeigt
+einen Auftrag und eine Antwort, wie sie die KI liefern soll. Alle Beispiele
+beziehen sich auf das Projekt examples/ki/projekt und werden in den Tests
+genau so angewendet (tests/test_ki_beispiele.py) - sie sind also gueltig.
+
+Dateien des Beispielprojekts: app.py, static/app.js, static/style.css,
+templates/index.html, config.json, native/calc.c, README.md
+
+=== BEISPIEL 1: Python - Methode aendern und ergaenzen ===
+Auftrag: In app.py soll NoteStore.find Gross-/Kleinschreibung ignorieren,
+ausserdem brauche ich eine Methode remove(index).
+
+Antwort:
+```
+#PPATCH 1 0001-notes-find 1/1
+TITLE find ohne Gross/Klein, neue Methode remove
+FILE app.py
+  UNIT NoteStore.find @1
+  UADD after:NoteStore.find @2
+@1 .
+def find(self, word):
+    word = word.lower()
+    return [n for n in self.notes if word in n.lower()]
+@.
+@2 .
+def remove(self, index):
+    return self.notes.pop(index)
+@.
+```
+Anwenden: python3 patcher.py run aenderung.ppatch -p <projekt>
+=== ENDE ===
+
+=== BEISPIEL 2: JavaScript und CSS - mit Entscheidung ===
+Auftrag: Bei leerer Liste soll "Keine Notizen" erscheinen. Ein dunkles
+Design waere vielleicht auch gut.
+
+Antwort:
+```
+#PPATCH 1 0002-ui 1/1
+TITLE Hinweis bei leerer Liste, optional dunkles Design
+INPUT dunkel "Dunkles Design aktivieren?" choices=ja,nein default=nein
+FILE static/app.js
+  UNIT render @1
+IF dunkel == ja
+  FILE static/style.css
+    TEXT scope=body @2 @3
+END
+@1 .
+export function render(notes) {
+  const list = document.getElementById("notes");
+  if (notes.length === 0) {
+    list.innerHTML = "<li>Keine Notizen</li>";
+    return;
+  }
+  list.innerHTML = notes.map((n) => `<li>${n}</li>`).join("");
+}
+@.
+@2 .
+color: #222;
+@.
+@3 .
+color: #eee;
+background: #111;
+@.
+```
+Beim Anwenden fragt das Programm, ob das dunkle Design kommen soll.
+=== ENDE ===
+
+=== BEISPIEL 3: HTML - Elemente einfuegen ===
+Auftrag: Im Hauptbereich der Seite fehlt oben ein Suchfeld, unter dem
+Hauptbereich soll eine Fusszeile stehen.
+
+Antwort:
+```
+#PPATCH 1 0003-html 1/1
+TITLE Suchfeld und Fusszeile
+FILE templates/index.html
+  UADD start-of:html/body/main @1
+  UADD after:html/body/main @2
+@1 .
+<form id="search">
+  <input name="q" placeholder="Suchen">
+</form>
+@.
+@2 .
+<footer id="bottom">
+  <small>Notizen-App</small>
+</footer>
+@.
+```
+=== ENDE ===
+
+=== BEISPIEL 4: JSON - Werte aendern und ergaenzen ===
+Auftrag: Port auf 8080, Feature "export" ergaenzen und einen Schalter
+debug (aus) anlegen.
+
+Antwort:
+```
+#PPATCH 1 0004-config 1/1
+TITLE Port 8080, Feature export, debug-Schalter
+FILE config.json
+  UNIT server/port @1
+  UADD end-of:features @2
+  UADD end @3
+@1 .
+"port": 8080
+@.
+@2 .
+"export"
+@.
+@3 .
+"debug": false
+@.
+```
+Kommas setzt das Programm selbst.
+=== ENDE ===
+
+=== BEISPIEL 5: C - Funktion korrigieren, Feld ergaenzen ===
+Auftrag: count_words liefert bei leerem Text 1 statt 0. Ausserdem soll
+struct stats ein Feld chars bekommen.
+
+Antwort:
+```
+#PPATCH 1 0005-calc 1/1
+TITLE count_words bei leerem Text, Feld chars
+FILE native/calc.c
+  UNIT count_words @1
+  TINS after scope=stats @2 @3
+@1 .
+int count_words(const char *text)
+{
+    int n = 0;
+    if (*text == '\0') {
+        return 0;
+    }
+    for (const char *p = text; *p; p++) {
+        if (*p == ' ') {
+            n++;
+        }
+    }
+    return n + 1;
+}
+@.
+@2 .
+int count;
+@.
+@3 .
+int chars;
+@.
+```
+Felder sind keine Einheiten - daher TINS mit scope.
+=== ENDE ===
+
+=== BEISPIEL 6: Neue Datei, Antwort ueber zwei Nachrichten ===
+Auftrag: Bitte eine Exportfunktion in einer neuen Datei export.py und einen
+Hinweis in der README. (Die Nachrichtenlaenge ist begrenzt.)
+
+Antwort (Nachricht 1):
+```
+#PPATCH 1 0006-export 1/?
+TITLE Export als Textdatei
+ADD export.py @1
+FILE README.md
+  TINS after @2 @3
+@1 .
+"""Export der Notizen."""
+
+
+def export(notes, path):
+    with open(path, "w", encoding="utf-8") as handle:
+        for note in notes:
+            handle.write(note + "\n")
+```
+Teil 1 - weiter mit "weiter".
+
+Antwort (Nachricht 2):
+```
+#PPATCH 1 0006-export 2/2
+    return len(notes)
+@.
+@2 .
+Start: `python3 app.py`
+@.
+@3 .
+
+Export: `python3 -c "import export"`
+@.
+```
+Beide Codebloecke nacheinander in eine Datei kopieren, dann:
+python3 patcher.py run aenderung.ppatch -p <projekt>
+=== ENDE ===

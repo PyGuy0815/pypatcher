@@ -1,10 +1,10 @@
 PYPATCHER - CHANGELOG
 =====================
 Format: Version (Datum) - Aenderungen. Neueste oben.
-Versionen: siehe manifest.txt Abschnitt 16 (Beginn 0.0.1-pre1).
+Versionen: siehe manifest.txt Abschnitt 16.
 
-0.0.1-pre1 (2026-10-30, Testphase - wird bis zur Freigabe fortgeschrieben)
-------------------------------------------------------------------------
+0.0.1 (2026-10-30) - erste Freigabe
+-----------------------------------
   Patchformat pypatcher/1 (Befehlsliste + Datenbloecke):
   - Kompaktes Textformat statt JSON: eine Zeile je Befehl (FILE, UNIT,
     UADD, TEXT ...), Code unveraendert in gezaehlten Datenbloecken, kein
@@ -107,76 +107,31 @@ Versionen: siehe manifest.txt Abschnitt 16 (Beginn 0.0.1-pre1).
   - Adapter koennen nach Einheiten-Aenderungen Trennzeichen richten
     (repair, z.B. JSON-Kommas).
 
-  Selbsttest: die Aenderungen an pypatcher werden selbst als Patch
-  erzeugt (create) und angewendet - siehe patch/.
+  KI-Beispiele und Freigabe:
+  - ki-beispiele.txt: sechs getestete Auftraege mit Antworten (Python,
+    JS/CSS mit Entscheidung, HTML, JSON, C, Antwort ueber zwei
+    Nachrichten) zum Beispielprojekt examples/ki/projekt.
+  - Behoben: lief ein Datenblock ueber zwei Chat-Nachrichten, wurde der
+    schliessende Code-Zaun der ersten Nachricht Teil des Inhalts. Teile
+    in Code-Zaeunen enden jetzt am schliessenden Zaun; Chat-Text und der
+    oeffnende Zaun des naechsten Teils werden verworfen.
+  - Behoben: Dateien, die selbst Patch-Kopfzeilen enthalten (z.B.
+    ki-beispiele.txt), machten einen Patch unlesbar ("mehrere Patches in
+    einer Datei"). Kopfzeilen mit fremder Kennung in Datenbloecken sind
+    jetzt Inhalt. Pakete enden nie mit Leerzeilen oder Zaun-Zeilen (der
+    Leser haette sie als Chat-Rest entfernt -> Paket-Hash falsch).
+  - Versuchspatches (patch/) entfernt; sie bleiben in der Git-Historie.
 
-Konzeptphase (ohne Version)
----------------------------
-2026-10-30  Konzept Stufe 6
-  - Einrueckung im Patch jetzt RELATIV: fuehrende Tabs = Ebenen relativ
-    zur Zielstelle; Grundtiefe und Ebenen-Einheit ergeben sich aus der
-    Zieldatei (Tabelle je Befehl: manifest.txt 7.6). "layout" nur noch
-    optionaler Check bzw. Pflicht bei neuen Dateien.
-  - Neue Patch-Befehle: delete_text; optionaler "scope" fuer
-    replace_text/insert_text/delete_text; copy_unit und move_unit (auch
-    zwischen Dateien); Dateiaktionen move und copy (statt rename).
-  - Neue Positionen start-of:<klasse>.
-  - Befehlsliste mit Umfang: pre1 = init, status, verify, log, units,
-    show, seal, check, apply, rollback, recover; spaeter = create,
-    doctor, canon, invert.
+  Entwicklung: alle Aenderungen ab der Vorabversion wurden mit pypatcher
+  selbst als Patch erzeugt (create), angewendet und zurueckgenommen
+  (Selbsttest).
 
-2026-10-30  Konzept Stufe 5
-  - Darstellung der Einrueckung im Patch festgelegt (E14, manifest.txt
-    Abschnitt 6.1): fuehrende Tabs = Einrueckungs-Ebenen; Parameter
-    "layout" je Datei bestimmt, woraus eine Ebene in der Datei besteht
-    (z.B. 4 Leerzeichen oder Tab). Verlustfreie Umrechnung, Ausweichform
-    lines=literal fuer nicht darstellbare Zeilen.
-
-2026-10-30  Konzept Stufe 4
-  - Vergleichsprofil ("compare") je Datei in der Patchdatei: mode
-    raw | text | python (spaeter weitere) mit Optionen comments,
-    whitespace, docstrings, indent, eol, encoding. Rangfolge Datei >
-    Patch-Vorgabe ("defaults") > Dateiendung. Mindestprofile ueber
-    .patcher/config.json erzwingbar. (manifest.txt Abschnitt 5.2)
-  - mode raw: binaer gleich, keinerlei Normalisierung.
-  - Python: Einrueckung (Tiefe und Zusammensetzung: Leerzeichen/Tabs)
-    jeder Anweisungszeile ist Teil des Hashes, fest und nicht
-    abschaltbar; der Patcher passt Python-Einrueckung nie an.
-    Normalform python/1 = Syntaxbaum + Einrueckungs-Signatur.
-    Bei js/c++ usw. ist Einrueckung ohne Bedeutung.
-  - Docstrings sind programmrelevant und zaehlen standardmaessig
-    (Offener Punkt O1 geklaert).
-  - Option --compare fuer units/canon/create; doctor meldet
-    Einrueckungsart der Python-Dateien.
-
-2026-10-30  Konzept Stufe 3
-  - Normalform festgelegt (manifest.txt Abschnitt 5): gepruefte Hashes
-    bewerten nur die Funktion. Kommentare und unwichtige Leerzeichen/
-    Tabs/Umbrueche fliessen je nach Format nicht ein.
-    Python: Normalform ueber den Syntaxbaum (python-ast/1), Text: text/1.
-  - Zwei Hash-Arten: "hash" (Funktion, wird geprueft) und "text_hash"
-    (exakter Text, protokolliert; streng nur mit --exact).
-  - Grundsatz: der Patcher formatiert nie um und veraendert nie die
-    Funktion; Rollback stellt den exakten Text aus dem Journal her.
-  - Neuer Befehl "canon" (Normalform anzeigen), Option "--exact",
-    "create --include-cosmetic".
-  - Versionierung festgelegt: keine Versionen im Konzept, Beginn mit
-    0.0.1, Vorabstaende -pre1, -pre2, ...
-  - Offener Punkt O1: Docstrings funktional oder wie Kommentare?
-
-2026-10-30  Konzept Stufe 2
-  - Patchformat JSON (*.ppatch.json), Textinhalte als Zeilenlisten,
-    Patch-Hash ueber kanonisches JSON.
-  - Aenderungen je Datei gesammelt; Pruefkette mit Zwischen-Hashes.
-  - Kommentare direkt ueber Funktionen gehoeren zur Einheit; Datei-Kopf
-    ist eigene Einheit "@header".
-  - Zeilenenden (CRLF) werden erkannt und beibehalten; Befehl "doctor".
-  - Adapter-Schnittstelle fuer beliebige Sprachen/Formate.
-  - Signatur im Format vorgesehen, nicht umgesetzt.
-
-2026-10-30  Konzept Stufe 1
-  - Erstes Konzept: Patchformat, Hash-Konzept, Operationen, Journal,
-    Rollback, Atomaritaet, Befehle, Exit-Codes, Architektur.
-  - Dokumentation angelegt: readme.txt, changelog.txt, request.txt,
-    manifest.txt.
-  - Eigenes privates Repository "pypatcher".
+Konzeptphase (ohne Version, 2026-10-30)
+---------------------------------------
+  Sechs Konzeptstufen (Details: manifest.txt Abschnitt 2, E1-E28):
+  Hash-Konzept mit Normalformen (nur die Funktion zaehlt, Python-
+  Einrueckung exakt), Vergleichsprofile je Datei, relative Einrueckung im
+  Patch, Befehle fuer Dateien/Einheiten/Text inkl. copy/move, Journal mit
+  exaktem Rollback, Versionierung ab 0.0.1, eigenes Repository.
+  Das anfaengliche JSON-Patchformat wurde vor der Freigabe durch das
+  kompakte Format pypatcher/1 ersetzt.

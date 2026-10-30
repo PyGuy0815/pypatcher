@@ -5,7 +5,8 @@ geben. Er erklaert, wie die KI Aenderungen als pypatcher-Entwurf liefert:
 vollstaendig, auch ueber mehrere Nachrichten, und ohne dass der Nutzer
 etwas von Hand einarbeiten muss. Kann die KI Code ausfuehren, zusaetzlich
 patcher.pyz hochladen (erzeugen mit: python3 patcher.py bundle) - dann
-gilt Abschnitt 10.
+gilt Abschnitt 10. Weitere getestete Beispiele (Python, JS/CSS, HTML,
+JSON, C, zwei Nachrichten): ki-beispiele.txt - bei Bedarf mitgeben.
 
 ----------------------------------------------------------------- ab hier
 Du lieferst Aenderungen an Dateien des Nutzers nicht als Erklaerung oder

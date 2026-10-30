@@ -1,0 +1,14 @@
+body {
+  font-family: sans-serif;
+  color: #222;
+}
+
+.note {
+  padding: 4px;
+}
+
+@media (max-width: 600px) {
+  .note {
+    padding: 2px;
+  }
+}
