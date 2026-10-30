@@ -3,6 +3,10 @@ PYPATCHER - CHANGELOG
 Format: Version (Datum) - Aenderungen. Neueste oben.
 Versionen: siehe manifest.txt Abschnitt 16.
 
+0.0.2-pre1 (in Arbeit)
+----------------------
+  - Beginn der Vorabversion 0.0.2.
+
 0.0.1 (2026-10-30) - erste Freigabe
 -----------------------------------
   Patchformat pypatcher/1 (Befehlsliste + Datenbloecke):
