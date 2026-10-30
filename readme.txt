@@ -13,7 +13,10 @@ Aenderungen koennen bis auf einzelne Funktionen/Methoden genau beschrieben
 werden ("ersetze in Datei X die Funktion Y"). Jede Datei und jede einzelne
 Aenderung wird per SHA-256-Hash geprueft (vorher und nachher). Geprueft
 wird die Funktion, nicht die Schreibweise: Kommentare und unwichtige
-Leerzeichen/Tabs/Umbrueche zaehlen je nach Format nicht. Jeder
+Leerzeichen/Tabs/Umbrueche zaehlen je nach Format nicht. Wie genau
+verglichen wird (raw = binaer gleich, text, python ...), legt die
+Patchdatei je Datei fest. Bei Python zaehlt die Einrueckung (Tiefe,
+Tabs/Leerzeichen) immer exakt. Jeder
 angewendete Patch laesst sich wieder zuruecknehmen. Windows-Zeilenenden
 (CRLF) werden erkannt und beibehalten.
 

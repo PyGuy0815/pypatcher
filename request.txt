@@ -3,10 +3,10 @@ PYPATCHER - REQUESTS (Wuensche fuer kuenftige Aenderungen)
 Status: OFFEN | GEPLANT | IN ARBEIT | ERLEDIGT (Version) | ABGELEHNT
 
 R001  GEPLANT   Erste Implementierung 0.0.1-pre1 gemaess manifest.txt
-                (Python- und Text-Adapter, Normalformen python-ast/1 und
-                text/1, alle Befehle aus Abschnitt 13).
-R002  OFFEN     Weitere Adapter/Normalformen nach Bedarf: shell,
-                c/c++/java/js, ini, json/yaml, xml, markdown, make.
+                (Modi raw, text, python mit Normalform python/1,
+                Vergleichsprofile, alle Befehle aus Abschnitt 13).
+R002  OFFEN     Weitere Modi/Normalformen nach Bedarf: js, cpp, c, java,
+                shell, json, yaml, ini, xml, markdown, make.
 R003  OFFEN     Signierte Patches (HMAC-SHA256 oder Ed25519); Feld
                 "signature" ist im Format bereits vorgesehen.
 R004  OFFEN     Patch-Buendel: mehrere Patches in einer Datei/Archiv
@@ -14,8 +14,8 @@ R004  OFFEN     Patch-Buendel: mehrere Patches in einer Datei/Archiv
 R005  OFFEN     Python-Adapter erweitern: Modul-Konstanten/Zuweisungen,
                 Import-Block als eigene Einheit "@imports".
 R006  OFFEN     Interaktive Konfliktanzeige (Diff Ist-Stand vs. erwartet).
-R007  OFFEN     Binaerdateien (Base64, nur ganze Datei) - vorgesehen,
-                niedrige Prioritaet.
+R007  GEPLANT   Binaerdateien ueber mode raw (Base64, nur ganze Datei)
+                - in 0.0.1-pre1.
 R008  OFFEN     Weitergabe als Einzeldatei bzw. .pyz (zipapp).
-R009  OFFEN     Option "docstrings": "ignore" (Docstrings wie Kommentare
-                behandeln) - abhaengig von Offenem Punkt O1.
+R009  GEPLANT   Profil-Option "docstrings": "ignore" (nur ausdruecklich;
+                Standard ist keep, da programmrelevant) - in 0.0.1-pre1.

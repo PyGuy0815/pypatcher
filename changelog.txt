@@ -5,6 +5,23 @@ Versionen: siehe manifest.txt Abschnitt 16 (Beginn 0.0.1-pre1).
 
 Konzeptphase (ohne Version)
 ---------------------------
+2026-10-30  Konzept Stufe 4
+  - Vergleichsprofil ("compare") je Datei in der Patchdatei: mode
+    raw | text | python (spaeter weitere) mit Optionen comments,
+    whitespace, docstrings, indent, eol, encoding. Rangfolge Datei >
+    Patch-Vorgabe ("defaults") > Dateiendung. Mindestprofile ueber
+    .patcher/config.json erzwingbar. (manifest.txt Abschnitt 5.2)
+  - mode raw: binaer gleich, keinerlei Normalisierung.
+  - Python: Einrueckung (Tiefe und Zusammensetzung: Leerzeichen/Tabs)
+    jeder Anweisungszeile ist Teil des Hashes, fest und nicht
+    abschaltbar; der Patcher passt Python-Einrueckung nie an.
+    Normalform python/1 = Syntaxbaum + Einrueckungs-Signatur.
+    Bei js/c++ usw. ist Einrueckung ohne Bedeutung.
+  - Docstrings sind programmrelevant und zaehlen standardmaessig
+    (Offener Punkt O1 geklaert).
+  - Option --compare fuer units/canon/create; doctor meldet
+    Einrueckungsart der Python-Dateien.
+
 2026-10-30  Konzept Stufe 3
   - Normalform festgelegt (manifest.txt Abschnitt 5): gepruefte Hashes
     bewerten nur die Funktion. Kommentare und unwichtige Leerzeichen/
