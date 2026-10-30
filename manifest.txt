@@ -2,7 +2,7 @@
  PYPATCHER - MANIFEST (ausfuehrliche Programmbeschreibung / Konzept)
 ================================================================================
 Programm      : patcher.py
-Version       : 0.0.1-pre1
+Version       : 0.0.1-pre2
 Status        : VORABVERSION (noch nicht freigegeben)
 Sprache       : Python >= 3.8, nur Standardbibliothek (keine Fremdpakete)
 Repository    : pypatcher (privat, eigenstaendig)
@@ -692,7 +692,7 @@ Beispiel: examples/entwurf-beispiel.json
 --------------------------------------------------------------------------------
   Entwicklungsumgebung                       Zielumgebung
   --------------------                       ------------
-  (a) automatisch (spaeter):                 patcher.py doctor (spaeter)
+  (a) automatisch:                           patcher.py doctor (spaeter)
       patcher.py create ALT NEU -o p.json    patcher.py init     (einmalig)
   (b) von Hand:                              patcher.py check p.json
       Entwurf schreiben ->                   patcher.py apply p.json
@@ -700,12 +700,41 @@ Beispiel: examples/entwurf-beispiel.json
                                              patcher.py rollback (bei Bedarf)
             ---- p.json uebertragen ---->
 
-  "create" vergleicht zwei Staende. Profile kommen aus --compare,
-  .patcher/config.json oder den Vorgaben je Dateiendung. Fuer Dateien
-  mit Unit-Adapter werden geaenderte/neue/geloeschte Einheiten erkannt
-  (replace/add/delete_unit), restliche Unterschiede als replace_text.
-  Rein kosmetische Unterschiede werden mit "--include-cosmetic"
-  uebernommen, sonst nur gemeldet. Hashes werden NIE von Hand geschrieben.
+  "create" vergleicht zwei Staende (ab 0.0.1-pre2). Profile kommen aus
+  --compare, .patcher/config.json von ALT oder den Vorgaben je
+  Dateiendung; ignoriert wird wie bei init (Muster von ALT).
+  Hashes werden NIE von Hand geschrieben.
+
+  Dateien:
+    nur in NEU          add (Inhalt aus NEU); gleicher Inhalt wie eine
+                        nur in ALT vorhandene Datei -> move, wie eine
+                        unveraenderte Datei -> copy
+    nur in ALT          delete
+    in beiden, anders   modify, Binaerdateien replace
+  Innerhalb einer Datei (modify):
+    1. Einheiten (mode python, --level unit): Kopf geaendert ->
+       replace_unit @header. Einheiten gleichen Namens werden verglichen;
+       ist nur der Inhalt von Kind-Einheiten anders (Methoden einer
+       Klasse), wird in die Kinder abgestiegen, sonst replace_unit.
+       Weggefallene -> delete_unit, neue -> add_unit (Position nach dem
+       vorherigen Geschwister, sonst vor dem naechsten, sonst start-of
+       der Klasse bzw. Dateiende). Geaenderte Reihenfolge -> keine
+       Einheiten-Befehle fuer diese Ebene (Text uebernimmt).
+    2. Dateiuebergreifend: in A geloeschte und in B neue Einheit mit
+       gleichem Inhalt -> move_unit-Paar (move_id; B steht vor A).
+       Neue Einheit gleich einer unveraenderten Einheit -> copy_unit.
+    3. Verbleibende Unterschiede (Imports, Code auf Modulebene,
+       Leerzeilen, Textdateien) -> replace_text/insert_text/delete_text
+       mit so viel Kontext, dass der Block eindeutig ist; von unten nach
+       oben angeordnet.
+    Datei mit anderen Zeilenenden/BOM/Dateiende-Umbruch als vorher ->
+    replace. --level text: nur Schritt 3; --level file: nur ganze Dateien.
+  Exaktheit: Der erzeugte Patch wird im Speicher auf ALT angewendet und
+  jede Datei Byte fuer Byte mit NEU verglichen. Passt eine Datei nicht,
+  wird sie als ganze Datei (replace) aufgenommen. Ein mit create
+  erzeugter Patch fuehrt damit immer exakt zum Stand NEU.
+  Rein kosmetisch veraenderte Dateien (gleicher Funktions-Hash) werden
+  nur gemeldet, mit "--include-cosmetic" uebernommen.
 
 
 --------------------------------------------------------------------------------
@@ -770,7 +799,8 @@ Dateirechte bleiben erhalten.
 --------------------------------------------------------------------------------
 13. BEFEHLE (KOMMANDOZEILE)
 --------------------------------------------------------------------------------
-  Spalte "Ab": pre1 = in 0.0.1-pre1, spaeter = folgende Vorabstaende.
+  Spalte "Ab": pre1/pre2 = ab 0.0.1-pre1/-pre2, spaeter = folgende
+  Vorabstaende.
 
   Befehl    Ab       Aufruf / Zweck
   --------  -------  ---------------------------------------------------
@@ -794,10 +824,12 @@ Dateirechte bleiben erhalten.
                      [--match file|state|unit] [--exact]
   rollback  pre1     patcher.py rollback [-p PROJEKT] [--to ID]
   recover   pre1     patcher.py recover [-p PROJEKT]
-  create    spaeter  patcher.py create ALT NEU -o DATEI [--id ID --title T]
-                     [--compare P] [--level file|unit|text]
+  create    pre2     patcher.py create ALT NEU -o DATEI --id ID --title T
+                     [--description D] [--author A] [--requires ID ...]
+                     [--compare P] [--level unit|text|file]
                      [--include-cosmetic] [--no-layout]
-                     Erkennt auch verschobene/kopierte Einheiten.
+                     Patch aus zwei Staenden (Abschnitt 10); erkennt
+                     verschobene/kopierte Einheiten und Dateien.
   doctor    spaeter  patcher.py doctor [-p PROJEKT]
                      Python-Version, Betriebssystem, Schreibrechte,
                      Encoding, Zeilenenden, Einrueckungsart, parsebar
@@ -823,7 +855,7 @@ Exit-Codes:
 --------------------------------------------------------------------------------
 14. ARCHITEKTUR
 --------------------------------------------------------------------------------
-Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre1):
+Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre2):
 
   patcher.py              Einstieg (CLI)
   pypatcher/
@@ -843,6 +875,8 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre1):
                           Normalform python/1 (Syntaxbaum +
                           Einrueckungs-Signatur)
     engine.py             alle Patch-Befehle im Speicher (seal + apply)
+    diff.py               create: Baumvergleich, Einheiten-/Text-Diff,
+                          Exaktheitspruefung
     journal.py            .patcher/: Zustand, Historie, Sicherung,
                           Schreiben, Rollback, Recover, Verify
     cli.py                argparse, Befehle, Ausgaben
@@ -851,8 +885,9 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre1):
     test_units.py         Einheiten, Kopf, Einrueckungs-Umrechnung
     test_flow.py          seal/apply/rollback/recover aller Befehle,
                           Konflikte, CRLF, Manipulation, Zustand
+    test_create.py        create: Ergebnis byte-gleich mit NEU, move/
+                          copy, Reihenfolge, kosmetisch, CRLF, --level
   examples/               Beispiel-Entwurf
-  Spaeter: diff.py fuer "create".
   Tests ausfuehren: cd tests && python3 -m unittest
 
 Fuer die Weitergabe kann spaeter optional eine Einzeldatei bzw. ein

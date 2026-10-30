@@ -140,6 +140,16 @@ class Flow(ProjectCase):
 
     # -- Dateiaktionen -------------------------------------------------------
 
+    def test_new_file_permissions(self):
+        patch = self.seal(self.draft([{"path": "neu.txt", "action": "add", "new": ["x"]}]))
+        self.make_target()
+        self.assertEqual(self.apply(patch), 0, self.last_err)
+        mask = os.umask(0)
+        os.umask(mask)
+        mode = os.stat(os.path.join(self.target, "neu.txt")).st_mode & 0o777
+        self.assertEqual(mode, 0o666 & ~mask)
+        self.assertEqual(os.stat(patch).st_mode & 0o777, 0o666 & ~mask)
+
     def test_file_actions(self):
         src = self.write("source/neu.bin", b"\xff\x00neu", binary=True, root=self.tmp)
         result = self.roundtrip([

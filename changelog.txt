@@ -3,6 +3,23 @@ PYPATCHER - CHANGELOG
 Format: Version (Datum) - Aenderungen. Neueste oben.
 Versionen: siehe manifest.txt Abschnitt 16 (Beginn 0.0.1-pre1).
 
+0.0.1-pre2 (2026-10-30)
+-----------------------
+  - Neuer Befehl create: erzeugt einen Patch aus zwei Staenden (ALT ->
+    NEU). Einheiten-Vergleich fuer Python (replace/add/delete_unit, Abstieg
+    in Klassen), dateiuebergreifende move_unit-Paare und copy_unit,
+    Datei-move/copy, Rest als Textbloecke mit eindeutigem Kontext.
+    Der Patch wird vor dem Speichern im Speicher angewendet und Byte fuer
+    Byte mit NEU verglichen; nicht exakt Darstellbares wird als ganze
+    Datei aufgenommen. Optionen --level, --include-cosmetic, --compare,
+    --requires, --description, --author, --no-layout.
+  - Fehlerbehebung: neu angelegte Dateien (Patch-Aktion add, gespeicherte
+    Patchdateien) hatten die Rechte 0600 der Temp-Datei; jetzt 0666 minus
+    umask wie ueblich.
+  - Tests fuer create (tests/test_create.py) und Dateirechte.
+  - Dieser Stand wurde selbst als Patch erzeugt (create) und mit
+    0.0.1-pre1 angewendet: patch/0001-pre2-create.ppatch.json.
+
 0.0.1-pre1 (2026-10-30)
 -----------------------
   Erste Implementierung gemaess manifest.txt.

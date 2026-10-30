@@ -102,7 +102,15 @@ def load(path, where, prof, allow_mixed=False):
 
 
 def atomic_write(path, data, st_mode=None):
-    """Temp-Datei im selben Verzeichnis, dann os.replace (atomar je Datei)."""
+    """Temp-Datei im selben Verzeichnis, dann os.replace (atomar je Datei).
+
+    Ohne st_mode erhaelt eine neue Datei die ueblichen Rechte (0666 minus
+    umask) statt der restriktiven Rechte der Temp-Datei.
+    """
+    if st_mode is None:
+        mask = os.umask(0)
+        os.umask(mask)
+        st_mode = 0o666 & ~mask
     directory = os.path.dirname(path) or "."
     os.makedirs(directory, exist_ok=True)
     fd, tmp = tempfile.mkstemp(prefix=".pptmp-", dir=directory)

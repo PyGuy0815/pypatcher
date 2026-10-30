@@ -1,7 +1,7 @@
 PYPATCHER - README
 ==================
 
-Version 0.0.1-pre1 (Vorabversion, noch nicht freigegeben).
+Version 0.0.1-pre2 (Vorabversion, noch nicht freigegeben).
 Die ausfuehrliche Beschreibung steht in manifest.txt.
 
 Was macht der Patcher?
@@ -54,6 +54,14 @@ Typischer Ablauf
    python3 patcher.py seal entwurf.json --base projekt/ -o 0002-fix.ppatch.json
    python3 patcher.py show 0002-fix.ppatch.json
 
+   Alternativ den Patch automatisch aus zwei Staenden erzeugen lassen
+   (statt Schritt 1 und 2):
+   python3 patcher.py create alt/ neu/ -o 0002-fix.ppatch.json \
+       --id 0002-fix --title "add rechnet mit Kommazahlen"
+   create erkennt geaenderte Funktionen/Methoden, verschobene und
+   kopierte Einheiten und Dateien; der Patch fuehrt garantiert exakt zum
+   neuen Stand (wird vor dem Speichern geprueft).
+
 3. Zielumgebung:
    python3 patcher.py init     -p projekt/          (einmalig)
    python3 patcher.py check    0002-fix.ppatch.json -p projekt/   (Probelauf)
@@ -63,7 +71,7 @@ Typischer Ablauf
    python3 patcher.py rollback -p projekt/          (letzten Patch zuruecknehmen)
 
 Weitere Befehle: log, units, recover - siehe "python3 patcher.py -h" und
-manifest.txt Abschnitt 13. Spaeter: create, doctor, canon, invert.
+manifest.txt Abschnitt 13. Spaeter: doctor, canon, invert.
 
 Exit-Codes: 0 OK, 1 Bedienfehler, 2 Patch ungueltig, 3 Konflikt,
 4 Journalfehler, 5 interner Fehler.

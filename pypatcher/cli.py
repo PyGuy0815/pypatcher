@@ -5,7 +5,7 @@ import difflib
 import os
 import sys
 
-from . import FORMAT, __version__, adapters, engine, fileio, journal as jr, patchfile
+from . import FORMAT, __version__, adapters, diff, engine, fileio, journal as jr, patchfile
 from . import profile as pf
 from .adapters import PY, ParseError
 from .errors import Conflict, PatchInvalid, PatcherError, UsageError
@@ -222,6 +222,37 @@ def cmd_seal(args):
     return 0
 
 
+def cmd_create(args):
+    old, new = os.path.abspath(args.old), os.path.abspath(args.new)
+    for path in (old, new):
+        if not os.path.isdir(path):
+            raise UsageError("%s ist kein Verzeichnis" % path)
+    journal = jr.Journal(old)
+    meta = {"id": args.id, "title": args.title, "created": jr.now(),
+            "requires": args.requires or [], "match": "file", "signature": None}
+    if args.description:
+        meta["description"] = args.description
+    if args.author:
+        meta["author"] = args.author
+    patchfile.validate(dict(meta, format=FORMAT, files=[{"path": "x", "action": "delete"}]),
+                       sealed=False)
+    compare = pf.parse_short(args.compare) if args.compare else None
+    patch, ctx, hints = diff.create(old, new, meta, level=args.level, compare=compare,
+                                    include_cosmetic=args.include_cosmetic,
+                                    no_layout=args.no_layout,
+                                    config=journal.config() if journal.exists else {},
+                                    allow_mixed=args.allow_mixed_eol)
+    patchfile.validate(patch)
+    patchfile.save(patch, args.output)
+    out("Patch %s erzeugt -> %s" % (patch["id"], args.output))
+    for entry in patch["files"]:
+        target = " -> " + entry["to"] if entry.get("to") else ""
+        count = " (%d Aenderungen)" % len(entry["changes"]) if entry.get("changes") else ""
+        out("  %-7s %s%s%s" % (entry["action"], entry["path"], target, count))
+    show_hints(hints)
+    return 0
+
+
 def _display(lines):
     """Relative Ebenen (fuehrende Tabs) als je 4 Leerzeichen darstellen."""
     shown = []
@@ -352,6 +383,22 @@ def build_parser():
     p.add_argument("-o", "--output", required=True, help="Ausgabe *.ppatch.json")
     p.add_argument("--no-layout", action="store_true", help="kein layout als Check eintragen")
     p.add_argument("--state", action="store_true", help="state_before/after eintragen")
+    p = add("create", cmd_create, "Patch aus zwei Staenden erzeugen (ALT -> NEU)")
+    p.add_argument("old", metavar="ALT", help="Ausgangsstand (wie im Zielprojekt)")
+    p.add_argument("new", metavar="NEU", help="neuer Stand")
+    p.add_argument("-o", "--output", required=True, help="Ausgabe *.ppatch.json")
+    p.add_argument("--id", required=True, help="Patch-ID")
+    p.add_argument("--title", required=True, help="Kurzbeschreibung")
+    p.add_argument("--description", help="ausfuehrliche Beschreibung")
+    p.add_argument("--author", help="Autor")
+    p.add_argument("--requires", action="append", metavar="ID",
+                   help="vorher noetiger Patch (mehrfach moeglich)")
+    p.add_argument("--compare", help='Profil fuer alle Dateien, z.B. "python"')
+    p.add_argument("--level", choices=("unit", "text", "file"), default="unit",
+                   help="feinste Ebene der Aenderungen (Standard: unit)")
+    p.add_argument("--include-cosmetic", action="store_true",
+                   help="auch rein kosmetisch veraenderte Dateien uebernehmen")
+    p.add_argument("--no-layout", action="store_true", help="kein layout als Check eintragen")
     for name, func, text in (("check", cmd_check, "Probelauf, aendert nichts"),
                              ("apply", cmd_apply, "Patch anwenden")):
         p = add(name, func, text, (common, project))

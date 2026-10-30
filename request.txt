@@ -20,8 +20,11 @@ R007  ERLEDIGT (0.0.1-pre1) Binaerdateien ueber mode raw (Base64, nur
 R008  OFFEN     Weitergabe als Einzeldatei bzw. .pyz (zipapp).
 R009  ERLEDIGT (0.0.1-pre1) Profil-Option "docstrings": "ignore" (nur
                 ausdruecklich; Standard ist keep, da programmrelevant).
-R010  GEPLANT   Befehle create, doctor, canon, invert - nach pre1
-                (0.0.1-pre2 ff.).
+R010  IN ARBEIT  Befehle create (ERLEDIGT 0.0.1-pre2), doctor, canon,
+                invert (folgen).
 R011  OFFEN     copy/move auch fuer Textbloecke (copy_text/move_text).
 R012  OFFEN     Einheiten auch in Bloecken (z.B. Funktionen unter
                 "if TYPE_CHECKING:"); derzeit nur direkte Definitionen.
+R013  OFFEN     create: verschobene Einheiten innerhalb derselben Datei
+                als move_unit erkennen (derzeit delete_unit + add_unit
+                bzw. Text).
