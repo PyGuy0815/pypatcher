@@ -1,0 +1,13 @@
+PATCHER - CHANGELOG
+===================
+Format: Version (Datum) - Aenderungen. Neueste Version oben.
+
+0.1.0 (2026-10-30)
+  - Konzept erstellt (manifest.txt): Patchformat .ppatch, Hash-Konzept
+    (Datei, Einheit, Zustand, Patch), Operationen, Journal, Rollback,
+    Atomaritaet, Befehle, Exit-Codes, Architektur.
+  - Dokumentation angelegt: readme.txt, changelog.txt, request.txt,
+    manifest.txt.
+  - Ablageort festgelegt: eigenes privates Repository "pypatcher"
+    (nicht in simple_converters).
+  - Noch keine Implementierung; offene Punkte siehe manifest.txt Abschn. 13.

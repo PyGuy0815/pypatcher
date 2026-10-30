@@ -1,0 +1,15 @@
+PATCHER - REQUESTS (Wuensche fuer kuenftige Aenderungen)
+=======================================================
+Status: OFFEN | GEPLANT | IN ARBEIT | ERLEDIGT (Version) | ABGELEHNT
+
+R001  GEPLANT   Implementierung Version 1.0 gemaess manifest.txt
+                (nach Klaerung der offenen Punkte O1-O8).
+R002  OFFEN     Einheiten-Adapter fuer weitere Sprachen (Shell-Funktionen,
+                C/C++, JavaScript) - abhaengig von O1.
+R003  OFFEN     Signierte Patches (HMAC oder Ed25519) gegen Manipulation
+                - abhaengig von O8.
+R004  OFFEN     Patch-Buendel: mehrere Patches in einer Datei/Archiv
+                uebertragen und in Reihenfolge anwenden.
+R005  OFFEN     Einheiten fuer Python erweitern: Modul-Konstanten/
+                Zuweisungen, Import-Bloecke.
+R006  OFFEN     Interaktive Konfliktanzeige (Diff Ist-Stand vs. erwartet).
