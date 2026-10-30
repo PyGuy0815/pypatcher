@@ -29,11 +29,25 @@ MODES = {
         "eol": ("normalize", "keep"),
         "encoding": None,
     }),
+    "css": (1, {
+        "comments": ("ignore", "keep"),
+        "whitespace": ("ignore", "keep"),
+        "eol": ("normalize", "keep"),
+        "encoding": None,
+    }),
+    "scss": (1, {
+        "comments": ("ignore", "keep"),
+        "whitespace": ("ignore", "keep"),
+        "eol": ("normalize", "keep"),
+        "encoding": None,
+    }),
 }
 FREE_DEFAULTS = {"encoding": "utf-8", "comment_prefix": None}
 EXTENSIONS = {
     "python": (".py", ".pyw"),
     "js": (".js", ".mjs", ".cjs"),
+    "css": (".css",),
+    "scss": (".scss", ".less"),
 }
 
 

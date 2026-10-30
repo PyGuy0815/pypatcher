@@ -58,6 +58,11 @@ Versionen: siehe manifest.txt Abschnitt 16 (Beginn 0.0.1-pre1).
     Zeilenumbruch nur wo ASI-relevant); Einheiten Funktionen, Klassen,
     Methoden (inkl. #privat, get/set, Pfeilfunktionen in const/Feldern),
     JSDoc gehoert zur Einheit.
+  - mode css (*.css) und scss (*.scss, *.less): Normalform css/1
+    (Kommentare und unwichtiger Leerraum egal, Selektor-Leerraum und
+    Reihenfolge zaehlen), Einheiten Regeln und At-Regeln inkl.
+    Verschachtelung, Adresse ueber den Selektor ("@media (...)/.btn",
+    ".btn{2}"). Adressen mit Leerzeichen stehen im Patch in "...".
   - Engine und create formatunabhaengig: Einheiten, Positionen,
     Abstaende und Umbenennen liefert der Adapter (adapters/base.py).
 

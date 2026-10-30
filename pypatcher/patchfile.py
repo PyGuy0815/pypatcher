@@ -43,7 +43,7 @@ META = ("TITLE", "DESC", "AUTHOR", "DATE", "GEN", "REQ", "MATCH", "DEFAULT", "ST
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 BLOCK_RE = re.compile(r"^@(\d+)(?:\s+(\d+|\.)(?:\s+(lit|b64))?)?\s*$")
 REF_RE = re.compile(r"^@(\d+)$")
-POS_RE = re.compile(r"^(start|end|(after|before|start-of|end-of):\S+)$")
+POS_RE = re.compile(r"^(start|end|(after|before|start-of|end-of):.+)$")
 PROFILE_RE = re.compile(r"^(py|txt|raw|js|css|scss|html|xml)(,[a-z_]+=[^,\s]*)*$")
 PART_RE = re.compile(r"^(.*)\.(\d+)" + re.escape(EXT) + "$")
 
@@ -183,32 +183,33 @@ class _Writer(object):
         op = ch["op"]
         flag = "lit" if ch.get("literal") else None
         tokens = [CMD_OF[op]]
+        q = _quote
         if op in ("replace_unit", "delete_unit"):
-            tokens.append(ch["unit"])
+            tokens.append(q(ch["unit"]))
         elif op == "add_unit":
             if ch.get("unit"):
-                tokens.append(ch["unit"])
-            tokens.append(ch["position"])
+                tokens.append(q(ch["unit"]))
+            tokens.append(q(ch["position"]))
         elif op == "copy_unit":
-            tokens += [_quote(ch["from"]), ch["position"]]
+            tokens += [q(ch["from"]), q(ch["position"])]
         elif op == "move_unit":
             if "from" in ch:
-                tokens += [_quote(ch["from"]), ch["position"]]
+                tokens += [q(ch["from"]), q(ch["position"])]
             elif "to" in ch:
-                tokens += [ch["unit"], "to=" + _quote(ch["to"])]
+                tokens += [q(ch["unit"]), "to=" + q(ch["to"])]
             else:
-                tokens += [ch["unit"], ch["position"]]
+                tokens += [q(ch["unit"]), q(ch["position"])]
             if ch.get("move_id"):
-                tokens.append("id=" + ch["move_id"])
+                tokens.append("id=" + q(ch["move_id"]))
         elif op == "insert_text":
             tokens.append(ch["position"])
         if ch.get("as"):
-            tokens.append("as=" + ch["as"])
+            tokens.append("as=" + q(ch["as"]))
         if ch.get("scope"):
-            tokens.append("scope=" + ch["scope"])
+            tokens.append("scope=" + q(ch["scope"]))
         if self.level != "min":
             if ch.get("unit_after") and ch["unit_after"] != ch.get("unit"):
-                tokens.append("after=" + ch["unit_after"])
+                tokens.append("after=" + q(ch["unit_after"]))
             self.pair(tokens, "u", ch, "unit_hash_before", "unit_hash_after")
             if ch.get("source_unit_hash"):
                 tokens.append("s=" + short(ch["source_unit_hash"], self.hash_len))

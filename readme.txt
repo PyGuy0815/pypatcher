@@ -22,8 +22,8 @@ zusaetzlich jede betroffene Funktion (std, Standard) oder alles (full).
 Geprueft wird die Funktion, nicht die Schreibweise: Kommentare und
 unwichtige Leerzeichen/Tabs/Umbrueche zaehlen je nach Format nicht; bei
 Python zaehlt die Einrueckung immer exakt. Formate: Python und
-JavaScript mit Funktionen/Klassen als Einheiten, jede Textdatei ueber
-Textbefehle; CSS und HTML/XML folgen. Jeder angewendete Patch laesst
+JavaScript (Funktionen/Klassen als Einheiten), CSS/SCSS/LESS (Regeln
+als Einheiten), jede Textdatei ueber Textbefehle; HTML/XML folgen. Jeder angewendete Patch laesst
 sich exakt zuruecknehmen (Sicherung im Ziel). Windows-Zeilenenden (CRLF)
 bleiben erhalten.
 

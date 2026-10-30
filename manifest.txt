@@ -340,15 +340,19 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
   - Ein "/" gilt als regulaerer Ausdruck nach Operatoren, oeffnenden
     Klammern und Woertern wie return/typeof; nach ) ] } als Division.
 
-5.6.2 mode "css" und "scss" - Normalform css/1 (geplant, naechster Schritt)
+5.6.2 mode "css" und "scss" - Normalform css/1 (umgesetzt)
   css fuer *.css; scss fuer *.scss und *.less (zusaetzlich //-Kommentare,
-  #{...}-Interpolation). Verschachtelte Regeln werden unterstuetzt.
+  #{...}-Interpolation). Verschachtelte Regeln werden unterstuetzt
+  (natives CSS-Nesting, SCSS/LESS).
   - Kommentare zaehlen nicht; Leerraum wird zu einem Leerzeichen
-    zusammengefasst und entfaellt neben { } ; , sowie um ":" in
-    Deklarationen. Leerraum in Selektoren bleibt (a :hover != a:hover).
+    zusammengefasst und entfaellt neben { } ; , sowie um den ersten ":"
+    einer Deklaration. Leerraum in Selektoren bleibt (a :hover !=
+    a:hover), ebenso in Werten (calc(1px + 2px)).
   - Ein ";" direkt vor "}" zaehlt nicht.
   - Reihenfolge der Regeln und Deklarationen zaehlt (Kaskade).
   - Zeichenketten und url(...) bleiben exakt.
+  - Syntaxpruefung: Zeichenketten/Kommentare geschlossen, Bloecke
+    ausgeglichen, kein Block ohne Selektor.
 
 5.6.3 mode "html" und "xml" - Normalform html/1, xml/1 (geplant)
   html fuer *.html, *.htm, *.xhtml (fehlertoleranter Parser der
@@ -600,10 +604,13 @@ Beispiel (Pruefstufe std):
     Klasse.methode       Methode, auch #privat, get/set (name#1, name#2),
                          Feld mit Funktion: name = (..) => {..}
     Noch nicht: Funktionen innerhalb von Funktionen, Objekt-Methoden.
-  CSS/SCSS (geplant):
-    .btn:hover           Regel ueber ihren Selektor (Leerraum vereinheitlicht)
+  CSS/SCSS:
+    .btn:hover           Regel ueber ihren Selektor (Leerraum wie in der
+                         Normalform: einfach, keiner neben ",")
     @media (max-width: 600px)/.btn    verschachtelt, Trenner "/"
     .btn{2}              zweite Regel mit gleichem Selektor
+    Im Patch stehen Adressen mit Leerzeichen in "...".
+    UCOPY as= ersetzt den Selektor (er muss mit "{" in einer Zeile stehen).
   HTML/XML (geplant, robust statt kurz):
     #nav                 Element mit id (bevorzugt)
     #main/section.intro/div.card[3]
@@ -720,9 +727,10 @@ Beispiel (Pruefstufe std):
   text     jede Textdatei; Textbefehle und ganze Datei
   python   Funktionen, Klassen, Methoden, @header; Normalform python/1
   js       Funktionen, Klassen, Methoden; Normalform js/1
+  css/scss Regeln und At-Regeln (verschachtelt); Normalform css/1
 
 8.3 Geplant (Reihenfolge festgelegt, siehe request.txt)
-  css/scss -> html/xml -> ts/tsx/jsx; spaeter shell, json, yaml, ini,
+  html/xml -> ts/tsx/jsx; spaeter shell, json, yaml, ini,
   markdown, make, c/c++, java - jeweils mit eigener Normalform
   (Abschnitt 5.6). Keine Aenderung am Patchformat noetig, nur neue
   Profilnamen.
@@ -957,6 +965,7 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre1):
                           Normalform python/1 (Syntaxbaum +
                           Einrueckungs-Signatur)
       js.py               mode js: Tokenizer, Einheiten, Normalform js/1
+      css.py              mode css/scss: Tokenizer, Parser, Normalform css/1
     engine.py             alle Patch-Befehle im Speicher (seal + apply)
     diff.py               create: Baumvergleich, Einheiten-/Text-Diff,
                           Exaktheitspruefung
@@ -974,6 +983,7 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre1):
                           Laenge, Pakete, optionale Hashes, Entwurf
     test_js.py            JS: Normalform (ASI, Regex, Templates),
                           Einheiten, Befehle, Verschieben, create
+    test_css.py           CSS/SCSS: Normalform, Einheiten, Befehle, create
   examples/               Beispiel-Entwurf
   Tests ausfuehren: cd tests && python3 -m unittest
 
