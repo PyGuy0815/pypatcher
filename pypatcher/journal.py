@@ -200,6 +200,7 @@ class Journal(object):
                 if doc is None:
                     if os.path.isfile(target):
                         os.remove(target)
+                        fileio.drop_bytecode(target)
                     continue
                 data = fileio.encode(doc)
                 fileio.atomic_write(target, data, doc.st_mode)
@@ -210,7 +211,7 @@ class Journal(object):
             raise JournalError("Schreiben fehlgeschlagen, Ausgangsstand wiederhergestellt: %s" % exc)
         write_json(self.path("txn.json"), {"kind": "apply", "id": pid, "phase": "journal",
                                            "files": meta, "time": now()})
-        fileio.atomic_write(self.path("patches", pid + ".ppatch.json"),
+        fileio.atomic_write(self.path("patches", pid + patchfile.EXT),
                             patchfile.dumps(patch).encode("utf-8"))
         state = self.state()
         files_info = {}
@@ -248,6 +249,7 @@ class Journal(object):
                 fileio.atomic_write(target, fileio.read_bytes(src), os.stat(src).st_mode)
             elif os.path.isfile(target):
                 os.remove(target)
+                fileio.drop_bytecode(target)
                 self._prune_dirs(os.path.dirname(target))
 
     def _prune_dirs(self, directory):
@@ -310,7 +312,7 @@ class Journal(object):
                 else:
                     state["files"][rel] = fps["before"]
             self._save_state(state["files"])
-        for path in (self.path("patches", pid + ".ppatch.json"),):
+        for path in (self.path("patches", pid + patchfile.EXT),):
             if os.path.isfile(path):
                 os.remove(path)
         shutil.rmtree(self.path("backups", pid), ignore_errors=True)
@@ -328,7 +330,7 @@ class Journal(object):
                 return "Patch %s war vollstaendig angewendet - Transaktion abgeschlossen" % pid
             self.restore(pid, txn["files"])
             shutil.rmtree(self.path("backups", pid), ignore_errors=True)
-            patch_copy = self.path("patches", pid + ".ppatch.json")
+            patch_copy = self.path("patches", pid + patchfile.EXT)
             if os.path.isfile(patch_copy):
                 os.remove(patch_copy)
             os.remove(self.path("txn.json"))

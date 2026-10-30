@@ -1,0 +1,2539 @@
+#PPATCH 1 0002-befehlsliste 9795185860863fb9
+TITLE Patchformat als Befehlsliste, Pruefstufen, Pakete
+DESC Ersetzt JSON durch das kompakte Format pypatcher/1 (Befehlsliste + Datenbloecke), waehlbare Pruefstufen, kurze Hashes, optionale Pakete; kein alter Code im Patch; Bytecode-Bereinigung; Version wieder 0.0.1-pre1 (Testphase).
+AUTHOR pypatcher
+DATE 2026-10-30T16:51:41Z
+GEN pypatcher 0.0.1-pre1
+ADD examples/entwurf-beispiel.ppatch txt h=>1318cc799e482e4f ind=tab nl=lf @1
+ADD tests/test_format.py py h=>9f88f5a92ef7bb0f ind=4 nl=lf @2
+FILE changelog.txt txt h=6a9fe8fdd78938d4>b1bb57cbc844e26a ind=2
+  TEXT @3 @4
+  TEXT @5 @6
+  TEXT @7 @8
+FILE manifest.txt txt h=e9ed03aadfbab843>00042b284da7ddb0 ind=1
+  TEXT @9 @10
+  TEXT @11 @12
+  TINS after @13 @14
+  TEXT @15 @16
+  TEXT @17 @18
+  TINS after @19 @20
+  TEXT @21 @22
+  TEXT @23 @24
+  TEXT @25 @26
+  TEXT @27 @28
+  TEXT @29 @30
+  TEXT @31 @32
+  TEXT @33 @34
+  TEXT @35 @36
+  TEXT @37 @38
+  TEXT @39 @40
+  TINS after @41 @42
+  TEXT @43 @44
+  TEXT @45 @46
+  TEXT @47 @48
+  TEXT @49 @50
+  TEXT @51 @52
+  TEXT @53 @54
+  TEXT @55 @56
+  TEXT @57 @58
+  TEXT @59 @60
+  TEXT @61 @62
+  TEXT @63 @64
+  TEXT @65 @66
+  TEXT @67 @68
+  TEXT @69 @70
+  TEXT @71 @72
+  TEXT @73 @74
+  TEXT @75 @76
+  TEXT @77 @78
+  TINS after @79 @80
+  TEXT @81 @82
+  TEXT @83 @84
+  TEXT @85 @86
+  TEXT @87 @88
+  TEXT @89 @90
+  TEXT @91 @92
+  TEXT @93 @94
+  TEXT @95 @96
+  TEXT @97 @98
+  TEXT @99 @100
+  TEXT @101 @102
+  TEXT @103 @104
+  TEXT @105 @106
+  TINS after @107 @108
+  TEXT @109 @110
+  TEXT @111 @112
+  TEXT @113 @114
+  TEXT @115 @116
+FILE pypatcher/__init__.py py h=4ae44cb663cdae4b>fd8e6b13a81a08c2
+  TEXT @117 @118
+FILE pypatcher/cli.py py h=a2147543b15601fd>7924733981910acb ind=4
+  UNIT _prepare u=c2e0c7d6c62b12e0>aa7a2159fe56713e @119
+  UNIT cmd_seal u=f0e2df12b1fbbbee>945bfbdb500320e1 @120
+  UNIT cmd_create u=a51ea3ac6b0fa044>5bcfb01c93ff8d25 @121
+  UNIT cmd_show u=c40aea3171f69ae5>fa82abd7a2129430 @122
+  UNIT build_parser u=d3c4e97280dbfb17>2d0e8052f1568030 @123
+  UDEL _display u=ab18a4a570e001fb
+  UDEL _diff u=67f2eb686bc486bd
+  UADD _save after:cmd_log u=>05d6ea1b388cf814 @124
+  UADD _indent_unit after:cmd_create u=>4b02f8eb3d65795b @125
+  UADD _block after:_indent_unit u=>7c1f7a2c5ef2cada @126
+  TDEL @127
+  TEXT @128 @129
+  TEXT @130 @131
+  TDEL @132
+FILE pypatcher/diff.py py h=d46f9261d19bdb53>6f0a88c5de9d5d62 ind=4
+  UNIT Creator.build u=547b559077f7c407>200ab2dba9bd32fb @133
+  UNIT Creator._entry u=9e7d9e1ac0748c26>779529ef9a204419 @134
+  UADD _data_size after:_hunk u=>e9a0adbcc9d0056c @135
+FILE pypatcher/engine.py py h=3527960c762c5b98>e6177ea145c6286e ind=4
+  UNIT Ctx.expect u=326d19b5961f105f>ceb08871aa4a0345 @136
+  UNIT op_replace_unit u=62cc5dc773f51fc6>3522e312993605b9 @137
+  UNIT op_delete_unit u=c2a52a41916a7329>186e014a73c750d6 @138
+  UNIT op_copy_unit u=70a4eb0910b0a680>c1e6ce36eddf8dbc @139
+  UNIT op_move_unit u=4aa82240eeb8d48c>16da4571bc1d4d4a @140
+  UNIT _check_before u=cddd0d1b12e74635>cd5068aa11b206de @141
+  UNIT act_delete u=4b7b8fd646eeff62>1762115b2d20722b @142
+  UNIT act_replace u=462315164d8eb808>98eb86bcaf02eadd @143
+  UNIT act_modify u=de0261dc7d19877a>77ec2327ef29856a @144
+  UNIT _peek_binary u=1be00f207edfb63f>b8b678a46eb2d15c @145
+  UNIT process u=bbfd1f8ca13d4d89>667e3a09de3e0c9b @146
+  UDEL _set_old u=441fd2a369a09f96
+  UADD _chain_hash after:_hash u=>12efad6d4845e504 @147
+  TEXT @148 @149
+FILE pypatcher/fileio.py py h=24abd6eb80228ef4>fe814e93135b5c4b ind=4
+  UNIT atomic_write u=ab7f72e0f50ac3cb>cffacd0a3be5aa02 @150
+  UADD drop_bytecode after:load u=>fd98b3da2bd81ab6 @151
+FILE pypatcher/journal.py py h=ed96922666258637>b46d0bd285355b28 ind=4
+  UNIT Journal.commit_apply u=4f4da2fe30305626>49dc79a8e29d783a @152
+  UNIT Journal.restore u=f57430cafa4565b7>16b6867bf12c6fb0 @153
+  UNIT Journal._finish_rollback u=644b4e056b031be8>e2aeee83051a1231 @154
+  UNIT Journal.recover u=c99d62c8b1296e62>cb6880a75ccdfb2b @155
+REP pypatcher/patchfile.py py h=b161767ee1fdce93>e2e5659d8e0d6d90 ind=4 nl=lf @156
+REP readme.txt txt h=d34a1c7ab1af3661>6b9b5501a644c96f ind=2 nl=lf @157
+FILE request.txt txt h=7a0050b5f4042ca1>9431eccbad57b9d3 ind=16
+  TINS after @158 @159
+  TEXT @160 @161
+  TEXT @162 @163
+  TEXT @164 @165
+FILE tests/helpers.py py h=b702e7070ac696ec>52a4bedee6947d5c ind=4
+  UNIT ProjectCase.seal u=795c9b34dcd6d4f0>01a1efcc4ae53c33 @166
+  UADD ProjectCase.write_draft after:ProjectCase.make_target u=>80010d2ceafab96f @167
+  TEXT @168 @169
+  TDEL @170
+FILE tests/test_create.py py h=f7d62ae3206f177a>78a7475a3efff7ac ind=4
+  UNIT Create.create u=08d60abc83779d75>35a931f95ea9e1fb @171
+  UNIT Create.test_no_differences u=d78c5fd6fe8c307d>746566830f7016d3 @172
+  TINS after @173 @174
+  TDEL @175
+FILE tests/test_flow.py py h=696a11c6ba104637>a1f37c4813ad38a3 ind=4
+  UNIT Flow.test_move_pairing_required u=6056be9f8faca566>ac64764a4992cd0a @176
+  UNIT Flow.test_ambiguous_block_is_conflict u=d3b062053fb8e44e>387e3a6e97175179 @177
+  UNIT Flow.test_cosmetic_difference u=6dfaa8a21c5d8132>be68718d98dceef2 @178
+  UNIT Flow.test_tampered_patch_rejected u=39697d6ae2e72e61>387ac35abf29dccf @179
+  UNIT Flow.test_reapply_and_requires u=5aa3d74dedf4d0d5>1af68d1d18be6a88 @180
+  UNIT Flow.test_rollback_to u=426457ce896f2657>dbcc40015b275904 @181
+  UNIT Flow.test_example_draft u=59972a3fb61361e5>ed0da32d309954d2 @182
+  UADD Flow.test_invalid_intermediate_state after:Flow.test_text_ops_with_scope u=>0c6553fb7e54aca5 @183
+  UADD Flow.test_stale_bytecode_removed after:Flow.test_invalid_intermediate_state u=>fb79b7ba9084eee4 @184
+  TDEL @185
+DEL examples/entwurf-beispiel.json txt h=08cbb89c6f11ac9f
+@1 36
+#PPATCH 1 0001-beispiel
+TITLE Subtraktion, Pruefung und Einstellung
+AUTHOR beispiel
+DESC Zeigt UNIT, UADD, TEXT mit scope und TINS.
+DESC Bloecke: "@N ." bis zur Zeile "@." - Tab am Zeilenanfang = eine Ebene tiefer.
+
+FILE src/rechner.py
+  UNIT add @1
+  UADD after:add @2
+  TEXT scope=Rechner.run @3 @4
+FILE settings.ini
+  TINS after @5 @6
+
+@1 .
+# addiert zwei Zahlen (auch Kommazahlen)
+def add(a, b):
+	return float(a) + float(b)
+@.
+@2 .
+def sub(a, b):
+	return float(a) - float(b)
+@.
+@3 .
+if len(args) != 2:
+	return None
+@.
+@4 .
+if len(args) != 2:
+	raise SystemExit("zwei Zahlen erwartet")
+@.
+@5 .
+modus = add
+@.
+@6 .
+genauigkeit = 2
+@.
+@2 109
+"""Patchformat pypatcher/1: Befehlsliste, Datenbloecke, Pakete, Pruefstufen."""
+
+import os
+import unittest
+
+from helpers import ProjectCase
+
+from pypatcher import patchfile
+from pypatcher.errors import PatchInvalid
+
+MODULE = "def add(a, b):\n    return a + b\n\n\nclass K:\n    def run(self):\n        return 1\n"
+
+
+class Format(ProjectCase):
+	def setUp(self):
+		super().setUp()
+		self.write("m.py", MODULE)
+		self.write("notes.txt", "eins\nzwei\n")
+		self.draft = {"id": "0001-f", "title": "Format", "description": "Zeile 1\nZeile 2",
+					  "files": [
+						  {"path": "m.py", "action": "modify", "changes": [
+							  {"op": "replace_unit", "unit": "K.run",
+							   "new": ["def run(self):", "\treturn 2"]},
+							  {"op": "add_unit", "position": "after:add",
+							   "new": ["def sub(a, b):", "\treturn a - b"]}]},
+						  {"path": "notes.txt", "action": "modify", "changes": [
+							  {"op": "replace_text", "old": ["zwei"], "new": ["drei"]}]},
+						  {"path": "bild.bin", "action": "add", "new": {"base64": "AAEC"}}]}
+
+	def test_round_trip(self):
+		text = patchfile.dumps(self.draft)
+		path = os.path.join(self.tmp, "x.ppatch")
+		with open(path, "w", encoding="utf-8") as handle:
+			handle.write(text)
+		patch = patchfile.load(path)
+		self.assertEqual(patch["description"], "Zeile 1\nZeile 2")
+		self.assertEqual(patch["files"][0]["changes"][0]["new"], ["def run(self):", "\treturn 2"])
+		self.assertEqual(patch["files"][2]["new"], {"base64": "AAEC"})
+		self.assertEqual(patchfile.dumps(patch), text)
+
+	def test_levels_and_hash_length(self):
+		sizes = {}
+		self.make_target()
+		for level in patchfile.LEVELS:
+			path = self.seal(self.draft, "p-%s.ppatch" % level, "--verify", level)
+			with open(path, encoding="utf-8") as handle:
+				text = handle.read()
+			sizes[level] = len(text)
+			self.assertEqual(" u=" in text, level != "min")
+			self.assertEqual(" c=" in text, level == "full")
+			self.assertEqual(self.run_cli("check", path, "-p", self.target), 0, self.last_err)
+		self.assertLess(sizes["min"], sizes["std"])
+		self.assertLess(sizes["std"], sizes["full"])
+		path = self.seal(self.draft, "lang.ppatch", "--hash-len", "64")
+		with open(path, encoding="utf-8") as handle:
+			self.assertRegex(handle.read(), r"h=[0-9a-f]{64}>[0-9a-f]{64}")
+
+	def test_packages(self):
+		self.seal(self.draft, "teil.ppatch", "--max-size", "300")
+		parts = sorted(p for p in os.listdir(self.tmp) if p.startswith("teil.") and
+					   p.endswith(".ppatch") and p != "teil.ppatch.entwurf")
+		self.assertGreater(len(parts), 1)
+		for name in parts:
+			self.assertLessEqual(os.path.getsize(os.path.join(self.tmp, name)), 300)
+		self.make_target()
+		last = os.path.join(self.tmp, parts[-1])
+		self.assertEqual(self.apply(last), 0, self.last_err)
+		self.assertIn(b"return 2", self.read("m.py"))
+		missing = os.path.join(self.tmp, parts[0])
+		os.remove(missing)
+		with self.assertRaises(PatchInvalid):
+			patchfile.load(last)
+
+	def test_hashes_are_optional(self):
+		path = self.seal(self.draft, "p.ppatch")
+		with open(path, encoding="utf-8") as handle:
+			text = handle.read()
+		stripped = "\n".join(" ".join(t for t in line.split(" ") if not t[:2] in ("h=", "u="))
+							 for line in text.splitlines()[1:]) + "\n"
+		bare = os.path.join(self.tmp, "ohne.ppatch")
+		with open(bare, "w", encoding="utf-8") as handle:
+			handle.write(patchfile.split("0001-f", stripped, None)[0])
+		self.make_target()
+		self.assertEqual(self.apply(bare), 0, self.last_err)
+
+	def test_handwritten_blocks(self):
+		text = ("#PPATCH 1 0002-h\nTITLE von Hand\nFILE notes.txt\n"
+				"  TEXT @1 @2\n# Kommentar\n@1 .\nzwei\n@.\n@2 .\nzwei\ndrei\n@.\n")
+		path = os.path.join(self.tmp, "h.ppatch")
+		with open(path, "w", encoding="utf-8") as handle:
+			handle.write(text)
+		out = os.path.join(self.tmp, "h.sealed.ppatch")
+		self.assertEqual(self.run_cli("seal", "-q", path, "--base", self.base, "-o", out), 0,
+						 self.last_err)
+		self.make_target()
+		self.assertEqual(self.apply(out), 0, self.last_err)
+		self.assertEqual(self.read("notes.txt"), b"eins\nzwei\ndrei\n")
+
+	def test_draft_needs_seal(self):
+		path = os.path.join(self.tmp, "e.ppatch")
+		with open(path, "w", encoding="utf-8") as handle:
+			handle.write("#PPATCH 1 0001-f\nTITLE x\nDEL notes.txt\n")
+		with self.assertRaises(PatchInvalid):
+			patchfile.load(path)
+		self.assertEqual(patchfile.load(path, verify=False)["files"][0]["action"], "delete")
+
+
+if __name__ == "__main__":
+	unittest.main()
+@3 3
+- Entwurf: "source" fuer add/replace, Binaerdateien automatisch raw,
+	seal --state.
+- Beispiel examples/ und 45 Tests (unittest).
+@4 13
+- Neu angelegte Dateien erhalten die ueblichen Rechte (0666 - umask).
+- Beim Schreiben/Wiederherstellen einer .py-Datei wird ihr Bytecode in
+	__pycache__ entfernt: Python erkennt veralteten Bytecode nur an
+	Aenderungszeit (Sekunden) und Groesse - bei schnellem Patch/Rollback
+	mit gleich langem Inhalt lief sonst alter Code (im Selbsttest
+	aufgefallen).
+- Syntaxpruefung je Datei am Ende statt nach jeder Aenderung
+	(Zwischenstaende von Textaenderungen duerfen ungueltig sein).
+- create waehlt die ganze Datei, wenn sie kleiner ist als die
+	Einzelaenderungen.
+
+Selbsttest: die Aenderungen an pypatcher werden selbst als Patch
+erzeugt (create) und angewendet - siehe patch/.
+@5 14
+0.0.1-pre1 (2026-10-30)
+-----------------------
+	Erste Implementierung gemaess manifest.txt.
+	- Befehle: init, status, verify, log, units, show, seal, check, apply,
+		rollback, recover.
+	- Patch-Befehle: Dateien add/delete/replace/move/copy; Einheiten
+		replace_unit/add_unit/delete_unit/copy_unit/move_unit (auch zwischen
+		Dateien, Paar ueber move_id); Text replace_text/insert_text/
+		delete_text mit optionalem scope.
+	- Vergleichsprofile raw/text/python; Normalform python/1 aus
+		Syntaxbaum + Einrueckungs-Signatur; Hash auf Python 3.8, 3.11, 3.12
+		und 3.13 identisch (f-String-Teile werden vereinheitlicht, da
+		Python 3.12 abweichende Baeume erzeugt).
+	- Relative Einrueckung im Patch, layout als Check, Ausweichform literal.
+@6 18
+	Befehl create:
+	- Patch aus zwei Staenden (ALT -> NEU): Einheiten-Vergleich fuer Python
+		(UNIT/UADD/UDEL, Abstieg in Klassen), dateiuebergreifende UMOVE-Paare
+		und UCOPY, Datei-MOVE/COPY, Rest als Textbloecke mit eindeutigem
+		Kontext. Der Patch wird vor dem Speichern im Speicher angewendet und
+		Byte fuer Byte mit NEU verglichen; nicht exakt Darstellbares wird als
+		ganze Datei aufgenommen.
+
+	Grundfunktionen:
+	- Befehle init, status, verify, log, units, show, seal, create, check,
+		apply, rollback, recover.
+	- Patch-Befehle: Dateien ADD/DEL/REP/MOVE/COPY; Einheiten UNIT/UADD/
+		UDEL/UCOPY/UMOVE (auch zwischen Dateien); Text TEXT/TINS/TDEL mit
+		optionalem scope.
+	- Vergleichsprofile raw/text/python; Normalform python/1 aus Syntaxbaum
+		+ Einrueckungs-Signatur; Hash auf Python 3.8, 3.11, 3.12 und 3.13
+		identisch (f-String-Teile vereinheitlicht).
+	- Relative Einrueckung im Patch, layout als Check, Ausweichform lit.
+@7 16
+0.0.1-pre2 (2026-10-30)
+-----------------------
+	- Neuer Befehl create: erzeugt einen Patch aus zwei Staenden (ALT ->
+		NEU). Einheiten-Vergleich fuer Python (replace/add/delete_unit, Abstieg
+		in Klassen), dateiuebergreifende move_unit-Paare und copy_unit,
+		Datei-move/copy, Rest als Textbloecke mit eindeutigem Kontext.
+		Der Patch wird vor dem Speichern im Speicher angewendet und Byte fuer
+		Byte mit NEU verglichen; nicht exakt Darstellbares wird als ganze
+		Datei aufgenommen. Optionen --level, --include-cosmetic, --compare,
+		--requires, --description, --author, --no-layout.
+	- Fehlerbehebung: neu angelegte Dateien (Patch-Aktion add, gespeicherte
+		Patchdateien) hatten die Rechte 0600 der Temp-Datei; jetzt 0666 minus
+		umask wie ueblich.
+	- Tests fuer create (tests/test_create.py) und Dateirechte.
+	- Dieser Stand wurde selbst als Patch erzeugt (create) und mit
+		0.0.1-pre1 angewendet: patch/0001-pre2-create.ppatch.json.
+@8 16
+0.0.1-pre1 (2026-10-30, Testphase - wird bis zur Freigabe fortgeschrieben)
+------------------------------------------------------------------------
+	Patchformat pypatcher/1 (Befehlsliste + Datenbloecke):
+	- Kompaktes Textformat statt JSON: eine Zeile je Befehl (FILE, UNIT,
+		UADD, TEXT ...), Code unveraendert in gezaehlten Datenbloecken, kein
+		Escaping. Derselbe Patch ist damit rund halb so gross.
+	- Pruefstufen --verify min|std|full (nur Datei / zusaetzlich
+		Funktionen / alles); Hashes gekuerzt (--hash-len, Standard 16);
+		beim Anwenden wird geprueft, was der Patch enthaelt.
+	- Kein alter Code mehr im Patch, ausser als Suchtext fuer
+		Textaenderungen; Kopien/Verschiebungen holen den Inhalt aus der Quelle.
+	- Optionale Pakete (--max-size): Teilung nach Zeichenzahl, Paket- und
+		Gesamt-Hash, Laden aus einem beliebigen Paket.
+	- Entwuerfe im selben Format, Bloecke "@N ." ... "@." von Hand
+		schreibbar; Beispiel examples/entwurf-beispiel.ppatch.
+	- show stellt Einrueckungs-Ebenen wie in der Datei dar (--indent).
+@9 1
+("generator": "pypatcher 0.0.1-pre1").
+@10 1
+(Kopfangabe "GEN pypatcher 0.0.1-pre1").
+@11 1
+Manipulation (dafuer spaeter "signature").
+@12 1
+Manipulation (dafuer spaeter eine Signatur).
+@13 1 lit
+                          copy, Reihenfolge, kosmetisch, CRLF, --level
+@14 2 lit
+    test_format.py        Format: Hin-/Rueckweg, Pruefstufen, Hash-
+                          Laenge, Pakete, optionale Hashes, Entwurf
+@15 1
+patchfile.py          JSON-Format lesen/schreiben/validieren, patch_hash
+@16 2
+patchfile.py          Patchformat pypatcher/1 lesen/schreiben/pruefen,
+																						Pakete, Pruefstufen, Kurz-Hashes
+@17 1
+Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre2):
+@18 1
+Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre1):
+@19 1 lit
+               "text,whitespace=keep" oder "raw".
+@20 4 lit
+  AUSGABE (seal, create): --verify min|std|full (Pruefstufe, 6.6;
+               Standard std), --hash-len N (8-64, Standard 16),
+               --max-size N (Pakete mit hoechstens N Zeichen, 6.2).
+  PATCH (show, check, apply): Patchdatei oder ein beliebiges Paket.
+@21 1
+[--include-cosmetic] [--no-layout]
+@22 1
+[--include-cosmetic] [--no-layout] [AUSGABE]
+@23 1
+create    pre2     patcher.py create ALT NEU -o DATEI --id ID --title T
+@24 1
+create    pre1     patcher.py create ALT NEU -o DATEI --id ID --title T
+@25 1
+[--no-layout] [--state]
+@26 1
+[--no-layout] [--state] [AUSGABE]
+@27 2
+show      pre1     patcher.py show PATCH [--no-diff]
+																			Lesbare Zusammenfassung / Diff, prueft patch_hash
+@28 2
+show      pre1     patcher.py show PATCH [--no-diff] [--indent N|tab|file]
+																			Lesbare Darstellung, prueft Patch-/Paket-Hashes
+@29 2
+Spalte "Ab": pre1/pre2 = ab 0.0.1-pre1/-pre2, spaeter = folgende
+Vorabstaende.
+@30 1
+Spalte "Ab": pre1 = in 0.0.1-pre1, spaeter = folgende Vorabstaende.
+@31 1
+Dateirechte bleiben erhalten.
+@32 6
+Dateirechte bleiben erhalten; neue Dateien erhalten 0666 minus umask.
+Wird eine .py-Datei geschrieben, wiederhergestellt oder geloescht, wird
+ihr Bytecode in __pycache__ entfernt (Python erkennt veralteten Bytecode
+nur an Aenderungszeit in Sekunden und Groesse der Quelle).
+Die Syntax einer Python-Datei wird nach ihrer letzten Aenderung geprueft;
+Zwischenstaende von Textaenderungen duerfen ungueltig sein.
+@33 1
+alle Datei- und Unit-Hashes der gesamten Kette. Alle neuen
+@34 1
+alle enthaltenen Datei- und Unit-Hashes. Alle neuen
+@35 1
+1. PRUEFEN    patch_hash, (signature), requires, doppelte ID,
+@36 1
+1. PRUEFEN    Patch-/Paket-Hashes, Vollstaendigkeit, REQ, doppelte ID,
+@37 5
+- Fehlt das Journal, kann der Patch umgekehrt angewendet werden
+		("invert"): old <-> new, add <-> delete, Hashes getauscht,
+		Aenderungen in umgekehrter Reihenfolge.
+- "invert PATCH -o UNDO": erzeugt einen eigenstaendigen
+		Rueckwaerts-Patch, z.B. zur Weitergabe.
+@38 3
+- "invert" (spaeter): erzeugt aus Patch und Sicherung einen
+		eigenstaendigen Rueckwaerts-Patch, z.B. zur Weitergabe. Der Patch
+		allein enthaelt keinen alten Code (E19).
+@39 1
+patches/<ID>.ppatch.json   Kopie jedes angewendeten Patches
+@40 1
+patches/<ID>.ppatch  Kopie jedes angewendeten Patches (einteilig)
+@41 1 lit
+    replace. --level text: nur Schritt 3; --level file: nur ganze Dateien.
+@42 2 lit
+  Platz: Sind die Einzelaenderungen einer Datei groesser als die ganze
+  neue Datei, wird die ganze Datei aufgenommen (REP).
+@43 1
+"create" vergleicht zwei Staende (ab 0.0.1-pre2). Profile kommen aus
+@44 1
+"create" vergleicht zwei Staende. Profile kommen aus
+@45 1
+---- p.json uebertragen ---->
+@46 1
+---- p.ppatch (ggf. Pakete) uebertragen ---->
+@47 3 lit
+      patcher.py create ALT NEU -o p.json    patcher.py init     (einmalig)
+  (b) von Hand:                              patcher.py check p.json
+      Entwurf schreiben ->                   patcher.py apply p.json
+@48 3 lit
+      patcher.py create ALT NEU -o p.ppatch  patcher.py init     (einmalig)
+  (b) von Hand:                              patcher.py check p.ppatch
+      Entwurf schreiben ->                   patcher.py apply p.ppatch
+@49 5 lit
+  "source": "pfad"   bei add/replace: Inhalt aus dieser Datei lesen
+                     (relativ zum Verzeichnis des Entwurfs). Binaer-
+                     dateien werden automatisch mode raw.
+  --state            traegt state_before/state_after ein (match=state).
+Beispiel: examples/entwurf-beispiel.json
+@50 4 lit
+  src=datei   bei ADD/REP: Inhalt aus dieser Datei lesen (relativ zum
+              Verzeichnis des Entwurfs). Binaerdateien werden mode raw.
+  --state     traegt STATE ein (MATCH state).
+Beispiel: examples/entwurf-beispiel.ppatch
+@51 8
+"patcher.py seal entwurf.json --base PROJEKT -o 0003-udf.ppatch.json"
+liest den Ist-Stand aus PROJEKT, ergaenzt fehlende Profil-Optionen mit
+Vorgaben, das layout als Check (aus der Datei erkannt, ausser
+--no-layout), old-Inhalte und alle Hashes, prueft die Einrueckung
+(python), wendet den Patch probeweise im Speicher an (inkl. validate)
+und schreibt den fertigen Patch inkl. patch_hash. Aendert ein Entwurf
+nur Kommentare oder unwichtigen Leerraum (Funktions-Hash vorher ==
+nachher), weist seal darauf hin.
+@52 8
+"patcher.py seal entwurf.ppatch --base PROJEKT -o 0003-udf.ppatch"
+liest den Ist-Stand aus PROJEKT, ergaenzt Profile, layout als Check
+(aus der Datei erkannt, ausser --no-layout) und die Hashes der gewaehlten
+Pruefstufe, prueft die Einrueckung (python), wendet den Patch probeweise
+im Speicher an (inkl. Syntaxpruefung) und schreibt ihn - auf Wunsch in
+Pakete geteilt (--max-size). Aendert ein Entwurf nur Kommentare oder
+unwichtigen Leerraum (Funktions-Hash vorher == nachher), weist seal
+darauf hin.
+@53 13 lit
+  {
+    "format": "pypatcher/1",
+    "id": "0003-udf",
+    "title": "is_udf beschleunigen",
+    "files": [
+      {"path": "src/convert.py", "action": "modify",
+       "compare": {"mode": "python"},
+       "changes": [
+         {"op": "replace_unit", "unit": "is_udf",
+          "new": ["def is_udf(path):", "\t..."]}
+       ]}
+    ]
+  }
+@54 8 lit
+  #PPATCH 1 0003-udf
+  TITLE is_udf beschleunigen
+  FILE src/convert.py
+    UNIT is_udf @1
+  @1 .
+  def is_udf(path):
+  	return pruefe(path, "UDF")
+  @.
+@55 1
+Ein Entwurf ist ein Patch ohne Hashes und ohne old-Inhalte. Minimal:
+@56 2
+Ein Entwurf ist eine Patchdatei ohne Hashes (Kopfzeile "#PPATCH 1 <id>"),
+von Hand geschrieben:
+@57 4
+Quelldatei : {"op": "move_unit", "unit": "X", "to": "b.py",
+														"move_id": "m1", ...}       entfernt die Einheit
+Zieldatei  : {"op": "move_unit", "from": "a.py::X",
+														"position": "...", "move_id": "m1", ...}  fuegt ein
+@58 2
+Zieldatei  : UMOVE a.py::X end id=m1          fuegt ein (zuerst)
+Quelldatei : UMOVE X to=b.py id=m1            entfernt die Einheit
+@59 3
+"new"       der eingefuegte Text (im Patch gespeichert -> Patch
+												bleibt selbsterklaerend und umkehrbar). Fehlt er im
+												Entwurf, traegt seal ihn aus der Quelle ein.
+@60 2
+Inhalt      kommt beim Anwenden aus der Quelle (steht nicht im
+												Patch); abgesichert durch source_unit_hash (s=).
+@61 1
+delete_unit    Einheit entfernen (old bleibt im Patch)
+@62 1
+delete_unit    Einheit entfernen
+@63 1
+replace_unit   Einheit ersetzen (old -> new). Umbenennen einer
+@64 1
+replace_unit   Einheit ersetzen (neuer Inhalt). Umbenennen einer
+@65 1
+delete     Datei loeschen (Inhalt bleibt im Patch)
+@66 1
+delete     Datei loeschen
+@67 11
+Felder einer Aenderung (zusaetzlich zu den Angaben aus Abschnitt 7):
+		file_hash_before / file_hash_after   Datei-Zwischenstaende (4.5)
+		unit_hash_before / unit_hash_after   Einheit vorher/nachher
+		unit_after        Unit-Pfad nach replace_unit/move_unit (z.B. nach
+																				Umbenennung)
+		source_unit_hash  copy_unit/move_unit aus Quelle: Hash der Quelle
+
+Da alte UND neue Inhalte enthalten sind, ist jeder Patch IN SICH
+UMKEHRBAR (funktional): Rollback ist auch ohne Journal allein aus der
+Patchdatei moeglich. Mit Journal wird zusaetzlich der exakte Text
+(inkl. Kommentare) wiederhergestellt.
+@68 9
+6.7 Was nicht im Patch steht
+		- Alter Code ersetzter/geloeschter Einheiten und Dateien: den erwarteten
+				Ausgangsstand belegt der Hash, den Rollback die Sicherung im Ziel
+				(Abschnitt 11). Alter Text steht nur dort, wo er als Suchtext noetig
+				ist (TEXT, TINS, TDEL).
+		- Inhalt kopierter/verschobener Einheiten: er kommt aus der Quelle,
+				abgesichert durch deren Hash (s=).
+		Patches fuehren von Version zu Version: ein Patch setzt den passenden
+		Ausgangsstand voraus.
+@69 16
+Dateieintrag:
+		path          Relativer Pfad, immer mit "/" (auch unter Windows).
+		action        add | delete | modify | replace | move | copy
+		compare       Vergleichsprofil (Abschnitt 5.2). Von seal/create immer
+																vollstaendig ausgeschrieben, damit der Patch eindeutig ist.
+		to            nur bei move/copy: neuer Pfad (Ziel darf nicht existieren).
+		literal       true: Zeilen stehen exakt wie in der Datei (6.1).
+		old_literal   nur replace: old steht exakt wie in der Datei.
+		newline       optional bei add/replace: lf | crlf | cr (Vorgabe: bei
+																replace wie bisher, bei add lf).
+		hash_before / hash_after             Funktions-Hash (null bei add/delete)
+		text_hash_before / text_hash_after   Text-Hash (informativ, --exact)
+		old / new     bei add/delete/replace: ganzer Inhalt (Zeilen bzw. base64).
+		layout        optionaler Einrueckungs-Check (Abschnitt 6.1).
+		final_newline bei add/replace (Textmodi): endet die Datei mit Umbruch.
+		changes       nur bei modify: Liste der Aenderungen (Abschnitt 7).
+@70 11
+6.6 Pruefstufen (seal/create --verify)
+		min   nur Datei-Hashes vorher/nachher (h=) - fuer einfache Aenderungen
+		std   zusaetzlich Funktions-Hashes (u=, s=) bei Einheiten und scope
+								(Standard)
+		full  zusaetzlich Datei-Zwischenstand je Aenderung (c=) und exakter
+								Text (t=, Voraussetzung fuer apply --exact)
+		Beim Anwenden wird geprueft, was im Patch steht; was fehlt, wird nicht
+		geprueft (Hinweis, wenn eine Datei gar keinen Datei-Hash hat). Such-
+		bloecke (alt/anker) werden immer inhaltlich gesucht und muessen
+		eindeutig sein; die Funktion wird ueber die Normalform (Abschnitt 5)
+		gewaehrleistet.
+@71 16
+Kopffelder:
+		format        Pflicht. "pypatcher/<Formatversion>".
+		generator     Programmversion, die den Patch erzeugt hat.
+		id            Pflicht. Eindeutige Patch-ID (empfohlen: laufende Nr. +
+																Kurzname). Eine ID wird nie zweimal angewendet.
+		title         Pflicht. Kurzbeschreibung.
+		description, author, created   optional.
+		requires      optional. Liste von Patch-IDs, die vorher angewendet sein
+																muessen.
+		match         Standard-Pruefumfang dieses Patches (file|state|unit).
+		defaults      optional. {"compare": {...}} Vorgabe-Profil fuer alle
+																Dateien dieses Patches.
+		state_before / state_after     optional, Pflicht bei match=state.
+		files         Liste der Dateieintraege (Reihenfolge = Ausfuehrung).
+		signature     null (vorgesehen, Abschnitt 4.8).
+		patch_hash    Pflicht (Abschnitt 4.7).
+@72 7
+6.5 Datenbloecke
+		@N <anzahl> [lit|b64]   gefolgt von genau <anzahl> Zeilen (so schreibt
+																										das Programm; kein Escaping, keine Endmarke)
+		@N .                    Zeilen bis zur Zeile "@." (fuer handgeschriebene
+																										Entwuerfe, kein Zaehlen noetig)
+		lit = Zeilen exakt wie in der Datei (6.1); b64 = Binaerinhalt (mode raw)
+		als Base64 mit 76 Zeichen je Zeile.
+@73 57 lit
+  {
+    "format": "pypatcher/1",
+    "generator": "pypatcher 0.0.1-pre1",
+    "id": "0002-overwrite-fix",
+    "title": "check_overwrite fragt bei -a korrekt nach",
+    "description": "",
+    "author": "rs",
+    "created": "2026-10-30T12:00:00Z",
+    "requires": ["0001-initial"],
+    "match": "file",
+    "defaults": {
+      "compare": {"mode": "text", "whitespace": "ignore", "eol": "normalize"}
+    },
+    "state_before": null,
+    "state_after": null,
+    "files": [
+      {
+        "path": "src/convert.py",
+        "action": "modify",
+        "compare": {"mode": "python", "comments": "ignore",
+                    "whitespace": "ignore", "docstrings": "keep",
+                    "indent": "exact", "eol": "normalize"},
+        "layout": {"indent": "spaces", "width": 4},
+        "hash_before": "sha256:aa11...",
+        "hash_after":  "sha256:ff99...",
+        "text_hash_before": "sha256:1a2b...",
+        "text_hash_after":  "sha256:3c4d...",
+        "changes": [
+          {
+            "op": "replace_unit",
+            "unit": "check_overwrite",
+            "file_hash_before": "sha256:aa11...",
+            "file_hash_after":  "sha256:bb22...",
+            "unit_hash_before": "sha256:cc33...",
+            "unit_hash_after":  "sha256:dd44...",
+            "old": ["# Prueft, ob ueberschrieben werden darf",
+                    "def check_overwrite(path, force, ask):",
+                    "\t..."],
+            "new": ["# Prueft, ob ueberschrieben werden darf",
+                    "def check_overwrite(path, force, ask):",
+                    "\t...neu..."]
+          }
+        ]
+      },
+      {
+        "path": "data/logo.png",
+        "action": "replace",
+        "compare": {"mode": "raw"},
+        "hash_before": "sha256:...",
+        "hash_after": "sha256:...",
+        "old": {"base64": "..."},
+        "new": {"base64": "..."}
+      }
+    ],
+    "signature": null,
+    "patch_hash": "sha256:e5f6..."
+  }
+@74 31 lit
+6.4 Befehle
+  Dateibefehle stehen am Zeilenanfang, Aenderungen eingerueckt unter FILE.
+    ADD   pfad [profil] [h=>A] [ind=..] [nl=..] [eof=0] @N | src=datei
+    DEL   pfad [profil] [h=B]
+    REP   pfad [profil] [h=B>A] [ind=..] [nl=..] [eof=0] @N | src=datei
+    MOVE  pfad ziel [profil] [h=B>A]
+    COPY  pfad ziel [profil] [h=B>A]
+    FILE  pfad [profil] [h=B>A] [ind=..]           Datei bearbeiten:
+      UNIT  einheit [after=pfad] [u=B>A] @N              Einheit ersetzen
+      UADD  [einheit] position [u=>A] @N                 Einheit einfuegen
+      UDEL  einheit [u=B]                                Einheit loeschen
+      UCOPY quelle position [as=name] [s=Q] [u=>A]       Einheit kopieren
+      UMOVE einheit position [u=B>A]                     verschieben (Datei)
+      UMOVE einheit to=datei id=M [u=B]                  verschieben: Quelle
+      UMOVE quelle position id=M [s=Q] [u=>A]            verschieben: Ziel
+      TEXT  [scope=einheit] [u=B>A] @alt @neu            Textblock ersetzen
+      TINS  before|after [scope=..] [u=B>A] @anker @neu  Text einfuegen
+      TDEL  [scope=..] [u=B>A] @alt                      Textblock loeschen
+  Schluessel:
+    h=B>A   Datei-Hash vorher>nachher (eine Seite darf fehlen: h=>A, h=B)
+    u=B>A   Einheiten-Hash; s=Q Hash der Quell-Einheit
+    t=B>A   Text-Hash der Datei, c=B>A Datei-Zwischenstand je Aenderung
+            (nur Pruefstufe full)
+    after=  Pfad der Einheit nach UNIT (wenn umbenannt)
+    ind=4 | ind=tab   layout (6.1);  nl=lf|crlf|cr;  eof=0 = Datei endet
+            ohne Zeilenumbruch;  src=datei nur im Entwurf (6.7)
+  Profil-Kurzform: py | txt | raw, Abweichungen von den Vorgaben mit
+  Komma, z.B. py,comments=keep oder txt,whitespace=keep,eol=keep.
+  Ohne Profilangabe gilt DEFAULT bzw. die Vorgabe je Dateiendung.
+  Pfade mit Leerzeichen stehen in "...". Positionen: Abschnitt 7.5.
+  Hashes: Hex, gekuerzt (Standard 16 Zeichen, mindestens 8, --hash-len).
+@75 3
+
+Beispiel:
+
+@76 13
+
+6.3 Kopfangaben
+		TITLE text       Pflicht, Kurzbeschreibung
+		DESC text        Beschreibung; mehrere DESC-Zeilen = mehrere Zeilen
+		AUTHOR / DATE / GEN    optional (GEN = erzeugende Programmversion)
+		REQ id ...       Patches, die vorher angewendet sein muessen
+		MATCH state|unit Pruefumfang (Standard file, Abschnitt 4.6)
+		DEFAULT profil   Vorgabe-Profil fuer alle Dateien dieses Patches
+		STATE B>A        Projektzustand vorher/nachher (MATCH state, seal --state)
+		Leerzeilen und Zeilen mit # (ausser der Kopfzeile) sind Kommentare.
+		Die Kennung (id) darf Buchstaben, Ziffern, ".", "_", "-" enthalten und
+		wird nie zweimal angewendet.
+
+@77 20 lit
+  "layout" (optional, als Check) im Dateieintrag:
+    {"indent": "spaces", "width": 4}   oder   {"indent": "tabs"}
+    - Ist es angegeben und weicht die erkannte Einheit der Zieldatei ab
+      -> Konflikt (statt stiller Umrechnung in eine andere Einheit).
+    - Pflicht nur, wenn sich die Einheit nicht aus dem Text ergibt:
+      neue Datei (add_file) oder Datei ganz ohne Einrueckung.
+    - seal/create tragen es standardmaessig ein (abschaltbar mit
+      --no-layout), damit der Patch fuer eine bestimmte Einrueckung
+      eindeutig ist.
+  {"lines": "literal"} (Ausweichform): Zeilen stehen exakt wie in der
+    Datei, keine Umrechnung. seal/create waehlen sie automatisch, wenn
+    eine Zeile nicht darstellbar ist (z.B. Tab in einer Datei mit
+    Leerzeichen-Einrueckung, Leerzeichen vor Tab), und geben einen
+    Hinweis aus.
+  Regeln:
+    - Die Umrechnung ist umkehrbar eindeutig. seal/create pruefen fuer
+      jede Zeile Datei -> Patch -> Datei == Original.
+    - Die Hashes werden immer ueber den Text in Datei-Form berechnet
+      (exakte Einrueckung, E13).
+    - mode raw: keine Umrechnung (Inhalt als Base64).
+@78 15 lit
+6.2 Kopfzeile und Pakete
+  Einteilig :  #PPATCH 1 <id> <patch-hash>
+  Paket i/n :  #PPATCH 1 <id> <patch-hash> <i>/<n> <paket-hash>
+  Entwurf   :  #PPATCH 1 <id>                  (ohne Hash, nur fuer seal)
+  patch-hash = SHA-256 ueber den gesamten Inhalt ohne Kopfzeile(n), bei
+  Paketen ueber die Inhalte in Reihenfolge; paket-hash = SHA-256 ueber den
+  Inhalt dieses Pakets. Beide gekuerzt auf --hash-len.
+  Pakete (optional, seal/create --max-size N): Teilung an Zeilengrenzen,
+  jedes Paket hoechstens N Zeichen inkl. Kopfzeile; Dateien
+  <name>.1.ppatch ... <name>.n.ppatch. Die Befehlsliste steht vorne, die
+  Daten folgen; ein Datenblock darf ueber Paketgrenzen weiterlaufen.
+  check/apply/show nehmen ein beliebiges Paket; die uebrigen werden im
+  selben Verzeichnis gesucht (gleicher Name, sonst gleiche Kennung und
+  gleicher patch-hash). Fehlt ein Paket oder ist eines beschaedigt ->
+  Abbruch, es wird nichts geaendert.
+@79 1
+Echte Zeile = Grundtiefe + Ebenen x Einheit + Rest woertlich.
+@80 12
+ind=4 / ind=tab (layout, optional, als Check):
+		- weicht die erkannte Einheit der Zieldatei ab -> Konflikt
+		- Pflicht nur, wenn sich die Einheit nicht aus dem Text ergibt
+				(neue Datei, Datei ganz ohne Einrueckung)
+		- seal/create tragen es ein (abschaltbar mit --no-layout)
+Block-Kennzeichen lit (Ausweichform): Zeilen stehen exakt wie in der
+		Datei, keine Umrechnung; automatisch, wenn eine Zeile nicht relativ
+		darstellbar ist (z.B. Tab in einer Datei mit Leerzeichen-Einrueckung).
+Die Umrechnung ist umkehrbar eindeutig; Hashes werden immer ueber den
+Text in Datei-Form berechnet (exakte Einrueckung, E13).
+Zum Lesen stellt "show" die Ebenen wie in der ungepatchten Datei dar
+(ind=...), oder wie mit --indent eingestellt.
+@81 2
+- die Ebenen-Einheit (Tab, 4 Leerzeichen, 2 Leerzeichen ...):
+		erkannt aus den vorhandenen Einrueckungen der Datei
+@82 1
+- die Ebenen-Einheit (Tab, 4 Leerzeichen, 2 Leerzeichen ...)
+@83 2
+"\treturn a"
+
+@84 1
+"\treturn a"
+@85 3
+Zeilen im Patch (old/new/anchor) stehen mit RELATIVEN Ebenen:
+jeder fuehrende Tab = eine Ebene tiefer als die Grundtiefe des Blocks.
+Was nach den Ebenen-Tabs folgt, bleibt woertlich (z.B. Ausrichtung von
+@86 3
+Zeilen in Datenbloecken stehen mit RELATIVEN Ebenen: jeder fuehrende
+Tab = eine Ebene tiefer als die Grundtiefe des Blocks. Was nach den
+Ebenen-Tabs folgt, bleibt woertlich (z.B. Ausrichtung von
+@87 4 lit
+JSON, UTF-8, eingerueckt (2 Leerzeichen) fuer Lesbarkeit und saubere Diffs.
+Textinhalte werden als Liste von Zeilen (ohne Zeilenende) gespeichert,
+die Einrueckung als fuehrende Tabs je Ebene (Abschnitt 6.1).
+Binaerinhalte (mode raw) als Base64-String im Feld "base64".
+@88 29 lit
+Textdatei, UTF-8, eine Angabe pro Zeile - kompakt und ohne Escaping lesbar.
+Aufbau:
+  1. Kopfzeile (Kennung, Hashes)
+  2. Kopfangaben (TITLE, DESC ...)
+  3. Befehlsliste - wird von oben nach unten abgearbeitet
+  4. Datenbloecke @1, @2 ... - Code/Text unveraendert, die Befehle
+     verweisen darauf
+
+Beispiel (Pruefstufe std):
+
+  #PPATCH 1 0002-fix 9f2c41d07ab3e118
+  TITLE check_overwrite fragt bei -a korrekt nach
+  AUTHOR rs
+  REQ 0001-basis
+  FILE src/convert.py py h=aa11f0c2d9e4b7a1>ff9903e1c5a7b2d4 ind=4
+    UNIT check_overwrite u=cc33a1b2c3d4e5f6>dd4401a2b3c4d5e6 @1
+    TEXT scope=main u=0b1c2d3e4f5a6b7c>1c2d3e4f5a6b7c8d @2 @3
+  REP data/logo.png raw h=5e6f7a8b9c0d1e2f>6f7a8b9c0d1e2f3a @4
+  @1 3
+  # Prueft, ob ueberschrieben werden darf
+  def check_overwrite(path, force, ask):
+  	return force or (ask and frage(path))
+  @2 1
+  if pruefen:
+  @3 1
+  if pruefen and not force:
+  @4 2 b64
+  iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwAD
+  hgGAWjR9awAAAABJRU5ErkJggg==
+@89 1
+6. PATCHDATEI-FORMAT (*.ppatch.json)
+@90 1
+6. PATCHDATEI-FORMAT pypatcher/1 (*.ppatch)
+@91 4
+Beispiel:
+		"compare": {"mode": "python", "comments": "ignore",
+														"whitespace": "ignore", "docstrings": "keep",
+														"indent": "exact", "eol": "normalize"}
+@92 4
+Beispiel (Kurzform im Patch, nur Abweichungen von den Vorgaben):
+		py                        = python mit allen Vorgaben
+		py,comments=keep          = Kommentare zaehlen mit
+		txt,whitespace=keep       = Text exakt inkl. Leerzeichen am Zeilenende
+@93 4
+5.2 Vergleichsprofil in der Patchdatei ("compare")
+		Festgelegt im Patch fuer jede Datei. Rangfolge:
+				1. "compare" im Dateieintrag
+				2. "defaults.compare" im Patchkopf (gilt fuer alle Dateien des Patches)
+@94 5
+5.2 Vergleichsprofil in der Patchdatei
+		Festgelegt im Patch fuer jede Datei (Profil-Kurzform, Abschnitt 6.4).
+		Rangfolge:
+				1. Profil am Dateibefehl (z.B. "FILE x.py py,comments=keep")
+				2. DEFAULT im Patchkopf (gilt fuer alle Dateien des Patches)
+@95 3
+Feld "signature": null oder {"alg": "...", "key_id": "...",
+"value": "..."} ueber denselben kanonischen Inhalt wie der Patch-Hash.
+Moegliche Verfahren spaeter: HMAC-SHA256 oder Ed25519 (request.txt).
+@96 2
+Spaeter als zusaetzliche Kopfangabe ueber denselben Inhalt wie der
+Patch-Hash; moegliche Verfahren HMAC-SHA256 oder Ed25519 (request.txt).
+@97 6
+Feld "patch_hash" = SHA-256 ueber die kanonische JSON-Darstellung des
+Patches OHNE die Felder "patch_hash" und "signature"
+(json.dumps(..., sort_keys=True, separators=(",", ":"),
+ensure_ascii=False), UTF-8). Erkennt beschaedigte oder veraenderte
+Patchdateien (inkl. veraenderter Vergleichsprofile). Falscher
+Patch-Hash -> Patch wird abgelehnt.
+@98 4
+SHA-256 ueber den gesamten Inhalt der Patchdatei ohne Kopfzeile, bei
+Paketen zusaetzlich ein Hash je Paket (Abschnitt 6.2). Erkennt
+beschaedigte oder veraenderte Patchdateien (inkl. veraenderter
+Profile). Falscher Patch-Hash -> Patch wird abgelehnt.
+@99 1
+Beim Anwenden (alles zuerst im Speicher):
+@100 1
+Beim Anwenden (alles zuerst im Speicher), soweit im Patch enthalten:
+@101 2
+Jeder Dateieintrag hat hash_before und hash_after der ganzen Datei.
+Jede Aenderung im Eintrag hat zusaetzlich:
+@102 3
+Welche Hashes ein Patch enthaelt, bestimmt die Pruefstufe (6.6).
+Vollstaendig (full): jeder Dateieintrag hat hash_before und hash_after
+der ganzen Datei, jede Aenderung im Eintrag zusaetzlich:
+@103 1
+profil         wird ("compare": mode + Optionen). Abschnitt 5.2.
+@104 1
+profil         wird (mode + Optionen). Abschnitt 5.2.
+@105 1
+Patch          Eine Patchdatei (*.ppatch.json) mit Aenderungen an Dateien.
+@106 1
+Patch          Eine Patchdatei (*.ppatch), ggf. in Pakete geteilt.
+@107 1
+E17 Umfang 0.0.1-pre1 und spaeter: Abschnitt 13.
+@108 6
+E18 Pruefstufen waehlbar (min/std/full): nur Datei, zusaetzlich
+				Funktionen, oder alles - so sicher und informativ wie gewuenscht;
+				Hash-Laenge einstellbar (Abschnitt 6.6).
+E19 Kein alter Code im Patch, ausser als Suchtext fuer Textaenderungen;
+				Rollback ueber die Sicherung im Ziel; Patches von Version zu Version.
+E20 Pakete mit begrenzter Zeichenzahl optional (--max-size, 6.2).
+@109 1
+beim Anwenden aus dem Text der Zieldatei. Der Parameter "layout"
+@110 1
+beim Anwenden aus dem Text der Zieldatei. Der Parameter layout (ind=)
+@111 2
+E8  Signatur: im Format vorgesehen (Feld "signature"), zunaechst nicht
+				umgesetzt.
+@112 2
+E8  Signatur: vorgesehen (spaeter als zusaetzliche Kopfangabe),
+				zunaechst nicht umgesetzt.
+@113 1
+E2  Patchformat: JSON.
+@114 2
+E2  Patchformat: Befehlsliste + Datenbloecke als Text (pypatcher/1,
+				Abschnitt 6); ersetzt in der Testphase das anfaengliche JSON.
+@115 1
+Version       : 0.0.1-pre2
+@116 1
+Version       : 0.0.1-pre1
+@117 1
+__version__ = "0.0.1-pre2"
+@118 1
+__version__ = "0.0.1-pre1"
+@119 29
+def _prepare(args):
+	patch = patchfile.load(args.patch)
+	patchfile.validate(patch)
+	journal = jr.Journal(args.project)
+	journal.require()
+	journal.require_no_txn()
+	applied = journal.applied_ids()
+	if patch["id"] in applied:
+		raise Conflict("Patch %s ist bereits angewendet" % patch["id"])
+	missing = [r for r in patch.get("requires", []) if r not in applied]
+	if missing:
+		raise Conflict("Patch %s benoetigt zuerst: %s" % (patch["id"], ", ".join(missing)))
+	match = args.match or patch.get("match", "file")
+	ctx = engine.Ctx(journal.root, match=match, exact=args.exact,
+					 allow_mixed=args.allow_mixed_eol, config=journal.config())
+	patterns = journal.patterns()
+	if match == "state":
+		if not patch.get("state_before"):
+			raise PatchInvalid("match=state, aber state_before fehlt im Patch")
+		current = state_hash(jr.project_hashes(journal.root, patterns))
+		if not patchfile.hash_match(patch["state_before"], current):
+			raise Conflict("Projektzustand stimmt nicht (state_before)\n    erwartet: %s\n"
+						   "    gefunden: %s" % (patch["state_before"], current))
+	engine.process(patch, ctx)
+	if match == "state" and patch.get("state_after"):
+		after = state_hash(jr.project_hashes(journal.root, patterns, ctx.docs, ctx.profiles))
+		if not patchfile.hash_match(patch["state_after"], after):
+			raise Conflict("Projektzustand nach dem Patch stimmt nicht (state_after)")
+	return patch, ctx, journal
+@120 24
+def cmd_seal(args):
+	patch = patchfile.load(args.draft, verify=False)
+	patchfile.validate(patch, sealed=False)
+	base = os.path.abspath(args.base)
+	if not os.path.isdir(base):
+		raise UsageError("%s ist kein Verzeichnis" % args.base)
+	journal = jr.Journal(base)
+	config = journal.config() if journal.exists else {}
+	patch["generator"] = "pypatcher " + __version__
+	patch.setdefault("created", jr.now())
+	ctx = engine.Ctx(base, seal=True, allow_mixed=args.allow_mixed_eol, config=config,
+					 no_layout=args.no_layout,
+					 source_dir=os.path.dirname(os.path.abspath(args.draft)))
+	engine.process(patch, ctx)
+	if args.state or patch["match"] == "state":
+		patterns = jr.ignore_patterns(base, config)
+		patch["state_before"] = state_hash(jr.project_hashes(base, patterns))
+		patch["state_after"] = state_hash(jr.project_hashes(base, patterns, ctx.docs, ctx.profiles))
+	patchfile.validate(patch)
+	_save(patch, args)
+	for line in _summary(ctx):
+		out(line)
+	show_hints(ctx.hints)
+	return 0
+@121 27
+def cmd_create(args):
+	old, new = os.path.abspath(args.old), os.path.abspath(args.new)
+	for path in (old, new):
+		if not os.path.isdir(path):
+			raise UsageError("%s ist kein Verzeichnis" % path)
+	journal = jr.Journal(old)
+	meta = {"id": args.id, "title": args.title, "created": jr.now(),
+			"requires": args.requires or [], "match": "file"}
+	if args.description:
+		meta["description"] = args.description
+	if args.author:
+		meta["author"] = args.author
+	patchfile.validate(dict(meta, files=[{"path": "x", "action": "delete"}]), sealed=False)
+	compare = pf.parse_short(args.compare) if args.compare else None
+	patch, ctx, hints = diff.create(old, new, meta, level=args.level, compare=compare,
+									include_cosmetic=args.include_cosmetic,
+									no_layout=args.no_layout,
+									config=journal.config() if journal.exists else {},
+									allow_mixed=args.allow_mixed_eol)
+	patchfile.validate(patch)
+	_save(patch, args)
+	for entry in patch["files"]:
+		target = " -> " + entry["to"] if entry.get("to") else ""
+		count = " (%d Aenderungen)" % len(entry["changes"]) if entry.get("changes") else ""
+		out("  %-7s %s%s%s" % (entry["action"], entry["path"], target, count))
+	show_hints(hints)
+	return 0
+@122 50
+def cmd_show(args):
+	try:
+		patch = patchfile.load(args.patch)
+		ok = True
+	except PatchInvalid as exc:
+		patch = patchfile.load(args.patch, verify=False)
+		ok = False
+		print("FEHLER: %s" % exc)
+	out("Patch     : %s - %s" % (patch.get("id"), patch.get("title")))
+	for key, label in (("generator", "Erzeugt"), ("author", "Autor"), ("created", "Datum"),
+					   ("match", "Pruefung")):
+		if patch.get(key):
+			out("%-10s: %s" % (label, patch[key]))
+	if patch.get("requires"):
+		out("Benoetigt : %s" % ", ".join(patch["requires"]))
+	for line in (patch.get("description") or "").splitlines():
+		out("Beschreib.: %s" % line)
+	out("Patch-Hash: %s" % ("OK" if ok else "FEHLER"))
+	for n, entry in enumerate(patch.get("files", []), 1):
+		prof = patchfile.profile_short(entry.get("compare")) or "auto"
+		target = " -> " + entry["to"] if entry.get("to") else ""
+		checks = "Hash" if entry.get("hash_before") or entry.get("hash_after") else "ohne Hash"
+		out("")
+		out("[%d] %s %s%s  (%s, %s)" % (n, patchfile.CMD_OF[entry["action"]], entry["path"],
+									   target, prof, checks))
+		unit = _indent_unit(args, entry)
+		if entry["action"] in ("add", "replace") and args.diff:
+			if isinstance(entry.get("new"), dict):
+				out("      (Binaerinhalt, %d Zeichen Base64)" % len(entry["new"]["base64"]))
+			else:
+				for line in _block(entry.get("new"), "+", unit, entry.get("literal")):
+					out(line)
+		for i, ch in enumerate(entry.get("changes", []), 1):
+			details = [ch.get(k) for k in ("unit", "from", "position") if ch.get(k)]
+			for key in ("as", "to", "scope", "move_id"):
+				if ch.get(key):
+					details.append("%s=%s" % (key, ch[key]))
+			checks = "Funktion geprueft" if ch.get("unit_hash_before") or \
+				ch.get("unit_hash_after") else ""
+			out("    %d. %s %s%s" % (i, patchfile.CMD_OF[ch["op"]], " ".join(details),
+									 "  (%s)" % checks if checks else ""))
+			if not args.diff:
+				continue
+			lit = ch.get("literal")
+			for key, mark in (("anchor", "@"), ("old", "-"), ("new", "+")):
+				if ch["op"] in ("copy_unit", "move_unit"):
+					break
+				for line in _block(ch.get(key), mark, unit, lit):
+					out(line)
+	return 0 if ok else PatchInvalid.exit_code
+@123 78
+def build_parser():
+	common = argparse.ArgumentParser(add_help=False)
+	common.add_argument("-v", "--verbose", action="store_true", help="ausfuehrliche Ausgabe")
+	common.add_argument("-q", "--quiet", action="store_true", help="nur Fehler ausgeben")
+	common.add_argument("-y", "--yes", action="store_true", help="keine Rueckfragen")
+	common.add_argument("--allow-mixed-eol", action="store_true",
+						help="Dateien mit gemischten Zeilenenden zulassen")
+	project = argparse.ArgumentParser(add_help=False)
+	project.add_argument("-p", "--project", default=".", help="Projektwurzel (Standard: .)")
+
+	parser = argparse.ArgumentParser(
+		prog="patcher.py", description="Hash-gepruefter Patcher (pypatcher %s)" % __version__)
+	parser.add_argument("--version", action="version", version="pypatcher " + __version__)
+	sub = parser.add_subparsers(dest="command", metavar="BEFEHL")
+	sub.required = True
+
+	def add(name, func, help_text, parents=(common,)):
+		p = sub.add_parser(name, parents=list(parents), help=help_text, description=help_text)
+		p.set_defaults(func=func)
+		return p
+
+	add("init", cmd_init, "Journal anlegen, Ist-Stand als Ausgangszustand", (common, project))
+	add("status", cmd_status, "Ueberblick ueber Zustand und Patches", (common, project))
+	add("verify", cmd_verify, "Ist-Stand gegen das Journal pruefen", (common, project))
+	add("log", cmd_log, "Historie anzeigen", (common, project))
+	p = add("units", cmd_units, "Einheiten einer Datei mit Hashes")
+	p.add_argument("file")
+	p.add_argument("--compare", help='Profil, z.B. "python" oder "text,whitespace=keep"')
+	p = add("show", cmd_show, "Patch lesbar anzeigen und Hashes pruefen")
+	p.add_argument("patch", help="Patchdatei (bei Paketen: eine beliebige davon)")
+	p.add_argument("--no-diff", dest="diff", action="store_false", help="ohne Inhalte")
+	p.add_argument("--indent", help="Darstellung einer Einrueckungs-Ebene: Anzahl Leerzeichen, "
+				   "'tab' oder 'file' (wie in der Datei, Standard)")
+	def output_options(p):
+		p.add_argument("--verify", choices=patchfile.LEVELS, default="std",
+					   help="Pruefstufe: min = nur Datei-Hashes, std = zusaetzlich Funktionen "
+					   "(Standard), full = alles inkl. Zwischenstaende und exaktem Text")
+		p.add_argument("--hash-len", type=int, default=patchfile.DEFAULT_HASH_LEN,
+					   help="Laenge der Hashes in Hex-Zeichen (8-64, Standard 16)")
+		p.add_argument("--max-size", type=int,
+					   help="in Pakete mit hoechstens N Zeichen teilen")
+
+	p = add("seal", cmd_seal, "Entwurf versiegeln (Hashes und Altinhalte eintragen)")
+	p.add_argument("draft", metavar="ENTWURF")
+	p.add_argument("--base", required=True, help="Referenzprojekt (Stand vor dem Patch)")
+	p.add_argument("-o", "--output", required=True, help="Ausgabe *.ppatch")
+	p.add_argument("--no-layout", action="store_true", help="kein layout als Check eintragen")
+	p.add_argument("--state", action="store_true", help="state_before/after eintragen")
+	output_options(p)
+	p = add("create", cmd_create, "Patch aus zwei Staenden erzeugen (ALT -> NEU)")
+	p.add_argument("old", metavar="ALT", help="Ausgangsstand (wie im Zielprojekt)")
+	p.add_argument("new", metavar="NEU", help="neuer Stand")
+	p.add_argument("-o", "--output", required=True, help="Ausgabe *.ppatch")
+	p.add_argument("--id", required=True, help="Patch-ID")
+	p.add_argument("--title", required=True, help="Kurzbeschreibung")
+	p.add_argument("--description", help="ausfuehrliche Beschreibung")
+	p.add_argument("--author", help="Autor")
+	p.add_argument("--requires", action="append", metavar="ID",
+				   help="vorher noetiger Patch (mehrfach moeglich)")
+	p.add_argument("--compare", help='Profil fuer alle Dateien, z.B. "python"')
+	p.add_argument("--level", choices=("unit", "text", "file"), default="unit",
+				   help="feinste Ebene der Aenderungen (Standard: unit)")
+	p.add_argument("--include-cosmetic", action="store_true",
+				   help="auch rein kosmetisch veraenderte Dateien uebernehmen")
+	p.add_argument("--no-layout", action="store_true", help="kein layout als Check eintragen")
+	output_options(p)
+	for name, func, text in (("check", cmd_check, "Probelauf, aendert nichts"),
+							 ("apply", cmd_apply, "Patch anwenden")):
+		p = add(name, func, text, (common, project))
+		p.add_argument("patch", help="Patchdatei (bei Paketen: eine beliebige davon)")
+		p.add_argument("--match", choices=("file", "state", "unit"),
+					   help="Pruefumfang (Standard: aus dem Patch)")
+		p.add_argument("--exact", action="store_true",
+					   help="zusaetzlich Text-Hashes pruefen (Kommentare/Leerraum exakt)")
+	p = add("rollback", cmd_rollback, "Patches zuruecknehmen", (common, project))
+	p.add_argument("--to", metavar="ID", help="alle Patches nach ID zuruecknehmen")
+	add("recover", cmd_recover, "Unterbrochene Transaktion bereinigen", (common, project))
+	return parser
+@124 8
+def _save(patch, args):
+	if not patchfile.MIN_HASH_LEN <= args.hash_len <= 64:
+		raise UsageError("--hash-len muss zwischen %d und 64 liegen" % patchfile.MIN_HASH_LEN)
+	paths, total = patchfile.save(patch, args.output, level=args.verify,
+								  hash_len=args.hash_len, max_size=args.max_size)
+	size = sum(os.path.getsize(p) for p in paths)
+	out("Patch %s (%d Zeichen, Pruefstufe %s, Hash %s) -> %s"
+		% (patch["id"], size, args.verify, total, ", ".join(paths)))
+@125 11
+def _indent_unit(args, entry):
+	"""Darstellung einer Einrueckungs-Ebene: --indent oder wie in der Datei (layout)."""
+	choice = args.indent or "file"
+	if choice == "tab":
+		return "\t"
+	if choice != "file":
+		return " " * int(choice)
+	layout = entry.get("layout") or {}
+	if layout.get("indent") == "tabs":
+		return "\t"
+	return " " * layout.get("width", 4)
+@126 8
+def _block(lines, mark, unit, literal):
+	shown = []
+	for line in lines or []:
+		if not literal:
+			n = len(line) - len(line.lstrip("\t"))
+			line = unit * n + line[n:]
+		shown.append("      %s %s" % (mark, line))
+	return shown
+@127 2
+
+# -- Patch erstellen / anzeigen --------------------------------------------
+@128 2
+
+def _save(patch, args):
+@129 4
+
+# -- Patch erstellen / anzeigen --------------------------------------------
+
+def _save(patch, args):
+@130 1
+from . import FORMAT, __version__, adapters, diff, engine, fileio, journal as jr, patchfile
+@131 1
+from . import __version__, adapters, diff, engine, fileio, journal as jr, patchfile
+@132 1
+import difflib
+@133 35
+def build(self, meta):
+	failing = set()
+	for _ in range(MAX_ROUNDS):
+		try:
+			draft = self._draft(meta)
+		except _Retry:
+			continue
+		sealed = copy.deepcopy(draft)
+		ctx = engine.Ctx(self.old_root, seal=True, allow_mixed=self.allow_mixed,
+						 config=self.config, no_layout=self.no_layout,
+						 source_dir=self.new_root)
+		try:
+			engine.process(sealed, ctx)
+		except (Conflict, PatchInvalid) as exc:
+			path = getattr(exc, "path", None)
+			if path in self.new.files and path not in self.force_replace:
+				self.force_replace.add(path)
+				self.cross_units = False
+			elif self.cross_units:
+				self.cross_units = False
+			elif self.level == "unit":
+				self.level = "text"
+			else:
+				raise
+			self.hints.append("create: %s - vereinfachter Versuch" % exc)
+			continue
+		failing = self._verify(ctx)
+		if not failing:
+			return sealed, ctx
+		self.force_replace.update(failing)
+		self.cross_units = False
+		self.hints.append("nicht exakt als Einzelaenderungen darstellbar, ganze Datei: "
+						  + ", ".join(sorted(failing)))
+	raise PatchInvalid("create: Patch fuehrt nicht exakt zum neuen Stand (%s)"
+					   % ", ".join(sorted(failing)))
+@134 44
+def _entry(self, rel, plan):
+	entry = plan["entry"]
+	if entry["action"] != "modify":
+		return entry
+	changes = []
+	unit_o = plan.get("unit_o")
+	info_n, unit_n = plan.get("ninfo"), plan.get("unit_n")
+	for path, unit in plan["replaces"]:
+		base = unit.indent
+		rel_new = _rel(_lines(info_n, unit), base, unit_n)
+		ch = {"op": "replace_unit", "unit": path}
+		if rel_new is None:
+			ch["literal"] = True
+			ch["new"] = list(_lines(info_n, unit))
+		else:
+			ch["new"] = rel_new
+		changes.append(ch)
+	for unit in plan["deletes"]:
+		changes.append({"op": "delete_unit", "unit": unit.path})
+	for add in plan["adds"]:
+		unit, position = add[0], add[1]
+		if len(add) > 2:
+			ch = dict(add[2], position=position)
+		else:
+			rel_new = _rel(_lines(info_n, unit), unit.indent, unit_n)
+			ch = {"op": "add_unit", "position": position}
+			if rel_new is None:
+				ch["literal"] = True
+				ch["new"] = list(_lines(info_n, unit))
+			else:
+				ch["new"] = rel_new
+		changes.append(ch)
+	changes.extend(plan.get("moved_out", []))
+	current = self._simulate(rel, plan, changes)
+	tail = text_changes(current, plan["ndoc"].lines, plan["prof"],
+						unit_o if unit_o is not None else lay.detect_generic(current))
+	if tail is None:
+		return {"path": rel, "action": "replace", "source": rel}
+	changes.extend(tail)
+	if not changes or _data_size(changes) >= sum(len(l) + 1 for l in plan["ndoc"].lines):
+		# ganze Datei ist kleiner als die Einzelaenderungen (stark umgeschrieben)
+		return {"path": rel, "action": "replace", "source": rel}
+	entry["changes"] = changes
+	return entry
+@135 4
+def _data_size(changes):
+	"""Zeichen der Datenbloecke dieser Aenderungen (Platzbedarf im Patch)."""
+	return sum(len(line) + 1 for ch in changes for key in ("old", "new", "anchor")
+			   if isinstance(ch.get(key), list) for line in ch[key])
+@136 17
+def expect(self, obj, key, value, what, level="file"):
+	"""seal: Wert eintragen. Sonst: Wert pruefen, sofern der Patch ihn enthaelt
+	(welche Pruefungen enthalten sind, bestimmt die Pruefstufe beim Erzeugen)."""
+	if self.seal:
+		obj[key] = value
+		return
+	if level == "file" and self.match == "unit":
+		return
+	if level == "text" and not self.exact:
+		return
+	stored = obj.get(key)
+	if stored is None:
+		return
+	same = stored == value if key in ("unit", "unit_after") else hash_match(stored, value)
+	if not same:
+		raise Conflict("%s: %s stimmt nicht\n    erwartet: %s\n    gefunden: %s"
+					   % (what, key, stored, value))
+@137 16
+def op_replace_unit(ctx, path, doc, ch, prof, fs, what):
+	_require_py(prof, what)
+	info = _info(doc, what)
+	unit = _find(info, ch.get("unit"), what)
+	ctx.expect(ch, "unit_hash_before", adapters.unit_hash(doc, info, unit, prof), what, "unit")
+	new = _abs(ch, "new", unit.indent, fs, what, fs.literal(ch))
+	nd = doc.with_lines(doc.lines[:unit.start] + new + doc.lines[unit.end:])
+	if unit.kind == "header":
+		info2 = _info(nd, what, result=True)
+		if info2.units[0].end != len(new):
+			raise PatchInvalid("%s: new bildet keinen vollstaendigen Datei-Kopf" % what)
+		ctx.expect(ch, "unit_hash_after",
+				   adapters.unit_hash(nd, info2, info2.units[0], prof), what, "unit")
+		return nd
+	_unit_after(ctx, ch, nd, unit.start, unit.start + len(new), prof, what)
+	return nd
+@138 6
+def op_delete_unit(ctx, path, doc, ch, prof, fs, what):
+	_require_py(prof, what)
+	info = _info(doc, what)
+	unit = _find(info, ch.get("unit"), what)
+	ctx.expect(ch, "unit_hash_before", adapters.unit_hash(doc, info, unit, prof), what, "unit")
+	return _remove(doc, unit.start, unit.end)
+@139 24
+def op_copy_unit(ctx, path, doc, ch, prof, fs, what):
+	_require_py(prof, what)
+	src_path, src_name = _split_from(ch.get("from"), path, what)
+	if src_path == path:
+		sdoc, sprof = doc, prof
+	else:
+		sprof = ctx.profiles.get(src_path) or pf.resolve(src_path)
+		_require_py(sprof, what + " (Quelle)")
+		sdoc = ctx.get(src_path, sprof)
+		if sdoc is None:
+			raise Conflict("%s: Quelldatei %s existiert nicht" % (what, src_path))
+	sinfo = _info(sdoc, what + " (Quelle)")
+	src = _find(sinfo, src_name, what)
+	if src.kind == "header":
+		raise PatchInvalid("%s: @header kann nicht kopiert werden" % what)
+	ctx.expect(ch, "source_unit_hash", adapters.unit_hash(sdoc, sinfo, src, sprof), what, "unit")
+	# Inhalt immer aus der Quelle (durch source_unit_hash gesichert), nicht aus dem Patch
+	sunit = fs.unit if src_path == path else PY.detect_unit(sdoc, sinfo)
+	rel = lay.to_rel(sdoc.lines[src.start:src.end], src.indent, sunit)
+	if rel is None:
+		raise Conflict("%s: Quelle ist nicht relativ darstellbar" % what)
+	ch["new"] = _rename(rel, ch["as"], what) if ch.get("as") else rel
+	ch.pop("literal", None)
+	return _place_unit(ctx, doc, ch, prof, fs, what)
+@140 26
+def op_move_unit(ctx, path, doc, ch, prof, fs, what):
+	_require_py(prof, what)
+	if "from" in ch:                      # Ziel-Haelfte: einfuegen
+		nd = op_copy_unit(ctx, path, doc, ch, prof, fs, what)
+		ctx.moves.add(ch["move_id"])
+		return nd
+	if "to" in ch:                        # Quell-Haelfte: entfernen
+		if ch["move_id"] not in ctx.moves:
+			raise PatchInvalid("%s: der 'from'-Teil von move_id %r muss vorher ausgefuehrt "
+							   "werden" % (what, ch["move_id"]))
+		return op_delete_unit(ctx, path, doc, ch, prof, fs, what)
+	info = _info(doc, what)
+	unit = _find(info, ch.get("unit"), what)
+	if unit.kind == "header":
+		raise PatchInvalid("%s: @header kann nicht verschoben werden" % what)
+	ctx.expect(ch, "unit_hash_before", adapters.unit_hash(doc, info, unit, prof), what, "unit")
+	block = doc.lines[unit.start:unit.end]
+	rel = lay.to_rel(block, unit.indent, fs.unit)
+	if rel is None:
+		raise Conflict("%s: Einheit ist nicht relativ darstellbar - move nicht moeglich" % what)
+	nd1 = _remove(doc, unit.start, unit.end)
+	idx, base, top = _position(_info(nd1, what, result=True), ch, what)
+	new = lay.to_abs(rel, base, fs.unit)
+	nd, start = _insert(nd1, idx, new, top)
+	_unit_after(ctx, ch, nd, start, start + len(new), prof, what)
+	return nd
+@141 9
+def _check_before(ctx, entry, doc, prof, what):
+	ctx.expect(entry, "hash_before", _hash(doc, prof, what), what)
+	text = adapters.text_hash(doc)
+	stored = entry.get("text_hash_before")
+	if ctx.exact and not stored and not ctx.seal:
+		ctx.hint("%s: --exact ohne Text-Hash im Patch (Pruefstufe full) - nicht geprueft" % what)
+	if not ctx.seal and stored and not hash_match(stored, text) and not ctx.exact:
+		ctx.hint("%s: kosmetische Abweichung (Kommentare/Leerraum) - wird angewendet" % what)
+	ctx.expect(entry, "text_hash_before", text, what, "text")
+@142 4
+def act_delete(ctx, entry, path, prof, what):
+	doc = _existing(ctx, path, prof, what)
+	_check_before(ctx, entry, doc, prof, what)
+	ctx.set(path, None, prof)
+@143 7
+def act_replace(ctx, entry, path, prof, what):
+	cur = _existing(ctx, path, prof, what)
+	_check_before(ctx, entry, cur, prof, what)
+	doc = _content_doc(ctx, entry, prof, what, like=cur)
+	_validate(doc, prof, what)
+	_check_after(ctx, entry, doc, prof, what)
+	ctx.set(path, doc, prof)
+@144 29
+def act_modify(ctx, entry, path, prof, what):
+	doc = _existing(ctx, path, prof, what)
+	if doc.is_raw:
+		raise PatchInvalid("%s: modify ist bei mode raw nicht moeglich" % what)
+	_check_before(ctx, entry, doc, prof, what)
+	adapter = adapters.get(prof["mode"])
+	try:
+		detected = adapter.detect_unit(doc)
+	except ParseError as exc:
+		raise Conflict("%s: Datei ist kein gueltiges Python (%s)" % (what, exc))
+	wanted = lay.unit_from_layout(entry.get("layout"))
+	if wanted and detected and wanted != detected:
+		raise Conflict("%s: Einrueckung der Datei (%s) passt nicht zum layout (%s)"
+					   % (what, lay.describe(detected), lay.describe(wanted)))
+	fs = FileState(ctx, entry, prof, detected or wanted)
+	if ctx.seal and fs.unit and not ctx.no_layout and not wanted:
+		entry["layout"] = dict(entry.get("layout") or {}, **lay.layout_for(fs.unit))
+	for i, ch in enumerate(entry["changes"], 1):
+		cwhat = "%s, Aenderung %d (%s)" % (what, i, ch.get("op"))
+		ctx.expect(ch, "file_hash_before", _chain_hash(doc, prof), cwhat)
+		doc = OPS[ch["op"]](ctx, path, doc, ch, prof, fs, cwhat)
+		ctx.expect(ch, "file_hash_after", _chain_hash(doc, prof), cwhat)
+		ctx.set(path, doc, prof)
+	# Syntax erst am Ende der Datei: Zwischenstaende von Textaenderungen duerfen
+	# ungueltig sein (z.B. Docstring in einem Block geoeffnet, im naechsten geschlossen).
+	_validate(doc, prof, what)
+	_check_after(ctx, entry, doc, prof, what)
+	if ctx.seal and entry["hash_before"] == entry["hash_after"]:
+		ctx.hint("%s: aendert nur Kommentare/Leerraum (Funktions-Hash unveraendert)" % what)
+@145 17
+def _peek_binary(ctx, entry, path):
+	"""seal: Binaerdatei ohne Profilangabe -> mode raw."""
+	if isinstance(entry.get("new"), dict):
+		return True
+	src = entry.get("source")
+	candidate = os.path.join(ctx.source_dir, src) if src else ctx.abspath(path)
+	if not os.path.isfile(candidate):
+		return False
+	with open(candidate, "rb") as handle:
+		data = handle.read(65536)
+	if b"\0" in data:
+		return True
+	try:
+		data.decode("utf-8")
+	except UnicodeDecodeError:
+		return len(data) < 65536
+	return False
+@146 25
+def process(patch, ctx):
+	"""Alle Dateieintraege der Reihe nach im Speicher ausfuehren."""
+	defaults = (patch.get("defaults") or {}).get("compare")
+	project = ctx.config.get("compare")
+	required = ctx.config.get("require")
+	for n, entry in enumerate(patch["files"], 1):
+		path = norm_path(entry["path"])
+		what = "Datei %d (%s)" % (n, path)
+		project_default = pf.lookup(project, path) if ctx.seal else None
+		layer = entry.get("compare")
+		if ctx.seal and not pf.has_mode(layer, defaults, project_default) and \
+				_peek_binary(ctx, entry, path):
+			layer = dict(layer or {}, mode="raw")
+		prof = pf.resolve(path, layer, defaults, project_default)
+		if ctx.seal:
+			entry["compare"] = prof
+		if required:
+			pf.check_required(prof, path, required)
+		if not ctx.seal and "hash_before" not in entry and "hash_after" not in entry:
+			ctx.hint("%s: ohne Datei-Hash im Patch - nur Inhaltspruefung" % what)
+		try:
+			ACTIONS[entry["action"]](ctx, entry, path, prof, what)
+		except (Conflict, PatchInvalid) as exc:
+			exc.path = path
+			raise
+@147 7
+def _chain_hash(doc, prof):
+	"""Datei-Zwischenstand (c=): Funktions-Hash, bei ungueltigem Zwischenstand
+	der Text-Hash - auf beiden Seiten eindeutig gleich."""
+	try:
+		return adapters.file_hash(doc, prof)
+	except ParseError:
+		return adapters.text_hash(doc)
+@148 1
+from .patchfile import norm_path
+@149 1
+from .patchfile import hash_match, norm_path
+@150 26
+def atomic_write(path, data, st_mode=None):
+	"""Temp-Datei im selben Verzeichnis, dann os.replace (atomar je Datei).
+
+	Ohne st_mode erhaelt eine neue Datei die ueblichen Rechte (0666 minus
+	umask) statt der restriktiven Rechte der Temp-Datei.
+	"""
+	if st_mode is None:
+		mask = os.umask(0)
+		os.umask(mask)
+		st_mode = 0o666 & ~mask
+	directory = os.path.dirname(path) or "."
+	os.makedirs(directory, exist_ok=True)
+	fd, tmp = tempfile.mkstemp(prefix=".pptmp-", dir=directory)
+	try:
+		with os.fdopen(fd, "wb") as handle:
+			handle.write(data)
+			handle.flush()
+			os.fsync(handle.fileno())
+		if st_mode is not None:
+			os.chmod(tmp, st_mode & 0o7777)
+		os.replace(tmp, path)
+		drop_bytecode(path)
+	except BaseException:
+		if os.path.exists(tmp):
+			os.remove(tmp)
+		raise
+@151 19
+def drop_bytecode(path):
+	"""Zwischengespeicherten Python-Bytecode einer Quelldatei entfernen.
+
+	Python erkennt veralteten Bytecode nur an Aenderungszeit (Sekunden) und
+	Groesse der Quelle - wird eine .py-Datei innerhalb einer Sekunde mit
+	gleich langem Inhalt ersetzt (Patch, Rollback), liefe sonst alter Code.
+	"""
+	if not path.endswith((".py", ".pyw")):
+		return
+	directory, name = os.path.split(path)
+	stem = os.path.splitext(name)[0]
+	cache = os.path.join(directory, "__pycache__")
+	if os.path.isdir(cache):
+		for entry in os.listdir(cache):
+			if entry.startswith(stem + ".") and entry.endswith((".pyc", ".pyo")):
+				try:
+					os.remove(os.path.join(cache, entry))
+				except OSError:
+					pass
+@152 62
+def commit_apply(self, patch, ctx):
+	pid = patch["id"]
+	touched = sorted(ctx.touched())
+	bdir = self.path("backups", pid)
+	if os.path.isdir(bdir):
+		shutil.rmtree(bdir)
+	meta = {}
+	for rel in touched:
+		src = self.file(rel)
+		meta[rel] = os.path.isfile(src)
+		if meta[rel]:
+			dst = os.path.join(bdir, "files", *rel.split("/"))
+			os.makedirs(os.path.dirname(dst), exist_ok=True)
+			shutil.copy2(src, dst)
+	write_json(os.path.join(bdir, "meta.json"), {"files": meta})
+	write_json(self.path("txn.json"), {"kind": "apply", "id": pid, "phase": "write",
+									   "files": meta, "time": now()})
+	written = {}
+	try:
+		for rel in touched:
+			doc = ctx.docs[rel]
+			target = self.file(rel)
+			if doc is None:
+				if os.path.isfile(target):
+					os.remove(target)
+					fileio.drop_bytecode(target)
+				continue
+			data = fileio.encode(doc)
+			fileio.atomic_write(target, data, doc.st_mode)
+			written[rel] = data
+	except BaseException as exc:
+		self.restore(pid, meta)
+		os.remove(self.path("txn.json"))
+		raise JournalError("Schreiben fehlgeschlagen, Ausgangsstand wiederhergestellt: %s" % exc)
+	write_json(self.path("txn.json"), {"kind": "apply", "id": pid, "phase": "journal",
+									   "files": meta, "time": now()})
+	fileio.atomic_write(self.path("patches", pid + patchfile.EXT),
+						patchfile.dumps(patch).encode("utf-8"))
+	state = self.state()
+	files_info = {}
+	for rel in touched:
+		before = None
+		if meta[rel]:
+			before = state["files"].get(rel)
+			if before is None:
+				data = fileio.read_bytes(os.path.join(bdir, "files", *rel.split("/")))
+				before = fingerprint(rel, data, ctx.profiles[rel])
+		after = fingerprint(rel, written[rel], ctx.profiles[rel]) if rel in written else None
+		files_info[rel] = {"before": before, "after": after}
+		if after is None:
+			state["files"].pop(rel, None)
+		else:
+			state["files"][rel] = after
+	history = self.history()
+	history["applied"].append({"id": pid, "title": patch.get("title", ""),
+							   "patch_hash": patch.get("patch_hash"),
+							   "applied_at": now(), "files": files_info})
+	history["log"].append({"time": now(), "action": "apply", "id": pid})
+	write_json(self.path("history.json"), history)
+	self._save_state(state["files"])
+	os.remove(self.path("txn.json"))
+	return files_info
+@153 11
+def restore(self, pid, meta):
+	bdir = self.path("backups", pid, "files")
+	for rel, existed in meta.items():
+		target = self.file(rel)
+		if existed:
+			src = os.path.join(bdir, *rel.split("/"))
+			fileio.atomic_write(target, fileio.read_bytes(src), os.stat(src).st_mode)
+		elif os.path.isfile(target):
+			os.remove(target)
+			fileio.drop_bytecode(target)
+			self._prune_dirs(os.path.dirname(target))
+@154 20
+def _finish_rollback(self, pid):
+	history = self.history()
+	entry = next((e for e in history["applied"] if e["id"] == pid), None)
+	if entry is not None:
+		history["applied"].remove(entry)
+		history["log"].append({"time": now(), "action": "rollback", "id": pid})
+		write_json(self.path("history.json"), history)
+		state = self.state()
+		for rel, fps in entry["files"].items():
+			if fps["before"] is None:
+				state["files"].pop(rel, None)
+			else:
+				state["files"][rel] = fps["before"]
+		self._save_state(state["files"])
+	for path in (self.path("patches", pid + patchfile.EXT),):
+		if os.path.isfile(path):
+			os.remove(path)
+	shutil.rmtree(self.path("backups", pid), ignore_errors=True)
+	if os.path.isfile(self.path("txn.json")):
+		os.remove(self.path("txn.json"))
+@155 19
+def recover(self):
+	txn = self.txn()
+	if not txn:
+		return None
+	pid = txn["id"]
+	if txn["kind"] == "apply":
+		if pid in self.applied_ids():
+			os.remove(self.path("txn.json"))
+			return "Patch %s war vollstaendig angewendet - Transaktion abgeschlossen" % pid
+		self.restore(pid, txn["files"])
+		shutil.rmtree(self.path("backups", pid), ignore_errors=True)
+		patch_copy = self.path("patches", pid + patchfile.EXT)
+		if os.path.isfile(patch_copy):
+			os.remove(patch_copy)
+		os.remove(self.path("txn.json"))
+		return "Patch %s war unvollstaendig - Ausgangsstand wiederhergestellt" % pid
+	self.restore(pid, txn["files"])
+	self._finish_rollback(pid)
+	return "Rollback von %s abgeschlossen" % pid
+@156 626
+"""Patchdatei pypatcher/1: Befehlsliste + Datenbloecke, optional in Pakete
+geteilt (manifest.txt Abschnitt 6).
+
+Intern wird ein Patch als dict dargestellt (Schluessel wie in Abschnitt 6
+beschrieben); dieses Modul uebersetzt zwischen dict und Text.
+"""
+
+import glob
+import os
+import re
+import shlex
+
+from . import FORMAT
+from .errors import PatchInvalid
+from .fileio import atomic_write
+from .hashing import sha256_text
+from . import profile as pf
+
+EXT = ".ppatch"
+MAGIC = "#PPATCH"
+FORMAT_VERSION = "1"
+LEVELS = ("min", "std", "full")
+DEFAULT_HASH_LEN = 16
+MIN_HASH_LEN = 8
+B64_WIDTH = 76
+
+MODE_SHORT = {"python": "py", "text": "txt", "raw": "raw"}
+MODE_LONG = dict((v, k) for k, v in MODE_SHORT.items())
+
+FILE_CMDS = {"ADD": "add", "DEL": "delete", "REP": "replace", "MOVE": "move",
+			 "COPY": "copy", "FILE": "modify"}
+CHANGE_CMDS = {"UNIT": "replace_unit", "UADD": "add_unit", "UDEL": "delete_unit",
+			   "UCOPY": "copy_unit", "UMOVE": "move_unit", "TEXT": "replace_text",
+			   "TINS": "insert_text", "TDEL": "delete_text"}
+CMD_OF = dict((v, k) for k, v in list(FILE_CMDS.items()) + list(CHANGE_CMDS.items()))
+ACTIONS = tuple(FILE_CMDS.values())
+OPS = tuple(CHANGE_CMDS.values())
+KEYS = ("h", "t", "u", "c", "s", "ind", "nl", "eof", "src", "as", "after", "to", "id",
+		"scope")
+META = ("TITLE", "DESC", "AUTHOR", "DATE", "GEN", "REQ", "MATCH", "DEFAULT", "STATE")
+
+ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+BLOCK_RE = re.compile(r"^@(\d+)(?:\s+(\d+|\.)(?:\s+(lit|b64))?)?\s*$")
+REF_RE = re.compile(r"^@(\d+)$")
+POS_RE = re.compile(r"^(start|end|(after|before|start-of|end-of):\S+)$")
+PROFILE_RE = re.compile(r"^(py|txt|raw)(,[a-z_]+=[^,\s]*)*$")
+PART_RE = re.compile(r"^(.*)\.(\d+)" + re.escape(EXT) + "$")
+
+
+# -- Hilfen ------------------------------------------------------------------
+
+def norm_path(path, what="Pfad"):
+	"""Relativer Projektpfad mit "/"; keine absoluten Pfade, kein "..", nicht .patcher."""
+	if not isinstance(path, str) or not path.strip():
+		raise PatchInvalid("%s fehlt" % what)
+	p = path.replace("\\", "/")
+	while p.startswith("./"):
+		p = p[2:]
+	parts = p.split("/")
+	if (p.startswith("/") or re.match(r"^[A-Za-z]:", p)
+			or any(part in ("", ".", "..") for part in parts) or parts[0] == ".patcher"):
+		raise PatchInvalid("%s ungueltig: %r" % (what, path))
+	return p
+
+
+def short(value, length=None):
+	"""Hash ohne "sha256:"-Praefix, auf length Zeichen gekuerzt."""
+	hexpart = value.split(":", 1)[-1]
+	return hexpart[:length] if length else hexpart
+
+
+def hash_match(stored, computed):
+	"""Gespeicherter (evtl. gekuerzter) Hash passt zum berechneten?"""
+	stored = short(str(stored)).lower()
+	return len(stored) >= MIN_HASH_LEN and short(computed).startswith(stored)
+
+
+def _quote(token):
+	if token and not re.search(r"[\s\"'\\#]", token):
+		return token
+	return '"' + token.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def profile_short(prof):
+	"""Profil als Kurzform; nur Abweichungen von den Vorgaben."""
+	if not prof:
+		return None
+	mode = prof.get("mode", "text")
+	options = pf.MODES[mode][1]
+	opts = []
+	for key, value in sorted(prof.items()):
+		if key == "mode":
+			continue
+		allowed = options.get(key)
+		default = allowed[0] if allowed else pf.FREE_DEFAULTS.get(key)
+		if value != default:
+			opts.append("%s=%s" % (key, "" if value is None else value))
+	return ",".join([MODE_SHORT[mode]] + opts)
+
+
+def profile_long(token):
+	parts = token.split(",")
+	prof = {"mode": MODE_LONG[parts[0]]}
+	for part in parts[1:]:
+		key, value = part.split("=", 1)
+		prof[key] = value if value != "" else None
+	return prof
+
+
+def _pair(before, after, length):
+	""""B>A", ">A" (nur nachher) oder "B" (nur vorher)."""
+	if not before and not after:
+		return None
+	if not after:
+		return short(before, length)
+	return "%s>%s" % (short(before, length) if before else "", short(after, length))
+
+
+def _split_pair(value):
+	before, sep, after = value.partition(">")
+	return before or None, (after or None) if sep else None
+
+
+# -- Schreiben ---------------------------------------------------------------
+
+class _Writer(object):
+	def __init__(self, level, hash_len):
+		if level not in LEVELS:
+			raise PatchInvalid("Pruefstufe muss %s sein" % ", ".join(LEVELS))
+		self.level = level
+		self.hash_len = hash_len
+		self.blocks = []
+
+	def block(self, lines, flag=None):
+		n = len(self.blocks) + 1
+		if flag == "b64":
+			data = lines["base64"]
+			lines = [data[i:i + B64_WIDTH] for i in range(0, len(data), B64_WIDTH)]
+		head = "@%d %d" % (n, len(lines)) + (" " + flag if flag else "")
+		self.blocks.append([head] + list(lines))
+		return "@%d" % n
+
+	def pair(self, tokens, key, obj, before, after):
+		value = _pair(obj.get(before), obj.get(after), self.hash_len)
+		if value:
+			tokens.append("%s=%s" % (key, value))
+
+	def entry(self, entry):
+		action = entry["action"]
+		tokens = [CMD_OF[action], _quote(entry["path"])]
+		if action in ("move", "copy"):
+			tokens.append(_quote(entry["to"]))
+		prof = profile_short(entry.get("compare"))
+		if prof:
+			tokens.append(prof)
+		self.pair(tokens, "h", entry, "hash_before", "hash_after")
+		if self.level == "full":
+			self.pair(tokens, "t", entry, "text_hash_before", "text_hash_after")
+		layout = entry.get("layout") or {}
+		if layout.get("indent") == "tabs":
+			tokens.append("ind=tab")
+		elif layout.get("indent") == "spaces":
+			tokens.append("ind=%d" % layout["width"])
+		if entry.get("newline"):
+			tokens.append("nl=" + entry["newline"])
+		if entry.get("final_newline") is False:
+			tokens.append("eof=0")
+		if entry.get("source"):
+			tokens.append("src=" + _quote(entry["source"]))
+		elif action in ("add", "replace") and "new" in entry:
+			new = entry["new"]
+			if isinstance(new, dict):
+				tokens.append(self.block(new, "b64"))
+			else:
+				tokens.append(self.block(new, "lit" if entry.get("literal") else None))
+		out = [" ".join(tokens)]
+		for ch in entry.get("changes") or []:
+			out.append("  " + self.change(ch))
+		return out
+
+	def change(self, ch):
+		op = ch["op"]
+		flag = "lit" if ch.get("literal") else None
+		tokens = [CMD_OF[op]]
+		if op in ("replace_unit", "delete_unit"):
+			tokens.append(ch["unit"])
+		elif op == "add_unit":
+			if ch.get("unit"):
+				tokens.append(ch["unit"])
+			tokens.append(ch["position"])
+		elif op == "copy_unit":
+			tokens += [_quote(ch["from"]), ch["position"]]
+		elif op == "move_unit":
+			if "from" in ch:
+				tokens += [_quote(ch["from"]), ch["position"]]
+			elif "to" in ch:
+				tokens += [ch["unit"], "to=" + _quote(ch["to"])]
+			else:
+				tokens += [ch["unit"], ch["position"]]
+			if ch.get("move_id"):
+				tokens.append("id=" + ch["move_id"])
+		elif op == "insert_text":
+			tokens.append(ch["position"])
+		if ch.get("as"):
+			tokens.append("as=" + ch["as"])
+		if ch.get("scope"):
+			tokens.append("scope=" + ch["scope"])
+		if self.level != "min":
+			if ch.get("unit_after") and ch["unit_after"] != ch.get("unit"):
+				tokens.append("after=" + ch["unit_after"])
+			self.pair(tokens, "u", ch, "unit_hash_before", "unit_hash_after")
+			if ch.get("source_unit_hash"):
+				tokens.append("s=" + short(ch["source_unit_hash"], self.hash_len))
+		if self.level == "full":
+			self.pair(tokens, "c", ch, "file_hash_before", "file_hash_after")
+		if op in ("replace_text", "delete_text"):
+			tokens.append(self.block(ch["old"], flag))
+		if op == "insert_text":
+			tokens.append(self.block(ch["anchor"], flag))
+		if op in ("replace_unit", "add_unit", "replace_text", "insert_text"):
+			tokens.append(self.block(ch["new"], flag))
+		return " ".join(tokens)
+
+
+def dumps_body(patch, level="full", hash_len=None):
+	"""Befehlsliste + Datenbloecke (ohne Kopfzeile)."""
+	writer = _Writer(level, hash_len)
+	lines = ["TITLE " + patch["title"]]
+	for line in (patch.get("description") or "").splitlines():
+		lines.append("DESC " + line)
+	for key, meta in (("author", "AUTHOR"), ("created", "DATE"), ("generator", "GEN")):
+		if patch.get(key):
+			lines.append("%s %s" % (meta, patch[key]))
+	if patch.get("requires"):
+		lines.append("REQ " + " ".join(patch["requires"]))
+	if patch.get("match", "file") != "file":
+		lines.append("MATCH " + patch["match"])
+	default = (patch.get("defaults") or {}).get("compare")
+	if default:
+		lines.append("DEFAULT " + profile_short(default))
+	state = _pair(patch.get("state_before"), patch.get("state_after"), hash_len)
+	if state:
+		lines.append("STATE " + state)
+	for entry in patch["files"]:
+		lines.extend(writer.entry(entry))
+	for block in writer.blocks:
+		lines.extend(block)
+	return "\n".join(lines) + "\n"
+
+
+def dumps(patch, level="full", hash_len=None):
+	"""Einteiliger Patch als Text (Kopfzeile + Inhalt)."""
+	body = dumps_body(patch, level, hash_len)
+	return "%s %s %s %s\n%s" % (MAGIC, FORMAT_VERSION, patch["id"],
+								short(sha256_text(body), hash_len or DEFAULT_HASH_LEN), body)
+
+
+def split(patch_id, body, max_size, hash_len=DEFAULT_HASH_LEN):
+	"""Inhalt in Pakete mit hoechstens max_size Zeichen teilen (nur an Zeilengrenzen)."""
+	total = short(sha256_text(body), hash_len)
+	if not max_size:
+		return ["%s %s %s %s\n%s" % (MAGIC, FORMAT_VERSION, patch_id, total, body)]
+	head_len = len("%s %s %s %s 999/999 %s\n" % (MAGIC, FORMAT_VERSION, patch_id, total,
+												 "0" * hash_len))
+	budget = max_size - head_len
+	if budget < 80:
+		raise PatchInvalid("--max-size %d ist zu klein" % max_size)
+	chunks, cur, size = [], [], 0
+	for line in body.splitlines(True):
+		if len(line) > budget:
+			raise PatchInvalid("Zeile mit %d Zeichen passt nicht in ein Paket (--max-size)"
+							   % len(line))
+		if size + len(line) > budget:
+			chunks.append("".join(cur))
+			cur, size = [], 0
+		cur.append(line)
+		size += len(line)
+	chunks.append("".join(cur))
+	if len(chunks) == 1:
+		return ["%s %s %s %s\n%s" % (MAGIC, FORMAT_VERSION, patch_id, total, body)]
+	n = len(chunks)
+	return ["%s %s %s %s %d/%d %s\n%s" % (MAGIC, FORMAT_VERSION, patch_id, total, i, n,
+										  short(sha256_text(chunk), hash_len), chunk)
+			for i, chunk in enumerate(chunks, 1)]
+
+
+def part_paths(path, count):
+	if count == 1:
+		return [path]
+	stem = path[:-len(EXT)] if path.endswith(EXT) else path
+	return ["%s.%d%s" % (stem, i, EXT) for i in range(1, count + 1)]
+
+
+def save(patch, path, level="std", hash_len=DEFAULT_HASH_LEN, max_size=None):
+	"""Patch schreiben; liefert (Liste der Dateien, Gesamt-Hash)."""
+	body = dumps_body(patch, level, hash_len)
+	parts = split(patch["id"], body, max_size, hash_len)
+	paths = part_paths(path, len(parts))
+	for target, text in zip(paths, parts):
+		atomic_write(target, text.encode("utf-8"))
+	return paths, short(sha256_text(body), hash_len)
+
+
+# -- Lesen -------------------------------------------------------------------
+
+def _read(path):
+	try:
+		with open(path, encoding="utf-8", newline="") as handle:
+			text = handle.read()
+	except OSError as exc:
+		raise PatchInvalid("%s: nicht lesbar (%s)" % (path, exc))
+	except UnicodeDecodeError as exc:
+		raise PatchInvalid("%s: kein UTF-8 (%s)" % (path, exc))
+	text = text.replace("\r\n", "\n")
+	head, _, body = text.partition("\n")
+	tokens = head.split()
+	if len(tokens) < 3 or tokens[0] != MAGIC:
+		raise PatchInvalid("%s: keine pypatcher-Datei (erste Zeile '%s ...' erwartet)"
+						   % (path, MAGIC))
+	if tokens[1] != FORMAT_VERSION:
+		raise PatchInvalid("%s: Formatversion %s wird nicht unterstuetzt" % (path, tokens[1]))
+	return tokens[2:], body
+
+
+def _collect_parts(path, pid, total, count):
+	"""Alle Pakete eines Patches finden (gleicher Name mit .N oder gleiche Kennung)."""
+	match = PART_RE.match(path)
+	candidates = []
+	if match:
+		candidates = ["%s.%d%s" % (match.group(1), i, EXT) for i in range(1, count + 1)]
+	if not all(os.path.isfile(c) for c in candidates):
+		candidates = sorted(glob.glob(os.path.join(os.path.dirname(path) or ".", "*" + EXT)))
+	found = {}
+	for candidate in candidates:
+		if not os.path.isfile(candidate):
+			continue
+		head, body = _read(candidate)
+		if len(head) == 4 and head[0] == pid and head[1] == total:
+			index, _, n = head[2].partition("/")
+			if int(n) != count:
+				raise PatchInvalid("%s: Paketanzahl passt nicht" % candidate)
+			if not hash_match(head[3], sha256_text(body)):
+				raise PatchInvalid("%s: Paket beschaedigt (Paket-Hash stimmt nicht)" % candidate)
+			found[int(index)] = body
+	missing = [str(i) for i in range(1, count + 1) if i not in found]
+	if missing:
+		raise PatchInvalid("Patch %s: Pakete fehlen: %s von %d" % (pid, ", ".join(missing), count))
+	return "".join(found[i] for i in range(1, count + 1))
+
+
+def load(path, verify=True):
+	"""Patch (oder Entwurf) laden; mehrteilige Patches werden zusammengesetzt."""
+	head, body = _read(path)
+	pid = head[0]
+	total = head[1] if len(head) > 1 else None
+	if len(head) == 4:
+		count = int(head[2].partition("/")[2])
+		body = _collect_parts(path, pid, total, count)
+	if verify:
+		if total is None:
+			raise PatchInvalid("%s: Entwurf ohne Patch-Hash - zuerst versiegeln (seal)" % path)
+		if not hash_match(total, sha256_text(body)):
+			raise PatchInvalid("%s: Patch-Hash stimmt nicht - Datei beschaedigt oder veraendert"
+							   % path)
+	patch = parse_body(body, path)
+	patch["id"] = pid
+	if total is not None:
+		patch["patch_hash"] = total
+	return patch
+
+
+def _blocks(lines, where):
+	blocks, i = {}, 0
+	while i < len(lines):
+		match = BLOCK_RE.match(lines[i])
+		if not match or match.group(2) is None:
+			raise PatchInvalid("%s: Datenblock erwartet in Zeile '%s'" % (where, lines[i][:60]))
+		n, count, flag = int(match.group(1)), match.group(2), match.group(3)
+		i += 1
+		if count == ".":
+			end = i
+			while end < len(lines) and lines[end] != "@.":
+				end += 1
+			if end == len(lines):
+				raise PatchInvalid("%s: Block @%d ohne Ende '@.'" % (where, n))
+			content, i = lines[i:end], end + 1
+		else:
+			content = lines[i:i + int(count)]
+			if len(content) != int(count):
+				raise PatchInvalid("%s: Block @%d unvollstaendig" % (where, n))
+			i += int(count)
+		if n in blocks:
+			raise PatchInvalid("%s: Block @%d doppelt" % (where, n))
+		blocks[n] = (content, flag)
+	return blocks
+
+
+def _split_tokens(line, where):
+	try:
+		tokens = shlex.split(line, posix=True)
+	except ValueError as exc:
+		raise PatchInvalid("%s: Zeile nicht lesbar (%s): %s" % (where, exc, line[:60]))
+	keys, pos, refs = {}, [], []
+	for token in tokens[1:]:
+		key, sep, value = token.partition("=")
+		if sep and key in KEYS:
+			keys[key] = value
+		elif REF_RE.match(token):
+			refs.append(int(token[1:]))
+		else:
+			pos.append(token)
+	return tokens[0], pos, keys, refs
+
+
+class _Reader(object):
+	def __init__(self, blocks, where):
+		self.blocks = blocks
+		self.where = where
+		self.used = set()
+
+	def data(self, ref, owner):
+		if ref not in self.blocks:
+			raise PatchInvalid("%s: Block @%d fehlt" % (self.where, ref))
+		self.used.add(ref)
+		content, flag = self.blocks[ref]
+		if flag == "lit":
+			owner["literal"] = True
+		if flag == "b64":
+			return {"base64": "".join(content)}
+		return list(content)
+
+	def entry(self, cmd, pos, keys, refs, line):
+		what = "%s: %s" % (self.where, line[:60])
+		entry = {"action": FILE_CMDS[cmd]}
+		if pos and PROFILE_RE.match(pos[-1]) and len(pos) > 1:
+			entry["compare"] = profile_long(pos.pop())
+		need = 2 if cmd in ("MOVE", "COPY") else 1
+		if len(pos) != need:
+			raise PatchInvalid("%s: %d Pfad(e) erwartet" % (what, need))
+		entry["path"] = pos[0]
+		if need == 2:
+			entry["to"] = pos[1]
+		self._hashes(entry, keys, "h", "hash_before", "hash_after")
+		self._hashes(entry, keys, "t", "text_hash_before", "text_hash_after")
+		if "ind" in keys:
+			ind = keys["ind"]
+			entry["layout"] = {"indent": "tabs"} if ind == "tab" else \
+				{"indent": "spaces", "width": self._int(ind, what)}
+		if "nl" in keys:
+			entry["newline"] = keys["nl"]
+		if keys.get("eof") == "0":
+			entry["final_newline"] = False
+		if "src" in keys:
+			entry["source"] = keys["src"]
+		if refs:
+			if cmd not in ("ADD", "REP") or len(refs) != 1:
+				raise PatchInvalid("%s: Datenblock hier nicht erlaubt" % what)
+			entry["new"] = self.data(refs[0], entry)
+		if cmd == "FILE":
+			entry["changes"] = []
+		return entry
+
+	def change(self, cmd, pos, keys, refs, line):
+		what = "%s: %s" % (self.where, line[:60])
+		op = CHANGE_CMDS[cmd]
+		ch = {"op": op}
+		units = [p for p in pos if not POS_RE.match(p) and p not in ("before", "after")]
+		places = [p for p in pos if POS_RE.match(p)]
+		if op in ("replace_unit", "delete_unit"):
+			self._expect(units, 1, what)
+			ch["unit"] = units[0]
+		elif op == "add_unit":
+			self._expect(places, 1, what)
+			ch["position"] = places[0]
+			if units:
+				ch["unit"] = units[0]
+		elif op == "copy_unit":
+			self._expect(units, 1, what)
+			self._expect(places, 1, what)
+			ch["from"], ch["position"] = units[0], places[0]
+		elif op == "move_unit":
+			self._expect(units, 1, what)
+			if "to" in keys:
+				ch["unit"], ch["to"] = units[0], keys["to"]
+			elif "id" in keys:
+				self._expect(places, 1, what)
+				ch["from"], ch["position"] = units[0], places[0]
+			else:
+				self._expect(places, 1, what)
+				ch["unit"], ch["position"] = units[0], places[0]
+			if "id" in keys:
+				ch["move_id"] = keys["id"]
+		elif op == "insert_text":
+			where = [p for p in pos if p in ("before", "after")]
+			self._expect(where, 1, what)
+			ch["position"] = where[0]
+		for key, name in (("as", "as"), ("scope", "scope"), ("after", "unit_after"),
+						  ("s", "source_unit_hash")):
+			if key in keys:
+				ch[name] = keys[key]
+		self._hashes(ch, keys, "u", "unit_hash_before", "unit_hash_after")
+		self._hashes(ch, keys, "c", "file_hash_before", "file_hash_after")
+		names = {"replace_unit": ("new",), "add_unit": ("new",), "replace_text": ("old", "new"),
+				 "insert_text": ("anchor", "new"), "delete_text": ("old",),
+				 }.get(op, ())
+		if len(refs) != len(names):
+			raise PatchInvalid("%s: %d Datenblock/-bloecke erwartet" % (what, len(names)))
+		for name, ref in zip(names, refs):
+			ch[name] = self.data(ref, ch)
+		return ch
+
+	@staticmethod
+	def _hashes(obj, keys, key, before, after):
+		if key in keys:
+			b, a = _split_pair(keys[key])
+			if b:
+				obj[before] = b
+			if a:
+				obj[after] = a
+
+	@staticmethod
+	def _expect(values, count, what):
+		if len(values) != count:
+			raise PatchInvalid("%s: Angaben unvollstaendig" % what)
+
+	@staticmethod
+	def _int(value, what):
+		try:
+			return int(value)
+		except ValueError:
+			raise PatchInvalid("%s: Zahl erwartet: %r" % (what, value))
+
+
+def parse_body(body, where="Patch"):
+	lines = body.split("\n")
+	if lines and lines[-1] == "":
+		lines.pop()
+	first = next((i for i, l in enumerate(lines) if BLOCK_RE.match(l)), len(lines))
+	reader = _Reader(_blocks(lines[first:], where), where)
+	patch = {"format": FORMAT, "files": [], "requires": [], "match": "file"}
+	desc = []
+	entry = None
+	for raw in lines[:first]:
+		line = raw.rstrip()
+		if not line.strip() or line.lstrip().startswith("#"):
+			continue
+		word, _, rest = line.strip().partition(" ")
+		if word in META and not raw[:1].isspace():
+			if word == "TITLE":
+				patch["title"] = rest
+			elif word == "DESC":
+				desc.append(rest)
+			elif word == "AUTHOR":
+				patch["author"] = rest
+			elif word == "DATE":
+				patch["created"] = rest
+			elif word == "GEN":
+				patch["generator"] = rest
+			elif word == "REQ":
+				patch["requires"] = rest.split()
+			elif word == "MATCH":
+				patch["match"] = rest.strip()
+			elif word == "DEFAULT":
+				patch["defaults"] = {"compare": profile_long(rest.strip())}
+			elif word == "STATE":
+				b, a = _split_pair(rest.strip())
+				patch["state_before"], patch["state_after"] = b, a
+			continue
+		cmd, pos, keys, refs = _split_tokens(line.strip(), where)
+		if cmd in FILE_CMDS and not raw[:1].isspace():
+			entry = reader.entry(cmd, pos, keys, refs, line.strip())
+			patch["files"].append(entry)
+		elif cmd in CHANGE_CMDS:
+			if entry is None or entry["action"] != "modify":
+				raise PatchInvalid("%s: %s nur innerhalb eines FILE-Befehls" % (where, cmd))
+			entry["changes"].append(reader.change(cmd, pos, keys, refs, line.strip()))
+		else:
+			raise PatchInvalid("%s: unbekannter Befehl %r" % (where, cmd))
+	unused = sorted(set(reader.blocks) - reader.used)
+	if unused:
+		raise PatchInvalid("%s: Datenbloecke ohne Befehl: %s" % (where, ", ".join(
+			"@%d" % n for n in unused)))
+	if desc:
+		patch["description"] = "\n".join(desc)
+	return patch
+
+
+# -- Pruefung ----------------------------------------------------------------
+
+def validate(patch, sealed=True):
+	"""Struktur pruefen (Inhalte prueft die Engine)."""
+	for key in ("id", "title"):
+		if not isinstance(patch.get(key), str) or not patch[key].strip():
+			raise PatchInvalid("%s fehlt" % ("Kennung (id)" if key == "id" else "TITLE"))
+	if not ID_RE.match(patch["id"]):
+		raise PatchInvalid("id %r: erlaubt sind Buchstaben, Ziffern, '.', '_', '-'" % patch["id"])
+	if patch.get("match", "file") not in ("file", "state", "unit"):
+		raise PatchInvalid("MATCH muss file, state oder unit sein")
+	if not patch.get("files"):
+		raise PatchInvalid("Patch enthaelt keine Befehle")
+	moves = {}
+	for n, entry in enumerate(patch["files"], 1):
+		path = norm_path(entry.get("path"), "Datei %d: Pfad" % n)
+		what = "Datei %d (%s)" % (n, path)
+		if entry.get("action") not in ACTIONS:
+			raise PatchInvalid("%s: unbekannte Aktion" % what)
+		if entry["action"] in ("move", "copy"):
+			norm_path(entry.get("to"), what + ": Ziel")
+		if entry["action"] in ("add", "replace") and "new" not in entry and "source" not in entry:
+			raise PatchInvalid("%s: Inhalt fehlt" % what)
+		if entry["action"] == "modify" and not entry.get("changes"):
+			raise PatchInvalid("%s: FILE ohne Aenderungen" % what)
+		for i, ch in enumerate(entry.get("changes") or [], 1):
+			cwhat = "%s, Aenderung %d" % (what, i)
+			if ch.get("op") not in OPS:
+				raise PatchInvalid("%s: unbekannte Aenderung" % cwhat)
+			if ch["op"] == "move_unit" and ("from" in ch or "to" in ch):
+				if not ch.get("move_id"):
+					raise PatchInvalid("%s: UMOVE zwischen Dateien braucht id=" % cwhat)
+				if "to" in ch:
+					norm_path(ch["to"], cwhat + ": to")
+				moves.setdefault(ch["move_id"], []).append("from" if "from" in ch else "to")
+	for mid, halves in moves.items():
+		if sorted(halves) != ["from", "to"]:
+			raise PatchInvalid("UMOVE id=%s: es muessen genau ein Quell- und ein Zielteil "
+							   "vorhanden sein" % mid)
+@157 96
+PYPATCHER - README
+==================
+
+Version 0.0.1-pre1 (Vorabversion, Testphase).
+Die ausfuehrliche Beschreibung steht in manifest.txt.
+
+Was macht der Patcher?
+----------------------
+Er uebertraegt Aenderungen an einem Projekt mit einer kompakten
+Patchdatei (*.ppatch) in eine andere Umgebung - ohne ganze Dateien zu
+kopieren. Die Patchdatei ist eine Befehlsliste, die von oben nach unten
+abgearbeitet wird, gefolgt von den Daten (Code/Text unveraendert). Bei
+begrenzter Uebertragungsgroesse wird sie auf Wunsch in Pakete geteilt.
+
+Aenderungen koennen bis auf einzelne Funktionen/Methoden genau
+beschrieben werden ("ersetze in Datei X die Funktion Y"). Funktionen/
+Klassen koennen ersetzt, eingefuegt, geloescht, kopiert und verschoben
+werden; innerhalb einer Funktion lassen sich auch einzelne Zeilen aendern.
+
+Geprueft wird per SHA-256 - so viel wie gewuenscht: nur die Datei (min),
+zusaetzlich jede betroffene Funktion (std, Standard) oder alles (full).
+Geprueft wird die Funktion, nicht die Schreibweise: Kommentare und
+unwichtige Leerzeichen/Tabs/Umbrueche zaehlen je nach Format nicht; bei
+Python zaehlt die Einrueckung immer exakt. Jeder angewendete Patch laesst
+sich exakt zuruecknehmen (Sicherung im Ziel). Windows-Zeilenenden (CRLF)
+bleiben erhalten.
+
+Voraussetzungen
+---------------
+Python 3.8 oder neuer, keine weiteren Pakete. Getestet mit 3.8, 3.11,
+3.12 und 3.13. Aufruf: python3 patcher.py BEFEHL ... (das Verzeichnis
+pypatcher/ muss neben patcher.py liegen).
+
+So sieht ein Patch aus
+----------------------
+	 #PPATCH 1 0002-fix 9f2c41d07ab3e118
+	 TITLE add rechnet mit Kommazahlen
+	 FILE src/rechner.py py h=aa11f0c2d9e4b7a1>ff9903e1c5a7b2d4 ind=4
+		 UNIT add u=cc33a1b2c3d4e5f6>dd4401a2b3c4d5e6 @1
+	 @1 2
+	 def add(a, b):
+	 	return float(a) + float(b)
+
+Ein Tab am Zeilenanfang = eine Einrueckungs-Ebene tiefer als die Funktion
+selbst; die echte Einrueckung ergibt sich aus der Zieldatei.
+Alle Befehle: manifest.txt Abschnitt 6.4.
+
+Typischer Ablauf
+----------------
+1. Patch erzeugen - automatisch aus zwei Staenden:
+	 python3 patcher.py create alt/ neu/ -o 0002-fix.ppatch \
+			 --id 0002-fix --title "add rechnet mit Kommazahlen"
+	 oder einen Entwurf von Hand schreiben (wie oben, ohne Hashes, Bloecke
+	 mit "@1 ." bis "@.") und versiegeln:
+	 python3 patcher.py seal entwurf.ppatch --base projekt/ -o 0002-fix.ppatch
+
+	 Optionen fuer beide: --verify min|std|full, --hash-len 16,
+	 --max-size 8000 (Pakete 0002-fix.1.ppatch, .2.ppatch ...).
+
+2. Anzeigen:
+	 python3 patcher.py show 0002-fix.ppatch
+
+3. Zielumgebung:
+	 python3 patcher.py init     -p projekt/          (einmalig)
+	 python3 patcher.py check    0002-fix.ppatch -p projekt/   (Probelauf)
+	 python3 patcher.py apply    0002-fix.ppatch -p projekt/
+	 python3 patcher.py status   -p projekt/
+	 python3 patcher.py verify   -p projekt/          (Ist-Stand pruefen)
+	 python3 patcher.py rollback -p projekt/          (letzten Patch zuruecknehmen)
+	 Bei Paketen genuegt ein beliebiges Paket als Angabe; die uebrigen
+	 muessen im selben Verzeichnis liegen.
+
+Weitere Befehle: log, units, recover - siehe "python3 patcher.py -h" und
+manifest.txt Abschnitt 13. Spaeter: doctor, canon, invert.
+
+Exit-Codes: 0 OK, 1 Bedienfehler, 2 Patch ungueltig, 3 Konflikt,
+4 Journalfehler, 5 interner Fehler.
+
+Beispiel ausprobieren
+---------------------
+	 cp -r examples/demo /tmp/ziel
+	 python3 patcher.py seal examples/entwurf-beispiel.ppatch --base examples/demo -o /tmp/p.ppatch
+	 python3 patcher.py init -p /tmp/ziel
+	 python3 patcher.py apply /tmp/p.ppatch -p /tmp/ziel
+	 python3 patcher.py rollback -p /tmp/ziel
+
+Tests
+-----
+	 cd tests && python3 -m unittest
+
+Dokumentation
+-------------
+	readme.txt     diese Kurzanleitung
+	manifest.txt   ausfuehrliche Programmbeschreibung
+	changelog.txt  Aenderungshistorie
+	request.txt    Wuensche fuer kuenftige Aenderungen
+@158 1 lit
+                bzw. Text).
+@159 5 lit
+R014  ERLEDIGT (0.0.1-pre1) Kompaktes Patchformat: Befehlsliste +
+                Datenbloecke, Pruefstufen, kurze Hashes, optionale Pakete
+                mit begrenzter Zeichenzahl.
+R015  OFFEN     Optionale Komprimierung grosser Datenbloecke (zlib +
+                Base64) - spart Platz, ist dann aber nicht mehr lesbar.
+@160 2
+R010  IN ARBEIT  Befehle create (ERLEDIGT 0.0.1-pre2), doctor, canon,
+	invert (folgen).
+@161 3
+R010  IN ARBEIT  Befehle create (ERLEDIGT 0.0.1-pre1), doctor, canon,
+	invert (folgen; invert nutzt die Sicherung im Journal,
+	da der Patch keinen alten Code enthaelt).
+@162 2
+R003  OFFEN     Signierte Patches (HMAC-SHA256 oder Ed25519); Feld
+	"signature" ist im Format bereits vorgesehen.
+@163 2
+R003  OFFEN     Signierte Patches (HMAC-SHA256 oder Ed25519) als
+	zusaetzliche Kopfangabe.
+@164 1
+alle Patch-Befehle aus Abschnitt 7.1).
+@165 1
+alle Patch-Befehle aus Abschnitt 7.1, create).
+@166 6
+def seal(self, draft, name="p.ppatch", *extra):
+	draft_path = self.write_draft(draft, name + ".entwurf")
+	out = os.path.join(self.tmp, name)
+	code = self.run_cli("seal", "-q", draft_path, "--base", self.base, "-o", out, *extra)
+	self.assertEqual(code, 0, self.last_err)
+	return out
+@167 5
+def write_draft(self, draft, name="d.ppatch"):
+	path = os.path.join(self.tmp, name)
+	with open(path, "w", encoding="utf-8") as handle:
+		handle.write(patchfile.dumps(draft))
+	return path
+@168 1
+from pypatcher import cli, fileio  # noqa: E402
+@169 1
+from pypatcher import cli, fileio, patchfile  # noqa: E402
+@170 1
+import json
+@171 6
+def create(self, *extra):
+	out = os.path.join(self.tmp, "c.ppatch")
+	code = self.run_cli("create", self.base, self.new, "-o", out,
+						"--id", "0001-create", "--title", "Test", *extra)
+	self.assertEqual(code, 0, self.last_err)
+	return out, patchfile.load(out)
+@172 5
+def test_no_differences(self):
+	self.new_tree()
+	out = os.path.join(self.tmp, "c.ppatch")
+	self.assertEqual(self.run_cli("create", self.base, self.new, "-o", out,
+								  "--id", "x", "--title", "t"), 2)
+@173 1
+from helpers import ProjectCase
+@174 2
+
+from pypatcher import patchfile
+@175 1
+import json
+@176 6
+def test_move_pairing_required(self):
+	draft = self.draft([{"path": "src/other.py", "action": "modify", "changes": [
+		{"op": "move_unit", "from": "src/calc.py::add", "move_id": "x", "position": "end"}]}])
+	path = self.write_draft(draft)
+	self.assertEqual(self.run_cli("seal", path, "--base", self.base, "-o",
+								  os.path.join(self.tmp, "o.ppatch")), 2)
+@177 8
+def test_ambiguous_block_is_conflict(self):
+	self.write("dup.txt", "a\nx\na\n")
+	draft = self.draft([{"path": "dup.txt", "action": "modify", "changes": [
+		{"op": "replace_text", "old": ["a"], "new": ["b"]}]}])
+	path = self.write_draft(draft)
+	self.assertEqual(self.run_cli("seal", path, "--base", self.base, "-o",
+								  os.path.join(self.tmp, "o.ppatch")), 3)
+	self.assertIn("nicht eindeutig", self.last_err)
+@178 9
+def test_cosmetic_difference(self):
+	patch = self.seal(self.draft([{"path": "src/calc.py", "action": "modify", "changes": [
+		{"op": "replace_unit", "unit": "add", "new": ["def add(a, b):", "\treturn b + a"]}]}]),
+		"full.ppatch", "--verify", "full")
+	self.make_target()
+	self.write("src/calc.py", MODULE.replace("# addiert", "# anders"), root=self.target)
+	self.assertEqual(self.run_cli("check", "--exact", patch, "-p", self.target), 3)
+	self.assertEqual(self.run_cli("check", patch, "-p", self.target), 0)
+	self.assertIn("kosmetische Abweichung", self.last_out)
+@179 9
+def test_tampered_patch_rejected(self):
+	patch = self._simple_patch()
+	self.make_target()
+	with open(patch, encoding="utf-8") as handle:
+		text = handle.read()
+	with open(patch, "w", encoding="utf-8") as handle:
+		handle.write(text.replace("\treturn b + a", "\treturn 42"))
+	self.assertEqual(self.apply(patch), 2)
+	self.assertIn("Patch-Hash", self.last_err)
+@180 9
+def test_reapply_and_requires(self):
+	patch = self._simple_patch()
+	self.make_target()
+	self.assertEqual(self.apply(patch), 0)
+	self.assertEqual(self.apply(patch), 3)
+	second = self.seal(self.draft([{"path": "conf.ini", "action": "delete"}],
+								  pid="0002", requires=["0009-fehlt"]), "q.ppatch")
+	self.assertEqual(self.apply(second), 3)
+	self.assertIn("benoetigt", self.last_err)
+@181 12
+def test_rollback_to(self):
+	first = self._simple_patch()
+	second = self.seal(self.draft([{"path": "conf.ini", "action": "delete"}], pid="0002"),
+					   "q.ppatch")
+	self.make_target()
+	before = self.snapshot(self.target)
+	self.assertEqual(self.apply(first), 0)
+	self.assertEqual(self.apply(second), 0, self.last_err)
+	self.assertEqual(self.run_cli("rollback", "-y", "--to", "0001-test", "-p", self.target), 0)
+	self.assertEqual(jr.Journal(self.target).applied_ids(), ["0001-test"])
+	self.assertEqual(self.run_cli("rollback", "-y", "-p", self.target), 0)
+	self.assertEqual(self.snapshot(self.target), before)
+@182 6
+def test_example_draft(self):
+	root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+	out = os.path.join(self.tmp, "beispiel.ppatch")
+	self.assertEqual(self.run_cli("seal", "-q", os.path.join(root, "examples", "entwurf-beispiel.ppatch"),
+								  "--base", os.path.join(root, "examples", "demo"), "-o", out),
+					 0, self.last_err)
+@183 10
+def test_invalid_intermediate_state(self):
+	"""Zwischenstand darf ungueltig sein, geprueft wird die Syntax am Dateiende."""
+	self.write("doc.py", "a = 1\nb = 2\nc = 3\n")
+	patch = self.seal(self.draft([{"path": "doc.py", "action": "modify", "changes": [
+		{"op": "replace_text", "old": ["a = 1"], "new": ['a = """']},
+		{"op": "replace_text", "old": ["c = 3"], "new": ['"""']}]}]),
+		"z.ppatch", "--verify", "full")
+	self.make_target()
+	self.assertEqual(self.apply(patch), 0, self.last_err)
+	self.assertEqual(self.read("doc.py"), b'a = """\nb = 2\n"""\n')
+@184 14
+def test_stale_bytecode_removed(self):
+	"""Ersetzte .py-Datei: zugehoeriger Bytecode wird entfernt (gleiche Groesse,
+	gleiche Sekunde wuerde Python sonst alten Code ausfuehren lassen)."""
+	self.write("ver.py", 'V = "a1"\n')
+	patch = self.seal(self.draft([{"path": "ver.py", "action": "modify", "changes": [
+		{"op": "replace_text", "old": ['V = "a1"'], "new": ['V = "a2"']}]}]), "v.ppatch")
+	self.make_target()
+	cache = os.path.join(self.target, "__pycache__")
+	os.makedirs(cache)
+	stale = os.path.join(cache, "ver.cpython-99.pyc")
+	with open(stale, "wb") as handle:
+		handle.write(b"alt")
+	self.assertEqual(self.apply(patch), 0, self.last_err)
+	self.assertFalse(os.path.exists(stale))
+@185 1
+import json

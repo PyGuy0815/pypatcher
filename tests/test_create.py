@@ -1,11 +1,12 @@
 """create: erzeugter Patch muss exakt zum neuen Stand fuehren."""
 
-import json
 import os
 import shutil
 import unittest
 
 from helpers import ProjectCase
+
+from pypatcher import patchfile
 
 CALC = (
     "#!/usr/bin/env python3\n"
@@ -50,12 +51,11 @@ class Create(ProjectCase):
         shutil.copytree(self.base, self.new)
 
     def create(self, *extra):
-        out = os.path.join(self.tmp, "c.ppatch.json")
+        out = os.path.join(self.tmp, "c.ppatch")
         code = self.run_cli("create", self.base, self.new, "-o", out,
                             "--id", "0001-create", "--title", "Test", *extra)
         self.assertEqual(code, 0, self.last_err)
-        with open(out, encoding="utf-8") as handle:
-            return out, json.load(handle)
+        return out, patchfile.load(out)
 
     def apply_and_compare(self, patch):
         self.make_target()
@@ -146,7 +146,7 @@ class Create(ProjectCase):
 
     def test_no_differences(self):
         self.new_tree()
-        out = os.path.join(self.tmp, "c.json")
+        out = os.path.join(self.tmp, "c.ppatch")
         self.assertEqual(self.run_cli("create", self.base, self.new, "-o", out,
                                       "--id", "x", "--title", "t"), 2)
 

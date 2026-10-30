@@ -3,43 +3,57 @@ PYPATCHER - CHANGELOG
 Format: Version (Datum) - Aenderungen. Neueste oben.
 Versionen: siehe manifest.txt Abschnitt 16 (Beginn 0.0.1-pre1).
 
-0.0.1-pre2 (2026-10-30)
------------------------
-  - Neuer Befehl create: erzeugt einen Patch aus zwei Staenden (ALT ->
-    NEU). Einheiten-Vergleich fuer Python (replace/add/delete_unit, Abstieg
-    in Klassen), dateiuebergreifende move_unit-Paare und copy_unit,
-    Datei-move/copy, Rest als Textbloecke mit eindeutigem Kontext.
-    Der Patch wird vor dem Speichern im Speicher angewendet und Byte fuer
-    Byte mit NEU verglichen; nicht exakt Darstellbares wird als ganze
-    Datei aufgenommen. Optionen --level, --include-cosmetic, --compare,
-    --requires, --description, --author, --no-layout.
-  - Fehlerbehebung: neu angelegte Dateien (Patch-Aktion add, gespeicherte
-    Patchdateien) hatten die Rechte 0600 der Temp-Datei; jetzt 0666 minus
-    umask wie ueblich.
-  - Tests fuer create (tests/test_create.py) und Dateirechte.
-  - Dieser Stand wurde selbst als Patch erzeugt (create) und mit
-    0.0.1-pre1 angewendet: patch/0001-pre2-create.ppatch.json.
+0.0.1-pre1 (2026-10-30, Testphase - wird bis zur Freigabe fortgeschrieben)
+------------------------------------------------------------------------
+  Patchformat pypatcher/1 (Befehlsliste + Datenbloecke):
+  - Kompaktes Textformat statt JSON: eine Zeile je Befehl (FILE, UNIT,
+    UADD, TEXT ...), Code unveraendert in gezaehlten Datenbloecken, kein
+    Escaping. Derselbe Patch ist damit rund halb so gross.
+  - Pruefstufen --verify min|std|full (nur Datei / zusaetzlich
+    Funktionen / alles); Hashes gekuerzt (--hash-len, Standard 16);
+    beim Anwenden wird geprueft, was der Patch enthaelt.
+  - Kein alter Code mehr im Patch, ausser als Suchtext fuer
+    Textaenderungen; Kopien/Verschiebungen holen den Inhalt aus der Quelle.
+  - Optionale Pakete (--max-size): Teilung nach Zeichenzahl, Paket- und
+    Gesamt-Hash, Laden aus einem beliebigen Paket.
+  - Entwuerfe im selben Format, Bloecke "@N ." ... "@." von Hand
+    schreibbar; Beispiel examples/entwurf-beispiel.ppatch.
+  - show stellt Einrueckungs-Ebenen wie in der Datei dar (--indent).
 
-0.0.1-pre1 (2026-10-30)
------------------------
-  Erste Implementierung gemaess manifest.txt.
-  - Befehle: init, status, verify, log, units, show, seal, check, apply,
-    rollback, recover.
-  - Patch-Befehle: Dateien add/delete/replace/move/copy; Einheiten
-    replace_unit/add_unit/delete_unit/copy_unit/move_unit (auch zwischen
-    Dateien, Paar ueber move_id); Text replace_text/insert_text/
-    delete_text mit optionalem scope.
-  - Vergleichsprofile raw/text/python; Normalform python/1 aus
-    Syntaxbaum + Einrueckungs-Signatur; Hash auf Python 3.8, 3.11, 3.12
-    und 3.13 identisch (f-String-Teile werden vereinheitlicht, da
-    Python 3.12 abweichende Baeume erzeugt).
-  - Relative Einrueckung im Patch, layout als Check, Ausweichform literal.
+  Befehl create:
+  - Patch aus zwei Staenden (ALT -> NEU): Einheiten-Vergleich fuer Python
+    (UNIT/UADD/UDEL, Abstieg in Klassen), dateiuebergreifende UMOVE-Paare
+    und UCOPY, Datei-MOVE/COPY, Rest als Textbloecke mit eindeutigem
+    Kontext. Der Patch wird vor dem Speichern im Speicher angewendet und
+    Byte fuer Byte mit NEU verglichen; nicht exakt Darstellbares wird als
+    ganze Datei aufgenommen.
+
+  Grundfunktionen:
+  - Befehle init, status, verify, log, units, show, seal, create, check,
+    apply, rollback, recover.
+  - Patch-Befehle: Dateien ADD/DEL/REP/MOVE/COPY; Einheiten UNIT/UADD/
+    UDEL/UCOPY/UMOVE (auch zwischen Dateien); Text TEXT/TINS/TDEL mit
+    optionalem scope.
+  - Vergleichsprofile raw/text/python; Normalform python/1 aus Syntaxbaum
+    + Einrueckungs-Signatur; Hash auf Python 3.8, 3.11, 3.12 und 3.13
+    identisch (f-String-Teile vereinheitlicht).
+  - Relative Einrueckung im Patch, layout als Check, Ausweichform lit.
   - Journal mit Sicherung, atomarem Schreiben, exaktem Rollback (auch
     --to), recover nach Absturz; verify unterscheidet funktionale und
     kosmetische Abweichungen.
-  - Entwurf: "source" fuer add/replace, Binaerdateien automatisch raw,
-    seal --state.
-  - Beispiel examples/ und 45 Tests (unittest).
+  - Neu angelegte Dateien erhalten die ueblichen Rechte (0666 - umask).
+  - Beim Schreiben/Wiederherstellen einer .py-Datei wird ihr Bytecode in
+    __pycache__ entfernt: Python erkennt veralteten Bytecode nur an
+    Aenderungszeit (Sekunden) und Groesse - bei schnellem Patch/Rollback
+    mit gleich langem Inhalt lief sonst alter Code (im Selbsttest
+    aufgefallen).
+  - Syntaxpruefung je Datei am Ende statt nach jeder Aenderung
+    (Zwischenstaende von Textaenderungen duerfen ungueltig sein).
+  - create waehlt die ganze Datei, wenn sie kleiner ist als die
+    Einzelaenderungen.
+
+  Selbsttest: die Aenderungen an pypatcher werden selbst als Patch
+  erzeugt (create) und angewendet - siehe patch/.
 
 Konzeptphase (ohne Version)
 ---------------------------

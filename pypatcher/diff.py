@@ -203,6 +203,12 @@ def _hunk(cur, i1, i2, new_block, prof, unit):
             after += 1
 
 
+def _data_size(changes):
+    """Zeichen der Datenbloecke dieser Aenderungen (Platzbedarf im Patch)."""
+    return sum(len(line) + 1 for ch in changes for key in ("old", "new", "anchor")
+               if isinstance(ch.get(key), list) for line in ch[key])
+
+
 def text_changes(cur_lines, new_lines, prof, unit):
     """Textbloecke von unten nach oben; None, wenn nicht darstellbar."""
     cur = list(cur_lines)
@@ -262,7 +268,11 @@ class Creator(object):
             try:
                 engine.process(sealed, ctx)
             except (Conflict, PatchInvalid) as exc:
-                if self.cross_units:
+                path = getattr(exc, "path", None)
+                if path in self.new.files and path not in self.force_replace:
+                    self.force_replace.add(path)
+                    self.cross_units = False
+                elif self.cross_units:
                     self.cross_units = False
                 elif self.level == "unit":
                     self.level = "text"
@@ -522,7 +532,8 @@ class Creator(object):
         if tail is None:
             return {"path": rel, "action": "replace", "source": rel}
         changes.extend(tail)
-        if not changes:
+        if not changes or _data_size(changes) >= sum(len(l) + 1 for l in plan["ndoc"].lines):
+            # ganze Datei ist kleiner als die Einzelaenderungen (stark umgeschrieben)
             return {"path": rel, "action": "replace", "source": rel}
         entry["changes"] = changes
         return entry

@@ -1,6 +1,5 @@
 import contextlib
 import io
-import json
 import os
 import shutil
 import sys
@@ -9,7 +8,7 @@ import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from pypatcher import cli, fileio  # noqa: E402
+from pypatcher import cli, fileio, patchfile  # noqa: E402
 
 
 def doc(text):
@@ -52,10 +51,14 @@ class ProjectCase(unittest.TestCase):
         shutil.copytree(self.base, self.target)
         self.assertEqual(self.run_cli("init", "-q", "-p", self.target), 0, self.last_err)
 
-    def seal(self, draft, name="p.ppatch.json", *extra):
-        draft_path = os.path.join(self.tmp, name + ".draft.json")
-        with open(draft_path, "w", encoding="utf-8") as handle:
-            json.dump(draft, handle)
+    def write_draft(self, draft, name="d.ppatch"):
+        path = os.path.join(self.tmp, name)
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write(patchfile.dumps(draft))
+        return path
+
+    def seal(self, draft, name="p.ppatch", *extra):
+        draft_path = self.write_draft(draft, name + ".entwurf")
         out = os.path.join(self.tmp, name)
         code = self.run_cli("seal", "-q", draft_path, "--base", self.base, "-o", out, *extra)
         self.assertEqual(code, 0, self.last_err)

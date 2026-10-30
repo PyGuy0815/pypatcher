@@ -13,7 +13,7 @@ import re
 from . import adapters, fileio, layout as lay, profile as pf
 from .adapters import PY, ParseError
 from .errors import Conflict, PatchInvalid
-from .patchfile import norm_path
+from .patchfile import hash_match, norm_path
 
 RENAME_RE = re.compile(r"^(\t*(?:async[ \t]+)?(?:def|class)[ \t]+)([A-Za-z_]\w*)")
 
@@ -58,7 +58,8 @@ class Ctx(object):
         return [rel for rel, doc in self.docs.items() if doc is not self.originals[rel]]
 
     def expect(self, obj, key, value, what, level="file"):
-        """seal: Wert eintragen. Sonst: Wert pruefen (Konflikt bei Abweichung)."""
+        """seal: Wert eintragen. Sonst: Wert pruefen, sofern der Patch ihn enthaelt
+        (welche Pruefungen enthalten sind, bestimmt die Pruefstufe beim Erzeugen)."""
         if self.seal:
             obj[key] = value
             return
@@ -66,11 +67,13 @@ class Ctx(object):
             return
         if level == "text" and not self.exact:
             return
-        if key not in obj:
-            raise PatchInvalid("%s: Feld %r fehlt (Patch nicht versiegelt?)" % (what, key))
-        if obj[key] != value:
+        stored = obj.get(key)
+        if stored is None:
+            return
+        same = stored == value if key in ("unit", "unit_after") else hash_match(stored, value)
+        if not same:
             raise Conflict("%s: %s stimmt nicht\n    erwartet: %s\n    gefunden: %s"
-                           % (what, key, obj[key], value))
+                           % (what, key, stored, value))
 
 
 class FileState(object):
@@ -105,6 +108,15 @@ def _hash(doc, prof, what, result=False):
         if result:
             raise PatchInvalid("%s: Ergebnis ist kein gueltiges Python (%s)" % (what, exc))
         raise Conflict("%s: Datei ist kein gueltiges Python (%s)" % (what, exc))
+
+
+def _chain_hash(doc, prof):
+    """Datei-Zwischenstand (c=): Funktions-Hash, bei ungueltigem Zwischenstand
+    der Text-Hash - auf beiden Seiten eindeutig gleich."""
+    try:
+        return adapters.file_hash(doc, prof)
+    except ParseError:
+        return adapters.text_hash(doc)
 
 
 def _info(doc, what, result=False):
@@ -152,25 +164,6 @@ def _abs(ch, key, base, fs, what, lit):
     if lit:
         return list(lines)
     return lay.to_abs(lines, base, fs.need(lines, what))
-
-
-def _set_old(ctx, ch, old_abs, base, fs, what):
-    """seal: old eintragen (relativ, sonst literal). Liefert das literal-Flag."""
-    lit = fs.literal(ch)
-    if not ctx.seal:
-        return lit
-    if not lit:
-        rel = lay.to_rel(old_abs, base, fs.unit)
-        if rel is not None:
-            ch["old"] = rel
-            return False
-        ch["literal"] = True
-        ctx.hint("%s: Einrueckung nicht relativ darstellbar - literal verwendet" % what)
-        for key in ("new", "anchor"):
-            if isinstance(ch.get(key), list):
-                ch[key] = lay.to_abs(ch[key], base, fs.need(ch[key], what))
-    ch["old"] = list(old_abs)
-    return True
 
 
 def _blank_run(lines):
@@ -233,8 +226,7 @@ def op_replace_unit(ctx, path, doc, ch, prof, fs, what):
     info = _info(doc, what)
     unit = _find(info, ch.get("unit"), what)
     ctx.expect(ch, "unit_hash_before", adapters.unit_hash(doc, info, unit, prof), what, "unit")
-    lit = _set_old(ctx, ch, doc.lines[unit.start:unit.end], unit.indent, fs, what)
-    new = _abs(ch, "new", unit.indent, fs, what, lit)
+    new = _abs(ch, "new", unit.indent, fs, what, fs.literal(ch))
     nd = doc.with_lines(doc.lines[:unit.start] + new + doc.lines[unit.end:])
     if unit.kind == "header":
         info2 = _info(nd, what, result=True)
@@ -268,7 +260,6 @@ def op_delete_unit(ctx, path, doc, ch, prof, fs, what):
     info = _info(doc, what)
     unit = _find(info, ch.get("unit"), what)
     ctx.expect(ch, "unit_hash_before", adapters.unit_hash(doc, info, unit, prof), what, "unit")
-    _set_old(ctx, ch, doc.lines[unit.start:unit.end], unit.indent, fs, what)
     return _remove(doc, unit.start, unit.end)
 
 
@@ -307,12 +298,13 @@ def op_copy_unit(ctx, path, doc, ch, prof, fs, what):
     if src.kind == "header":
         raise PatchInvalid("%s: @header kann nicht kopiert werden" % what)
     ctx.expect(ch, "source_unit_hash", adapters.unit_hash(sdoc, sinfo, src, sprof), what, "unit")
-    if ctx.seal and "new" not in ch:
-        sunit = fs.unit if src_path == path else PY.detect_unit(sdoc, sinfo)
-        rel = lay.to_rel(sdoc.lines[src.start:src.end], src.indent, sunit)
-        if rel is None:
-            raise PatchInvalid("%s: Quelle ist nicht relativ darstellbar" % what)
-        ch["new"] = _rename(rel, ch["as"], what) if ch.get("as") else rel
+    # Inhalt immer aus der Quelle (durch source_unit_hash gesichert), nicht aus dem Patch
+    sunit = fs.unit if src_path == path else PY.detect_unit(sdoc, sinfo)
+    rel = lay.to_rel(sdoc.lines[src.start:src.end], src.indent, sunit)
+    if rel is None:
+        raise Conflict("%s: Quelle ist nicht relativ darstellbar" % what)
+    ch["new"] = _rename(rel, ch["as"], what) if ch.get("as") else rel
+    ch.pop("literal", None)
     return _place_unit(ctx, doc, ch, prof, fs, what)
 
 
@@ -336,8 +328,6 @@ def op_move_unit(ctx, path, doc, ch, prof, fs, what):
     rel = lay.to_rel(block, unit.indent, fs.unit)
     if rel is None:
         raise Conflict("%s: Einheit ist nicht relativ darstellbar - move nicht moeglich" % what)
-    if ctx.seal:
-        ch["old"] = rel
     nd1 = _remove(doc, unit.start, unit.end)
     idx, base, top = _position(_info(nd1, what, result=True), ch, what)
     new = lay.to_abs(rel, base, fs.unit)
@@ -475,7 +465,10 @@ def _existing(ctx, path, prof, what):
 def _check_before(ctx, entry, doc, prof, what):
     ctx.expect(entry, "hash_before", _hash(doc, prof, what), what)
     text = adapters.text_hash(doc)
-    if not ctx.seal and entry.get("text_hash_before") not in (None, text) and not ctx.exact:
+    stored = entry.get("text_hash_before")
+    if ctx.exact and not stored and not ctx.seal:
+        ctx.hint("%s: --exact ohne Text-Hash im Patch (Pruefstufe full) - nicht geprueft" % what)
+    if not ctx.seal and stored and not hash_match(stored, text) and not ctx.exact:
         ctx.hint("%s: kosmetische Abweichung (Kommentare/Leerraum) - wird angewendet" % what)
     ctx.expect(entry, "text_hash_before", text, what, "text")
 
@@ -561,21 +554,12 @@ def act_add(ctx, entry, path, prof, what):
 def act_delete(ctx, entry, path, prof, what):
     doc = _existing(ctx, path, prof, what)
     _check_before(ctx, entry, doc, prof, what)
-    if ctx.seal:
-        entry["old"] = _content_repr(ctx, entry, doc, prof, what)
     ctx.set(path, None, prof)
 
 
 def act_replace(ctx, entry, path, prof, what):
     cur = _existing(ctx, path, prof, what)
     _check_before(ctx, entry, cur, prof, what)
-    if ctx.seal:
-        probe = {"layout": entry["layout"]} if entry.get("layout") else {}
-        entry["old"] = _content_repr(ctx, probe, cur, prof, what)
-        if probe.get("literal"):
-            entry["old_literal"] = True
-        elif "layout" in probe and "layout" not in entry:
-            entry["layout"] = probe["layout"]
     doc = _content_doc(ctx, entry, prof, what, like=cur)
     _validate(doc, prof, what)
     _check_after(ctx, entry, doc, prof, what)
@@ -621,11 +605,13 @@ def act_modify(ctx, entry, path, prof, what):
         entry["layout"] = dict(entry.get("layout") or {}, **lay.layout_for(fs.unit))
     for i, ch in enumerate(entry["changes"], 1):
         cwhat = "%s, Aenderung %d (%s)" % (what, i, ch.get("op"))
-        ctx.expect(ch, "file_hash_before", _hash(doc, prof, cwhat), cwhat)
+        ctx.expect(ch, "file_hash_before", _chain_hash(doc, prof), cwhat)
         doc = OPS[ch["op"]](ctx, path, doc, ch, prof, fs, cwhat)
-        _validate(doc, prof, cwhat)
-        ctx.expect(ch, "file_hash_after", _hash(doc, prof, cwhat, result=True), cwhat)
+        ctx.expect(ch, "file_hash_after", _chain_hash(doc, prof), cwhat)
         ctx.set(path, doc, prof)
+    # Syntax erst am Ende der Datei: Zwischenstaende von Textaenderungen duerfen
+    # ungueltig sein (z.B. Docstring in einem Block geoeffnet, im naechsten geschlossen).
+    _validate(doc, prof, what)
     _check_after(ctx, entry, doc, prof, what)
     if ctx.seal and entry["hash_before"] == entry["hash_after"]:
         ctx.hint("%s: aendert nur Kommentare/Leerraum (Funktions-Hash unveraendert)" % what)
@@ -643,6 +629,8 @@ ACTIONS = {
 
 def _peek_binary(ctx, entry, path):
     """seal: Binaerdatei ohne Profilangabe -> mode raw."""
+    if isinstance(entry.get("new"), dict):
+        return True
     src = entry.get("source")
     candidate = os.path.join(ctx.source_dir, src) if src else ctx.abspath(path)
     if not os.path.isfile(candidate):
@@ -676,4 +664,10 @@ def process(patch, ctx):
             entry["compare"] = prof
         if required:
             pf.check_required(prof, path, required)
-        ACTIONS[entry["action"]](ctx, entry, path, prof, what)
+        if not ctx.seal and "hash_before" not in entry and "hash_after" not in entry:
+            ctx.hint("%s: ohne Datei-Hash im Patch - nur Inhaltspruefung" % what)
+        try:
+            ACTIONS[entry["action"]](ctx, entry, path, prof, what)
+        except (Conflict, PatchInvalid) as exc:
+            exc.path = path
+            raise

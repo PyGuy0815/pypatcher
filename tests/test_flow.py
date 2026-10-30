@@ -1,6 +1,5 @@
 """Gesamtablauf: seal -> check/apply -> verify -> rollback/recover."""
 
-import json
 import os
 import unittest
 
@@ -97,11 +96,9 @@ class Flow(ProjectCase):
     def test_move_pairing_required(self):
         draft = self.draft([{"path": "src/other.py", "action": "modify", "changes": [
             {"op": "move_unit", "from": "src/calc.py::add", "move_id": "x", "position": "end"}]}])
-        path = os.path.join(self.tmp, "d.json")
-        with open(path, "w") as handle:
-            json.dump(draft, handle)
+        path = self.write_draft(draft)
         self.assertEqual(self.run_cli("seal", path, "--base", self.base, "-o",
-                                      os.path.join(self.tmp, "o.json")), 2)
+                                      os.path.join(self.tmp, "o.ppatch")), 2)
 
     def test_replace_header(self):
         result = self.roundtrip([{"path": "src/calc.py", "action": "modify", "changes": [
@@ -127,15 +124,39 @@ class Flow(ProjectCase):
         self.assertNotIn(b"import os", result["src/calc.py"])
         self.assertEqual(result["conf.ini"], b"[main]\nneu = 2\nkey = 1\n")
 
+    def test_invalid_intermediate_state(self):
+        """Zwischenstand darf ungueltig sein, geprueft wird die Syntax am Dateiende."""
+        self.write("doc.py", "a = 1\nb = 2\nc = 3\n")
+        patch = self.seal(self.draft([{"path": "doc.py", "action": "modify", "changes": [
+            {"op": "replace_text", "old": ["a = 1"], "new": ['a = """']},
+            {"op": "replace_text", "old": ["c = 3"], "new": ['"""']}]}]),
+            "z.ppatch", "--verify", "full")
+        self.make_target()
+        self.assertEqual(self.apply(patch), 0, self.last_err)
+        self.assertEqual(self.read("doc.py"), b'a = """\nb = 2\n"""\n')
+
+    def test_stale_bytecode_removed(self):
+        """Ersetzte .py-Datei: zugehoeriger Bytecode wird entfernt (gleiche Groesse,
+        gleiche Sekunde wuerde Python sonst alten Code ausfuehren lassen)."""
+        self.write("ver.py", 'V = "a1"\n')
+        patch = self.seal(self.draft([{"path": "ver.py", "action": "modify", "changes": [
+            {"op": "replace_text", "old": ['V = "a1"'], "new": ['V = "a2"']}]}]), "v.ppatch")
+        self.make_target()
+        cache = os.path.join(self.target, "__pycache__")
+        os.makedirs(cache)
+        stale = os.path.join(cache, "ver.cpython-99.pyc")
+        with open(stale, "wb") as handle:
+            handle.write(b"alt")
+        self.assertEqual(self.apply(patch), 0, self.last_err)
+        self.assertFalse(os.path.exists(stale))
+
     def test_ambiguous_block_is_conflict(self):
         self.write("dup.txt", "a\nx\na\n")
         draft = self.draft([{"path": "dup.txt", "action": "modify", "changes": [
             {"op": "replace_text", "old": ["a"], "new": ["b"]}]}])
-        path = os.path.join(self.tmp, "d.json")
-        with open(path, "w") as handle:
-            json.dump(draft, handle)
+        path = self.write_draft(draft)
         self.assertEqual(self.run_cli("seal", path, "--base", self.base, "-o",
-                                      os.path.join(self.tmp, "o.json")), 3)
+                                      os.path.join(self.tmp, "o.ppatch")), 3)
         self.assertIn("nicht eindeutig", self.last_err)
 
     # -- Dateiaktionen -------------------------------------------------------
@@ -187,7 +208,9 @@ class Flow(ProjectCase):
         self.assertEqual(self.apply(patch, "--match", "unit"), 0, self.last_err)
 
     def test_cosmetic_difference(self):
-        patch = self._simple_patch()
+        patch = self.seal(self.draft([{"path": "src/calc.py", "action": "modify", "changes": [
+            {"op": "replace_unit", "unit": "add", "new": ["def add(a, b):", "\treturn b + a"]}]}]),
+            "full.ppatch", "--verify", "full")
         self.make_target()
         self.write("src/calc.py", MODULE.replace("# addiert", "# anders"), root=self.target)
         self.assertEqual(self.run_cli("check", "--exact", patch, "-p", self.target), 3)
@@ -198,12 +221,11 @@ class Flow(ProjectCase):
         patch = self._simple_patch()
         self.make_target()
         with open(patch, encoding="utf-8") as handle:
-            data = json.load(handle)
-        data["files"][0]["changes"][0]["new"][1] = "\treturn 42"
+            text = handle.read()
         with open(patch, "w", encoding="utf-8") as handle:
-            json.dump(data, handle)
+            handle.write(text.replace("\treturn b + a", "\treturn 42"))
         self.assertEqual(self.apply(patch), 2)
-        self.assertIn("patch_hash", self.last_err)
+        self.assertIn("Patch-Hash", self.last_err)
 
     def test_reapply_and_requires(self):
         patch = self._simple_patch()
@@ -211,7 +233,7 @@ class Flow(ProjectCase):
         self.assertEqual(self.apply(patch), 0)
         self.assertEqual(self.apply(patch), 3)
         second = self.seal(self.draft([{"path": "conf.ini", "action": "delete"}],
-                                      pid="0002", requires=["0009-fehlt"]), "q.json")
+                                      pid="0002", requires=["0009-fehlt"]), "q.ppatch")
         self.assertEqual(self.apply(second), 3)
         self.assertIn("benoetigt", self.last_err)
 
@@ -254,7 +276,7 @@ class Flow(ProjectCase):
     def test_rollback_to(self):
         first = self._simple_patch()
         second = self.seal(self.draft([{"path": "conf.ini", "action": "delete"}], pid="0002"),
-                           "q.json")
+                           "q.ppatch")
         self.make_target()
         before = self.snapshot(self.target)
         self.assertEqual(self.apply(first), 0)
@@ -292,8 +314,8 @@ class Flow(ProjectCase):
 
     def test_example_draft(self):
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        out = os.path.join(self.tmp, "beispiel.json")
-        self.assertEqual(self.run_cli("seal", "-q", os.path.join(root, "examples", "entwurf-beispiel.json"),
+        out = os.path.join(self.tmp, "beispiel.ppatch")
+        self.assertEqual(self.run_cli("seal", "-q", os.path.join(root, "examples", "entwurf-beispiel.ppatch"),
                                       "--base", os.path.join(root, "examples", "demo"), "-o", out),
                          0, self.last_err)
 

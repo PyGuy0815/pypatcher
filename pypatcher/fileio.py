@@ -101,6 +101,27 @@ def load(path, where, prof, allow_mixed=False):
     return doc
 
 
+def drop_bytecode(path):
+    """Zwischengespeicherten Python-Bytecode einer Quelldatei entfernen.
+
+    Python erkennt veralteten Bytecode nur an Aenderungszeit (Sekunden) und
+    Groesse der Quelle - wird eine .py-Datei innerhalb einer Sekunde mit
+    gleich langem Inhalt ersetzt (Patch, Rollback), liefe sonst alter Code.
+    """
+    if not path.endswith((".py", ".pyw")):
+        return
+    directory, name = os.path.split(path)
+    stem = os.path.splitext(name)[0]
+    cache = os.path.join(directory, "__pycache__")
+    if os.path.isdir(cache):
+        for entry in os.listdir(cache):
+            if entry.startswith(stem + ".") and entry.endswith((".pyc", ".pyo")):
+                try:
+                    os.remove(os.path.join(cache, entry))
+                except OSError:
+                    pass
+
+
 def atomic_write(path, data, st_mode=None):
     """Temp-Datei im selben Verzeichnis, dann os.replace (atomar je Datei).
 
@@ -122,6 +143,7 @@ def atomic_write(path, data, st_mode=None):
         if st_mode is not None:
             os.chmod(tmp, st_mode & 0o7777)
         os.replace(tmp, path)
+        drop_bytecode(path)
     except BaseException:
         if os.path.exists(tmp):
             os.remove(tmp)
