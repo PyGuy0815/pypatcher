@@ -41,7 +41,7 @@ R015  ERLEDIGT (0.0.1) Optionale Komprimierung (--compress, z64);
                 Befehlsliste bleibt lesbar.
 R016  OFFEN     TypeScript (.ts, .tsx) und JSX auf Basis des JS-Tokenizers
                 (hinten angestellt).
-R017  IN ARBEIT (0.0.2) JS: Funktionen innerhalb von Funktionen und Objekt-Methoden
+R017  ERLEDIGT (0.0.2-pre1) JS: Funktionen innerhalb von Funktionen und Objekt-Methoden
                 als Einheiten.
 R018  ERLEDIGT (0.0.1) Ablaufsteuerung im Patch (PRINT, INPUT,
                 IF/ELIF/ELSE/END, LABEL/GOTO, SET, EXIT).

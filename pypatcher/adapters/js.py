@@ -4,7 +4,9 @@ Normalform js/1: Tokenfolge ohne Kommentare und Einrueckung. Zeichenketten,
 Template-Strings und regulaere Ausdruecke bleiben exakt. Ein Zeilenumbruch
 zaehlt nur dort, wo er wegen der automatischen Semikolon-Einfuegung (ASI)
 die Bedeutung aendern kann.
-Einheiten: Funktionen, Klassen, Methoden, Funktionen in const/let/var.
+Einheiten: Funktionen, Klassen, Methoden, Funktionen in const/let/var,
+Objekte in const/let/var mit ihren Methoden und verschachtelten Objekten,
+Funktionen innerhalb von Funktionen (R017).
 """
 
 import bisect
@@ -36,7 +38,9 @@ RENAME_RES = [re.compile(p) for p in (
     r"^(\t*(?:export\s+)?(?:default\s+)?class\s+)([A-Za-z_$][\w$]*)",
     r"^(\t*(?:export\s+)?(?:const|let|var)\s+)([A-Za-z_$][\w$]*)",
     r"^(\t*(?:static\s+)?(?:async\s+)?(?:get\s+|set\s+)?\*?\s*#?)([A-Za-z_$][\w$]*)(?=\s*[(=])",
+    r"^(\t*)([A-Za-z_$][\w$]*)(?=\s*:)",
 )]
+CONTAINERS = ("class", "object")
 
 
 class Token(object):
@@ -312,7 +316,32 @@ class JsAdapter(Adapter):
         return line.lstrip().startswith(("}", ")", "]"))
 
     def can_contain(self, unit):
-        return unit.kind == "class"
+        return unit.kind in CONTAINERS
+
+    def repair(self, doc):
+        """Kommas zwischen Objekt-Eintraegen ergaenzen (nach Einfuegen,
+        Ersetzen oder Verschieben von Objekt-Methoden)."""
+        try:
+            info = self.analyze(doc)
+        except ParseError:
+            return doc
+        src, after = info.src, set()
+        for unit in info.units:
+            if unit.parent is None or unit.parent.kind != "object":
+                continue
+            first, _, last = unit.node
+            if src.text_of(first - 1) not in (",", "{"):
+                after.add(first - 1)
+            if src.text_of(last) != "," and src.text_of(last + 1) not in (",", "}"):
+                after.add(last)
+        if not after:
+            return doc
+        lines = list(doc.lines)
+        for k in sorted(after, reverse=True):
+            tok = src.sig[k]
+            col = tok.end - src.starts[tok.line]
+            lines[tok.line] = lines[tok.line][:col] + "," + lines[tok.line][col:]
+        return doc.with_lines(lines)
 
     def rename(self, rel_lines, name):
         if not re.match(r"^[A-Za-z_$][\w$]*$", name or ""):
@@ -379,8 +408,11 @@ class JsAdapter(Adapter):
     def _scope(self, src, lo, hi, parent, prefix, units):
         """Einheiten in sig[lo:hi] (oberste Ebene bzw. Klassenrumpf)."""
         found, k = [], lo
+        kind_of = parent.kind if parent is not None else None
+        member = {"class": self._class_member, "object": self._object_member}.get(kind_of,
+                                                                                 self._statement)
         while k < hi:
-            hit = self._class_member(src, k, hi) if parent is not None else self._statement(src, k, hi)
+            hit = member(src, k, hi)
             if hit is None:
                 k = self._skip(src, k, hi)
                 continue
@@ -395,8 +427,8 @@ class JsAdapter(Adapter):
             path = prefix + "." + label if prefix else label
             unit = Unit(path, kind, (first, body, last), start, end, indent, parent)
             units.append(unit)
-            if kind == "class":
-                self._scope(src, body + 1, src.pair[body], unit, path, units)
+            # Klassen und Objekte: Mitglieder; Funktionen: innere Funktionen (R017)
+            self._scope(src, body + 1, src.pair[body], unit, path, units)
 
     def _skip(self, src, k, hi):
         """Naechstes Token auf gleicher Ebene (Klammern werden uebersprungen)."""
@@ -411,12 +443,13 @@ class JsAdapter(Adapter):
             line -= 1
         return line
 
-    def _block_end(self, src, body, hi):
-        """Ende einer Einheit: schliessende Klammer, ggf. mit ";" in derselben Zeile."""
+    def _block_end(self, src, body, hi, sep=";"):
+        """Ende einer Einheit: schliessende Klammer, ggf. mit ";" (in Objekten
+        ",") in derselben Zeile."""
         last = src.pair.get(body)
         if last is None or last >= hi:
             return None
-        if src.text_of(last + 1) == ";" and src.sig[last + 1].line == src.sig[last].line:
+        if src.text_of(last + 1) == sep and src.sig[last + 1].line == src.sig[last].line:
             last += 1
         return last if src.line_end(last) else None
 
@@ -453,17 +486,20 @@ class JsAdapter(Adapter):
             if src.text_of(j) == "class":
                 hit = self._class_rest(src, first, j + 1, hi, name)
                 return hit
+            if src.text_of(j) == "{":
+                last = self._block_end(src, j, hi)
+                return None if last is None else (name, "object", first, j, last)
             return self._callable(src, first, j, hi, name, "function")
         return None
 
-    def _function_rest(self, src, first, j, hi, name, kind):
+    def _function_rest(self, src, first, j, hi, name, kind, sep=";"):
         """j zeigt auf "(" der Parameterliste."""
         if src.text_of(j) != "(" or j not in src.pair:
             return None
         body = src.pair[j] + 1
         if src.text_of(body) != "{":
             return None
-        last = self._block_end(src, body, hi)
+        last = self._block_end(src, body, hi, sep)
         return None if last is None else (name, kind, first, body, last)
 
     def _class_rest(self, src, first, j, hi, name=None):
@@ -479,7 +515,7 @@ class JsAdapter(Adapter):
         last = self._block_end(src, j, hi)
         return None if last is None else (name, "class", first, j, last)
 
-    def _callable(self, src, first, j, hi, name, kind):
+    def _callable(self, src, first, j, hi, name, kind, sep=";"):
         """Wert einer Zuweisung: function ..., (..) => {..}, x => {..}, async ..."""
         if src.text_of(j) == "async":
             j += 1
@@ -489,7 +525,7 @@ class JsAdapter(Adapter):
                 j += 1
             if j < hi and src.sig[j].kind == "name":
                 j += 1
-            return self._function_rest(src, first, j, hi, name, kind)
+            return self._function_rest(src, first, j, hi, name, kind, sep)
         if src.text_of(j) == "(" and j in src.pair:
             j = src.pair[j] + 1
         elif j < hi and src.sig[j].kind == "name":
@@ -498,8 +534,32 @@ class JsAdapter(Adapter):
             return None
         if src.text_of(j) != "=>" or src.text_of(j + 1) != "{":
             return None
-        last = self._block_end(src, j + 1, hi)
+        last = self._block_end(src, j + 1, hi, sep)
         return None if last is None else (name, kind, first, j + 1, last)
+
+    def _object_member(self, src, k, hi):
+        """Eintrag eines Objekts: name(..) {..}, async/get/set/*, name: function
+        bzw. (..) => {..}, name: { verschachteltes Objekt } (R017)."""
+        if not src.line_start(k) or src.sig[k - 1].line == src.sig[k].line:
+            return None
+        first, j = k, k
+        while src.text_of(j) in ("async", "get", "set", "*") and \
+                src.text_of(j + 1) not in ("(", ":", ","):
+            j += 1
+        if j >= hi or src.sig[j].kind not in ("name", "str", "num"):
+            return None
+        tok = src.sig[j]
+        name = tok.text[1:-1] if tok.kind == "str" else tok.text
+        if not name or "." in name:
+            return None
+        if src.text_of(j + 1) == "(":
+            return self._function_rest(src, first, j + 1, hi, name, "method", ",")
+        if src.text_of(j + 1) != ":":
+            return None
+        if src.text_of(j + 2) == "{":
+            last = self._block_end(src, j + 2, hi, ",")
+            return None if last is None else (name, "object", first, j + 2, last)
+        return self._callable(src, first, j + 2, hi, name, "method", ",")
 
     def _class_member(self, src, k, hi):
         if not src.line_start(k) or src.sig[k - 1].line == src.sig[k].line:

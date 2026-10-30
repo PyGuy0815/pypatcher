@@ -45,6 +45,14 @@ Versionen: siehe manifest.txt Abschnitt 16.
   - create nutzt die neuen Einheiten (z.B. UNIT @imports statt
     Textblock).
 
+  JavaScript (R017):
+  - Funktionen in Funktionen und Methoden ("outer.inner",
+    "Box.get.local").
+  - Objekte in const/let/var mit Methoden und verschachtelten Objekten
+    ("api.load", "api.sub.ping"); start-of:/end-of: auch fuer Objekte.
+  - Kommas zwischen Objekt-Eintraegen werden beim Einfuegen, Ersetzen und
+    Kopieren gerichtet; UCOPY as= benennt auch "name: function" um.
+
 0.0.1 (2026-10-30) - erste Freigabe
 -----------------------------------
   Patchformat pypatcher/1 (Befehlsliste + Datenbloecke):

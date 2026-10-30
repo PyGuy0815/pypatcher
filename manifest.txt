@@ -758,7 +758,17 @@ Beispiel (Pruefstufe std):
                          const|let|var name = function|(..) => {..}|class
     Klasse.methode       Methode, auch #privat, get/set (name#1, name#2),
                          Feld mit Funktion: name = (..) => {..}
-    Noch nicht: Funktionen innerhalb von Funktionen, Objekt-Methoden.
+    aussen.innen         Funktion in einer Funktion/Methode (0.0.2), auch
+                         const innen = (..) => {..}
+    api, api.load        Objekt in const/let/var und seine Methoden (0.0.2):
+                         load(..) {..}, async/get/set, name: function ..,
+                         name: (..) => {..}; api.sub.ping fuer Methoden
+                         verschachtelter Objekte (name: {..}). Einfache
+                         Werte (base: "/api") sind keine Einheiten.
+                         Kommas zwischen Eintraegen setzt das Programm beim
+                         Einfuegen/Ersetzen selbst; ein Komma direkt hinter
+                         "}" gehoert zur Einheit. start-of:/end-of: gehen
+                         bei Klassen und Objekten.
   CSS/SCSS:
     .btn:hover           Regel ueber ihren Selektor (Leerraum wie in der
                          Normalform: einfach, keiner neben ",")
