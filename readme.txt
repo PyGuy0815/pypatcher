@@ -17,9 +17,10 @@ Leerzeichen/Tabs/Umbrueche zaehlen je nach Format nicht. Wie genau
 verglichen wird (raw = binaer gleich, text, python ...), legt die
 Patchdatei je Datei fest. Bei Python zaehlt die Einrueckung (Tiefe,
 Tabs/Leerzeichen) immer exakt. Im Patch steht die Einrueckung als
-Tabs je Ebene; ein Parameter legt fest, woraus eine Ebene in der Datei
-besteht (z.B. 4 Leerzeichen). Jeder
-angewendete Patch laesst sich wieder zuruecknehmen. Windows-Zeilenenden
+Tabs je Ebene relativ zur Zielstelle; die echte Einrueckung ergibt sich
+aus der Zieldatei. Funktionen/Klassen koennen ersetzt, eingefuegt,
+geloescht, kopiert und verschoben werden. Jeder angewendete Patch
+laesst sich wieder zuruecknehmen. Windows-Zeilenenden
 (CRLF) werden erkannt und beibehalten.
 
 Voraussetzungen
@@ -28,13 +29,12 @@ Python 3.8 oder neuer, keine weiteren Pakete.
 
 Typischer Ablauf
 ----------------
-Entwicklung:
-  patcher.py create alter_stand/ neuer_stand/ -o 0002-fix.ppatch.json
-oder Entwurf (JSON ohne Hashes) schreiben und versiegeln:
+Entwicklung - Entwurf (JSON ohne Hashes) schreiben und versiegeln:
   patcher.py seal entwurf.json --base projekt/ -o 0002-fix.ppatch.json
+(spaeter auch automatisch:
+  patcher.py create alter_stand/ neuer_stand/ -o 0002-fix.ppatch.json)
 
 Zielumgebung:
-  patcher.py doctor   -p projekt/          (Umgebung pruefen, einmalig)
   patcher.py init     -p projekt/          (einmalig)
   patcher.py check    0002-fix.ppatch.json -p projekt/   (Probelauf)
   patcher.py apply    0002-fix.ppatch.json -p projekt/

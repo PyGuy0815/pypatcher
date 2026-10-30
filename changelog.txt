@@ -5,6 +5,19 @@ Versionen: siehe manifest.txt Abschnitt 16 (Beginn 0.0.1-pre1).
 
 Konzeptphase (ohne Version)
 ---------------------------
+2026-10-30  Konzept Stufe 6
+  - Einrueckung im Patch jetzt RELATIV: fuehrende Tabs = Ebenen relativ
+    zur Zielstelle; Grundtiefe und Ebenen-Einheit ergeben sich aus der
+    Zieldatei (Tabelle je Befehl: manifest.txt 7.6). "layout" nur noch
+    optionaler Check bzw. Pflicht bei neuen Dateien.
+  - Neue Patch-Befehle: delete_text; optionaler "scope" fuer
+    replace_text/insert_text/delete_text; copy_unit und move_unit (auch
+    zwischen Dateien); Dateiaktionen move und copy (statt rename).
+  - Neue Positionen start-of:<klasse>.
+  - Befehlsliste mit Umfang: pre1 = init, status, verify, log, units,
+    show, seal, check, apply, rollback, recover; spaeter = create,
+    doctor, canon, invert.
+
 2026-10-30  Konzept Stufe 5
   - Darstellung der Einrueckung im Patch festgelegt (E14, manifest.txt
     Abschnitt 6.1): fuehrende Tabs = Einrueckungs-Ebenen; Parameter

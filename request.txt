@@ -4,7 +4,8 @@ Status: OFFEN | GEPLANT | IN ARBEIT | ERLEDIGT (Version) | ABGELEHNT
 
 R001  GEPLANT   Erste Implementierung 0.0.1-pre1 gemaess manifest.txt
                 (Modi raw, text, python mit Normalform python/1,
-                Vergleichsprofile, alle Befehle aus Abschnitt 13).
+                Vergleichsprofile, Befehle "pre1" aus Abschnitt 13,
+                alle Patch-Befehle aus Abschnitt 7.1).
 R002  OFFEN     Weitere Modi/Normalformen nach Bedarf: js, cpp, c, java,
                 shell, json, yaml, ini, xml, markdown, make.
 R003  OFFEN     Signierte Patches (HMAC-SHA256 oder Ed25519); Feld
@@ -19,3 +20,6 @@ R007  GEPLANT   Binaerdateien ueber mode raw (Base64, nur ganze Datei)
 R008  OFFEN     Weitergabe als Einzeldatei bzw. .pyz (zipapp).
 R009  GEPLANT   Profil-Option "docstrings": "ignore" (nur ausdruecklich;
                 Standard ist keep, da programmrelevant) - in 0.0.1-pre1.
+R010  GEPLANT   Befehle create, doctor, canon, invert - nach pre1
+                (0.0.1-pre2 ff.).
+R011  OFFEN     copy/move auch fuer Textbloecke (copy_text/move_text).

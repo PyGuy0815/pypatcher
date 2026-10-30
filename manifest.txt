@@ -77,12 +77,16 @@ Kernanforderungen:
       (Anzahl Leerzeichen, Tabs, Mischung) jeder Anweisungszeile werden
       exakt geprueft - nicht abschaltbar. Bei Sprachen, in denen die
       Einrueckung keine Bedeutung hat (js, c/c++ ...), wird sie ignoriert.
-  E14 Darstellung der Einrueckung in der Patchdatei: fuehrende Tabs geben
-      die Einrueckungs-EBENE an ("\t\treturn x" = Ebene 2). Woraus eine
-      Ebene in der echten Datei besteht (Tab, 4 Leerzeichen ...), legt
-      der Parameter "layout" im Dateieintrag fest (Abschnitt 6.1).
-      Damit ist die Einrueckung im Patch eindeutig lesbar und trotzdem
-      exakt.
+  E14 Einrueckung im Patch: fuehrende Tabs geben die RELATIVE Ebene an
+      ("\t\treturn x" = 2 Ebenen tiefer als die Einheit/der Block selbst).
+      Grundtiefe und Ebenen-Einheit (Tab, 4 Leerzeichen ...) ergeben sich
+      beim Anwenden aus dem Text der Zieldatei. Der Parameter "layout"
+      ist optional und dient als zusaetzlicher Check (Abschnitt 6.1).
+  E15 Bearbeiten innerhalb von Einheiten: replace_text/insert_text/
+      delete_text mit optionalem "scope" (Abschnitt 7.1).
+  E16 Kopieren und Verschieben von Dateien und Einheiten (copy/move),
+      auch zwischen Dateien (Abschnitt 7.4).
+  E17 Umfang 0.0.1-pre1 und spaeter: Abschnitt 13.
 
 
 --------------------------------------------------------------------------------
@@ -311,13 +315,11 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
     Normalform.
   - Angepasst werden nur Zeilenenden/BOM/Encoding an die Zieldatei
     (nicht bei mode raw oder eol=keep).
-  - Einrueckung: Die Ebenen aus dem Patch werden gemaess "layout"
-    (Abschnitt 6.1) in die echte Einrueckung umgesetzt - das ist eine
-    feste, verlustfreie Umrechnung, keine Anpassung. Darueber hinaus
-    wird Python-Einrueckung NIE angepasst: Die Zieldatei muss dieselbe
-    Einrueckungs-Einheit verwenden wie im layout angegeben, und der neue
-    Code muss in der Tiefe exakt zu seiner Position passen; sonst
-    Konflikt. seal/create pruefen das bereits beim Erzeugen.
+  - Einrueckung: Die relativen Ebenen aus dem Patch werden an der
+    Zielstelle in echte Einrueckung umgesetzt (Abschnitt 6.1/7.6): feste,
+    verlustfreie Umrechnung mit Grundtiefe und Ebenen-Einheit aus der
+    Zieldatei. Sonst wird nichts an der Einrueckung veraendert. Das
+    Ergebnis wird ueber den Hash mit exakter Einrueckung (E13) geprueft.
   - Nach dem Einsetzen wird der Funktions-Hash erneut berechnet und mit
     dem erwarteten Wert verglichen; zusaetzlich validate (ast.parse).
   - Weicht die Zieldatei nur kosmetisch ab (gleicher hash, anderer
@@ -335,41 +337,46 @@ Textinhalte werden als Liste von Zeilen (ohne Zeilenende) gespeichert,
 die Einrueckung als fuehrende Tabs je Ebene (Abschnitt 6.1).
 Binaerinhalte (mode raw) als Base64-String im Feld "base64".
 
-6.1 Zeilen und Einrueckung ("layout")
-  Jeder Dateieintrag mit Textinhalt hat ein "layout":
-    {"lines": "levels", "indent": "spaces", "width": 4}
-    {"lines": "levels", "indent": "tabs"}
-    {"lines": "literal"}
-  lines=levels  Jede fuehrende Tab-Stelle einer Zeile im Patch = eine
-                Einrueckungs-Ebene. In der Datei wird jede Ebene durch
-                die Einheit aus "indent"/"width" ersetzt
-                (spaces/4 -> 4 Leerzeichen, tabs -> 1 Tab).
-                Was nach den Ebenen-Tabs folgt, bleibt woertlich
-                (z.B. Ausrichtung von Fortsetzungszeilen):
-                  Datei (4 Leerzeichen je Ebene):
-                    "    def f(self, a,"
-                    "              b):"
-                    "        return a"
-                  Patch:
-                    "\tdef f(self, a,"
-                    "\t\t\t  b):"          (3 Ebenen + 2 Leerzeichen)
-                    "\t\treturn a"
-  lines=literal Zeilen stehen exakt wie in der Datei (Ausweichform).
+6.1 Zeilen und Einrueckung
+  Zeilen im Patch (old/new/anchor) stehen mit RELATIVEN Ebenen:
+  jeder fuehrende Tab = eine Ebene tiefer als die Grundtiefe des Blocks.
+  Was nach den Ebenen-Tabs folgt, bleibt woertlich (z.B. Ausrichtung von
+  Fortsetzungszeilen).
+    Datei (Methode in Klasse, 4 Leerzeichen je Ebene):
+      "    def f(self, a,"
+      "              b):"
+      "        return a"
+    Patch (Grundtiefe = Tiefe der Methode, ergibt sich aus der Datei):
+      "def f(self, a,"
+      "\t\t  b):"             (2 Ebenen + 2 Leerzeichen)
+      "\treturn a"
+
+  Beim Anwenden ergibt sich aus dem Text der Zieldatei:
+    - die Ebenen-Einheit (Tab, 4 Leerzeichen, 2 Leerzeichen ...):
+      erkannt aus den vorhandenen Einrueckungen der Datei
+    - die Grundtiefe: je Befehl aus der Zielstelle (Tabelle 7.6)
+  Echte Zeile = Grundtiefe + Ebenen x Einheit + Rest woertlich.
+
+  "layout" (optional, als Check) im Dateieintrag:
+    {"indent": "spaces", "width": 4}   oder   {"indent": "tabs"}
+    - Ist es angegeben und weicht die erkannte Einheit der Zieldatei ab
+      -> Konflikt (statt stiller Umrechnung in eine andere Einheit).
+    - Pflicht nur, wenn sich die Einheit nicht aus dem Text ergibt:
+      neue Datei (add_file) oder Datei ganz ohne Einrueckung.
+    - seal/create tragen es standardmaessig ein (abschaltbar mit
+      --no-layout), damit der Patch fuer eine bestimmte Einrueckung
+      eindeutig ist.
+  {"lines": "literal"} (Ausweichform): Zeilen stehen exakt wie in der
+    Datei, keine Umrechnung. seal/create waehlen sie automatisch, wenn
+    eine Zeile nicht darstellbar ist (z.B. Tab in einer Datei mit
+    Leerzeichen-Einrueckung, Leerzeichen vor Tab), und geben einen
+    Hinweis aus.
   Regeln:
     - Die Umrechnung ist umkehrbar eindeutig. seal/create pruefen fuer
       jede Zeile Datei -> Patch -> Datei == Original.
-    - Ist eine Zeile so nicht darstellbar (z.B. Tab in einer Datei mit
-      Leerzeichen-Einrueckung, Leerzeichen vor Tab), schreiben
-      seal/create den Dateieintrag mit lines=literal und geben einen
-      Hinweis aus.
-    - Vorgabe fuer "indent"/"width": von seal/create aus der Datei
-      erkannt; im Entwurf frei angebbar.
-    - Die Hashes werden immer ueber den Text in Datei-Form berechnet;
-      das layout ist reine Darstellung im Patch und Teil des
-      Patch-Hashes.
-    - Zieldatei mit anderer Einrueckungs-Einheit als im layout ->
-      Konflikt (Python: Einrueckung ist exakt, E13).
-    - mode raw: kein layout (Inhalt als Base64).
+    - Die Hashes werden immer ueber den Text in Datei-Form berechnet
+      (exakte Einrueckung, E13).
+    - mode raw: keine Umrechnung (Inhalt als Base64).
 
 Beispiel:
 
@@ -395,7 +402,7 @@ Beispiel:
         "compare": {"mode": "python", "comments": "ignore",
                     "whitespace": "ignore", "docstrings": "keep",
                     "indent": "exact", "eol": "normalize"},
-        "layout": {"lines": "levels", "indent": "spaces", "width": 4},
+        "layout": {"indent": "spaces", "width": 4},
         "hash_before": "sha256:aa11...",
         "hash_after":  "sha256:ff99...",
         "text_hash_before": "sha256:1a2b...",
@@ -450,14 +457,14 @@ Kopffelder:
 
 Dateieintrag:
   path          Relativer Pfad, immer mit "/" (auch unter Windows).
-  action        add | delete | modify | replace | rename
+  action        add | delete | modify | replace | move | copy
   compare       Vergleichsprofil (Abschnitt 5.2). Von seal/create immer
                 vollstaendig ausgeschrieben, damit der Patch eindeutig ist.
-  to            nur bei rename: neuer Pfad.
+  to            nur bei move/copy: neuer Pfad (Ziel darf nicht existieren).
   hash_before / hash_after             Funktions-Hash (null bei add/delete)
   text_hash_before / text_hash_after   Text-Hash (informativ, --exact)
   old / new     bei add/delete/replace: ganzer Inhalt (Zeilen bzw. base64).
-  layout        Darstellung von Zeilen/Einrueckung (Abschnitt 6.1).
+  layout        optionaler Einrueckungs-Check (Abschnitt 6.1).
   final_newline bei add/replace (Textmodi): endet die Datei mit Umbruch.
   changes       nur bei modify: Liste der Aenderungen (Abschnitt 7).
 
@@ -470,23 +477,42 @@ Patchdatei moeglich. Mit Journal wird zusaetzlich der exakte Text
 --------------------------------------------------------------------------------
  7. AENDERUNGEN (changes) UND EINHEITEN
 --------------------------------------------------------------------------------
-7.1 Operationen innerhalb einer Datei (action = modify)
-  replace_unit   Einheit ersetzen (old -> new). Umbenennen einer Funktion
-                 = replace_unit mit neuem Namen im new-Block.
-  add_unit       Neue Einheit einfuegen. "position":
-                   "after:<unit>", "before:<unit>",
-                   "start" (direkt nach @header), "end",
-                   "end-of:<klasse>"
-  delete_unit    Einheit entfernen (old bleibt im Patch).
-  replace_text   Textblock ersetzen. Der Block wird ueber die Normalform
-                 gesucht und muss GENAU EINMAL vorkommen, sonst Konflikt.
-  insert_text    Text vor/nach einem eindeutigen Anker einfuegen
-                 ("anchor": [Zeilen], "position": "before"|"after").
+7.1 Uebersicht aller Patch-Befehle
+  Dateiebene (Feld "action" im Dateieintrag):
+    add        neue Datei anlegen (Ziel darf nicht existieren)
+    delete     Datei loeschen (Inhalt bleibt im Patch)
+    replace    ganze Datei austauschen
+    move       Datei verschieben/umbenennen ("to")
+    copy       Datei kopieren ("to")
+    modify     Datei bearbeiten -> Liste "changes" (unten)
+
+  Einheiten (action = modify, nur Modi mit Einheiten-Adapter, erste
+  Version: python):
+    replace_unit   Einheit ersetzen (old -> new). Umbenennen einer
+                   Funktion = replace_unit mit neuem Namen im new-Block.
+    add_unit       neue Einheit einfuegen ("position", Abschnitt 7.5)
+    delete_unit    Einheit entfernen (old bleibt im Patch)
+    copy_unit      Einheit kopieren - in derselben oder aus einer anderen
+                   Datei (Abschnitt 7.4)
+    move_unit      Einheit verschieben - innerhalb der Datei oder in eine
+                   andere Datei (Abschnitt 7.4)
+
+  Text (action = modify, alle Textmodi):
+    replace_text   Textblock ersetzen
+    insert_text    Text vor/nach einem Anker einfuegen
+                   ("anchor": [Zeilen], "position": "before"|"after")
+    delete_text    Textblock entfernen
+    Der Block bzw. Anker wird ueber die Normalform gesucht und muss GENAU
+    EINMAL vorkommen, sonst Konflikt.
+    Optional "scope": "<unit>" - gesucht wird nur innerhalb dieser
+    Einheit (z.B. wenige Zeilen in einer grossen Funktion aendern).
+    Geprueft werden dann zusaetzlich unit_hash_before/after der Einheit.
+
   Zeilennummern werden bewusst nicht verwendet (zu fehleranfaellig).
-  Einheiten-Operationen gibt es nur in Modi mit Einheiten-Adapter
-  (erste Version: python).
 
 7.2 Unit-Adressierung (allgemein, adapterabhaengig)
+  Innerhalb des Dateieintrags: nur der Unit-Pfad. Verweis auf eine
+  andere Datei (copy/move): "pfad/datei.py::Klasse.methode".
   name                 Funktion/Klasse auf oberster Ebene
   Klasse.methode       Methode
   aeussere.innere      verschachtelte Funktion
@@ -514,9 +540,60 @@ Patchdatei moeglich. Mit Journal wird zusaetzlich der exakte Text
                 - Einrueckung jeder Anweisungszeile exakt (E13)
               Vorrang: Was zum @header gehoert, gehoert nie zu einer
               Funktion - auch wenn die Funktion ohne Leerzeile folgt.
-  Leerzeilen zwischen Einheiten gehoeren zu keiner Einheit; add_unit und
-  delete_unit halten den in der Datei ueblichen Abstand ein (Python:
-  2 Leerzeilen oben, 1 Leerzeile in Klassen).
+  Leerzeilen zwischen Einheiten gehoeren zu keiner Einheit; add_unit,
+  delete_unit, copy_unit und move_unit halten den in der Datei ueblichen
+  Abstand ein (Python: 2 Leerzeilen oben, 1 Leerzeile in Klassen).
+
+7.4 Kopieren und Verschieben von Einheiten
+  copy_unit (im Dateieintrag der ZIELdatei):
+    "from"      Quelle: "unit" (gleiche Datei) oder "pfad::unit"
+    "position"  Zielstelle (7.5)
+    "as"        optional: neuer Name der Kopie (nur der Name in der
+                def/class-Zeile wird geaendert)
+    "new"       der eingefuegte Text (im Patch gespeichert -> Patch
+                bleibt selbsterklaerend und umkehrbar)
+    Pruefung: source_unit_hash == Hash der Quelle zum Zeitpunkt der
+    Ausfuehrung; unit_hash_after der Kopie; Datei-Hash-Kette.
+    Die Quelle bleibt unveraendert.
+  move_unit innerhalb einer Datei:
+    "unit", "position" - Einheit wird an die neue Stelle verschoben.
+    Pruefung: unit_hash_before/after (Inhalt gleich, nur Tiefe kann sich
+    aendern, z.B. Methode -> Funktion) und Datei-Hash-Kette.
+  move_unit in eine andere Datei (zwei zusammengehoerige Aenderungen):
+    Quelldatei : {"op": "move_unit", "unit": "X", "to": "b.py",
+                  "move_id": "m1", ...}       entfernt die Einheit
+    Zieldatei  : {"op": "move_unit", "from": "a.py::X",
+                  "position": "...", "move_id": "m1", ...}  fuegt ein
+    Beide Haelften muessen im Patch vorhanden sein (gleiche move_id),
+    sonst ist der Patch ungueltig. seal ordnet sie so, dass zuerst
+    eingefuegt und dann entfernt wird; da alles im Speicher geschieht,
+    ist die Reihenfolge der Dateien sonst beliebig.
+  Hinweis: Verschieben/Kopieren kann die Bedeutung aendern (z.B. Methode
+  mit self auf Modulebene). Geprueft werden Syntax (validate) und
+  Hashes; die fachliche Richtigkeit liegt beim Ersteller des Patches.
+
+7.5 Positionen (add_unit, copy_unit, move_unit)
+  "after:<unit>"      direkt nach der Einheit
+  "before:<unit>"     direkt vor der Einheit (vor deren Kommentaren/
+                      Decorators)
+  "start"             direkt nach @header (und nach dem Import-Block)
+  "end"               Dateiende
+  "start-of:<klasse>" erste Stelle im Klassenrumpf (nach Docstring)
+  "end-of:<klasse>"   letzte Stelle im Klassenrumpf
+
+7.6 Einrueckung je Befehl (Grundtiefe; Einheit pro Ebene aus der Datei)
+  add / replace (Datei)     Grundtiefe 0; Einheit aus layout (Pflicht,
+                            wenn der Inhalt Einrueckung enthaelt)
+  replace_unit              Tiefe der bisherigen Einheit
+  add_unit, copy_unit,      after:/before:X  -> Tiefe von X
+  move_unit                 start-of:/end-of:K -> Tiefe des Rumpfs von K
+                            start / end      -> 0
+  delete_unit, delete_text  - (nichts einzufuegen)
+  replace_text              Tiefe der ersten Zeile des gefundenen Blocks
+  insert_text               Tiefe der Ankerzeile
+                            (relativ dazu: "\t" = eine Ebene tiefer)
+  Fuer old/anchor gilt dieselbe Darstellung; gesucht wird ueber die
+  Normalform, dabei muessen die relativen Ebenen uebereinstimmen.
 
 
 --------------------------------------------------------------------------------
@@ -559,7 +636,6 @@ Ein Entwurf ist ein Patch ohne Hashes und ohne old-Inhalte. Minimal:
     "files": [
       {"path": "src/convert.py", "action": "modify",
        "compare": {"mode": "python"},
-       "layout": {"lines": "levels", "indent": "spaces", "width": 4},
        "changes": [
          {"op": "replace_unit", "unit": "is_udf",
           "new": ["def is_udf(path):", "\t..."]}
@@ -569,7 +645,8 @@ Ein Entwurf ist ein Patch ohne Hashes und ohne old-Inhalte. Minimal:
 
 "patcher.py seal entwurf.json --base PROJEKT -o 0003-udf.ppatch.json"
 liest den Ist-Stand aus PROJEKT, ergaenzt fehlende Profil-Optionen mit
-Vorgaben, das layout (falls nicht angegeben: aus der Datei erkannt),
+Vorgaben, das layout als Check (aus der Datei erkannt, ausser
+--no-layout),
 old-Inhalte und alle Hashes, prueft die Einrueckung (python),
 wendet den Patch probeweise im Speicher an (inkl. validate) und schreibt
 den fertigen Patch inkl. patch_hash. Aendert ein Entwurf nur Kommentare
@@ -649,31 +726,44 @@ backups/<ID>/ wiederherstellt. Dateirechte bleiben erhalten.
 --------------------------------------------------------------------------------
 13. BEFEHLE (KOMMANDOZEILE)
 --------------------------------------------------------------------------------
-  patcher.py doctor   [-p PROJEKT]           Umgebung pruefen: Python-
-                      Version, Betriebssystem, Schreibrechte, Encoding,
-                      Zeilenenden (LF/CRLF/gemischt), Einrueckungsart der
-                      Python-Dateien (Tabs/Leerzeichen/gemischt),
-                      parsebare Dateien
-  patcher.py init     [-p PROJEKT]           Journal anlegen, Ist-Stand
-                                             als Ausgangszustand speichern
-  patcher.py status   [-p PROJEKT]           Angewendete Patches, Zustand
-  patcher.py verify   [-p PROJEKT]           Ist-Stand gegen state.json;
-                      meldet funktionale Abweichungen (Fehler) und
-                      kosmetische Abweichungen (Hinweis) getrennt
-  patcher.py units    DATEI [--compare P]    Einheiten einer Datei + Hashes
-  patcher.py canon    DATEI [--unit U] [--compare P]
-                                             Normalform anzeigen (Diagnose)
-  patcher.py create   ALT NEU -o DATEI [--id ID --title T]
-                      [--compare P] [--level file|unit|text]
-                      [--include-cosmetic]
-  patcher.py seal     ENTWURF --base PROJEKT -o DATEI
-  patcher.py show     PATCH                  Lesbare Zusammenfassung / Diff
-  patcher.py check    PATCH [-p PROJEKT]     Probelauf, aendert nichts
-  patcher.py apply    PATCH [-p PROJEKT] [--match file|state|unit] [--exact]
-  patcher.py rollback [-p PROJEKT] [--to ID]
-  patcher.py invert   PATCH -o DATEI
-  patcher.py log      [-p PROJEKT]
-  patcher.py recover  [-p PROJEKT]
+  Spalte "Ab": pre1 = in 0.0.1-pre1, spaeter = folgende Vorabstaende.
+
+  Befehl    Ab       Aufruf / Zweck
+  --------  -------  ---------------------------------------------------
+  init      pre1     patcher.py init [-p PROJEKT]
+                     Journal anlegen, Ist-Stand als Ausgangszustand
+  status    pre1     patcher.py status [-p PROJEKT]
+                     Angewendete Patches, Zustand
+  verify    pre1     patcher.py verify [-p PROJEKT]
+                     Ist-Stand gegen state.json; funktionale
+                     Abweichungen (Fehler) und kosmetische (Hinweis)
+  log       pre1     patcher.py log [-p PROJEKT]
+  units     pre1     patcher.py units DATEI [--compare P]
+                     Einheiten einer Datei + Hashes
+  show      pre1     patcher.py show PATCH
+                     Lesbare Zusammenfassung / Diff
+  seal      pre1     patcher.py seal ENTWURF --base PROJEKT -o DATEI
+                     [--no-layout]
+  check     pre1     patcher.py check PATCH [-p PROJEKT]
+                     Probelauf, aendert nichts
+  apply     pre1     patcher.py apply PATCH [-p PROJEKT]
+                     [--match file|state|unit] [--exact]
+  rollback  pre1     patcher.py rollback [-p PROJEKT] [--to ID]
+  recover   pre1     patcher.py recover [-p PROJEKT]
+  create    spaeter  patcher.py create ALT NEU -o DATEI [--id ID --title T]
+                     [--compare P] [--level file|unit|text]
+                     [--include-cosmetic] [--no-layout]
+                     Erkennt auch verschobene/kopierte Einheiten.
+  doctor    spaeter  patcher.py doctor [-p PROJEKT]
+                     Python-Version, Betriebssystem, Schreibrechte,
+                     Encoding, Zeilenenden, Einrueckungsart, parsebar
+  canon     spaeter  patcher.py canon DATEI [--unit U] [--compare P]
+                     Normalform anzeigen (Diagnose)
+  invert    spaeter  patcher.py invert PATCH -o DATEI
+                     Rueckwaerts-Patch erzeugen
+
+  Alle Patch-Befehle aus Abschnitt 7.1 (inkl. copy/move, delete_text,
+  scope) sind ab pre1 enthalten.
   Allgemein: -v (ausfuehrlich), -q (still), -y (keine Rueckfragen),
              --allow-mixed-eol, --version
   --compare P: Profil als Kurzform, z.B. "python" oder
