@@ -6,8 +6,8 @@ R001  ERLEDIGT (0.0.1-pre1) Erste Implementierung gemaess manifest.txt
                 (Modi raw, text, python mit Normalform python/1,
                 Vergleichsprofile, Befehle "pre1" aus Abschnitt 13,
                 alle Patch-Befehle aus Abschnitt 7.1, create).
-R002  IN ARBEIT  Weitere Modi/Normalformen: js, css/scss (ERLEDIGT
-                0.0.1-pre1), html/xml (in Arbeit);
+R002  IN ARBEIT  Weitere Modi/Normalformen: js, css/scss, html/xml
+                (ERLEDIGT 0.0.1-pre1); ts/tsx/jsx als naechstes (R016);
                 spaeter cpp, c, java, shell, json, yaml, ini, markdown,
                 make.
 R003  OFFEN     Signierte Patches (HMAC-SHA256 oder Ed25519) als

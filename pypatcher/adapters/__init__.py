@@ -5,11 +5,13 @@ from ..profile import profile_id
 from .base import ParseError
 from .css import CssAdapter, ScssAdapter
 from .js import JsAdapter
+from .markup import HtmlAdapter, XmlAdapter
 from .python import PythonAdapter
 from .text import TextAdapter
 
 ADAPTERS = {"text": TextAdapter(), "python": PythonAdapter(), "js": JsAdapter(),
-            "css": CssAdapter(), "scss": ScssAdapter()}
+            "css": CssAdapter(), "scss": ScssAdapter(), "html": HtmlAdapter(),
+            "xml": XmlAdapter()}
 PY = ADAPTERS["python"]
 
 __all__ = ["ADAPTERS", "PY", "ParseError", "get", "file_hash", "unit_hash", "text_hash"]

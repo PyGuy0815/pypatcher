@@ -41,6 +41,18 @@ MODES = {
         "eol": ("normalize", "keep"),
         "encoding": None,
     }),
+    "html": (1, {
+        "comments": ("ignore", "keep"),
+        "whitespace": ("keep", "ignore"),
+        "eol": ("normalize", "keep"),
+        "encoding": None,
+    }),
+    "xml": (1, {
+        "comments": ("ignore", "keep"),
+        "whitespace": ("keep", "ignore"),
+        "eol": ("normalize", "keep"),
+        "encoding": None,
+    }),
 }
 FREE_DEFAULTS = {"encoding": "utf-8", "comment_prefix": None}
 EXTENSIONS = {
@@ -48,6 +60,8 @@ EXTENSIONS = {
     "js": (".js", ".mjs", ".cjs"),
     "css": (".css",),
     "scss": (".scss", ".less"),
+    "html": (".html", ".htm", ".xhtml"),
+    "xml": (".xml", ".svg", ".xsd", ".xsl", ".xslt"),
 }
 
 

@@ -354,19 +354,26 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
   - Syntaxpruefung: Zeichenketten/Kommentare geschlossen, Bloecke
     ausgeglichen, kein Block ohne Selektor.
 
-5.6.3 mode "html" und "xml" - Normalform html/1, xml/1 (geplant)
+5.6.3 mode "html" und "xml" - Normalform html/1, xml/1 (umgesetzt)
   html fuer *.html, *.htm, *.xhtml (fehlertoleranter Parser der
   Standardbibliothek); xml fuer *.xml, *.svg, *.xsd, *.xsl (strenger
   Parser).
   - Kommentare zaehlen nicht.
   - Reihenfolge der Attribute und Art der Anfuehrungszeichen zaehlen
     nicht; Entitaeten werden aufgeloest (&amp; == &#38;).
-  - Leerraum zaehlt standardmaessig (whitespace=keep, "auf Nummer
-    sicher"): CSS kann Leerraum sichtbar machen (white-space: pre).
-    whitespace=ignore fasst Leerraum zusammen und ignoriert reinen
-    Leerraum zwischen Elementen (ausser pre, textarea, script, style).
-  - Inhalt von <script> und <style> wird mit der JS- bzw. CSS-
-    Normalform verglichen.
+  - Leerraum im Text zaehlt standardmaessig (whitespace=keep, "auf
+    Nummer sicher"): CSS kann Leerraum sichtbar machen (white-space:
+    pre). Auch Einrueckung zwischen Elementen zaehlt dann.
+    whitespace=ignore (locker): Folgen werden zu einem Leerzeichen,
+    Leerraum am Rand von Texten und reiner Leerraum zwischen Elementen
+    zaehlt nicht - ausser in pre, textarea, script, style.
+    Leerraum innerhalb von Tags (zwischen Attributen) zaehlt nie.
+  - Inhalt von <script> (ohne type oder mit JS-type/module) und <style>
+    wird mit der JS- bzw. CSS-Normalform verglichen; andere Skripttypen
+    (z.B. JSON, Templates) exakt als Text.
+  - DOCTYPE, XML-Deklaration und Verarbeitungsanweisungen zaehlen.
+  - Syntaxpruefung: xml streng (expat); html ist fehlertolerant wie
+    Browser, geprueft wird nur die Lesbarkeit.
 
 5.6.4 Spaeter (nach Bedarf, request.txt)
   ts / tsx / jsx    TypeScript und JSX auf Basis des JS-Tokenizers
@@ -611,14 +618,20 @@ Beispiel (Pruefstufe std):
     .btn{2}              zweite Regel mit gleichem Selektor
     Im Patch stehen Adressen mit Leerzeichen in "...".
     UCOPY as= ersetzt den Selektor (er muss mit "{" in einer Zeile stehen).
-  HTML/XML (geplant, robust statt kurz):
+  HTML/XML (robust statt kurz):
     #nav                 Element mit id (bevorzugt)
     #main/section.intro/div.card[3]
                          Pfad ab dem naechsten Element mit id (sonst ab
                          der Wurzel): Tag + Klassen (sortiert) + Nummer
                          unter gleichartigen Geschwistern, [1] entfaellt
                          wenn eindeutig
-    head/script[2]       <script>/<style> sind ganze Einheiten
+    html/head/script[2]  <script>/<style> sind ganze Einheiten
+    Einheit ist jedes Element mit End-Tag (bzw. leeres/void-Element),
+    das zeilenweise abgrenzbar ist; Elemente ohne ausdrueckliches
+    End-Tag (z.B. <li> ohne </li>) sind keine Einheiten. Kommentarzeilen
+    direkt darueber gehoeren dazu. start-of:/end-of: verlangen, dass
+    Start- und End-Tag jeweils allein in ihrer Zeile stehen.
+    UCOPY as= wird nicht unterstuetzt.
   Nicht gefunden oder nicht eindeutig -> Konflikt, Abbruch.
   Einheiten muessen zeilenweise abgrenzbar sein (Anfang am Zeilenanfang,
   Ende am Zeilenende); was sich eine Zeile mit anderem Code teilt, ist
@@ -728,9 +741,10 @@ Beispiel (Pruefstufe std):
   python   Funktionen, Klassen, Methoden, @header; Normalform python/1
   js       Funktionen, Klassen, Methoden; Normalform js/1
   css/scss Regeln und At-Regeln (verschachtelt); Normalform css/1
+  html/xml Elemente (robuste Adressen); Normalform html/1, xml/1
 
-8.3 Geplant (Reihenfolge festgelegt, siehe request.txt)
-  html/xml -> ts/tsx/jsx; spaeter shell, json, yaml, ini,
+8.3 Geplant (siehe request.txt)
+  ts/tsx/jsx; spaeter shell, json, yaml, ini,
   markdown, make, c/c++, java - jeweils mit eigener Normalform
   (Abschnitt 5.6). Keine Aenderung am Patchformat noetig, nur neue
   Profilnamen.
@@ -966,6 +980,8 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre1):
                           Einrueckungs-Signatur)
       js.py               mode js: Tokenizer, Einheiten, Normalform js/1
       css.py              mode css/scss: Tokenizer, Parser, Normalform css/1
+      markup.py           mode html/xml: Elementbaum mit Positionen,
+                          Adressen, Normalform html/1, xml/1
     engine.py             alle Patch-Befehle im Speicher (seal + apply)
     diff.py               create: Baumvergleich, Einheiten-/Text-Diff,
                           Exaktheitspruefung
@@ -984,6 +1000,8 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre1):
     test_js.py            JS: Normalform (ASI, Regex, Templates),
                           Einheiten, Befehle, Verschieben, create
     test_css.py           CSS/SCSS: Normalform, Einheiten, Befehle, create
+    test_markup.py        HTML/XML: Normalform (Leerraum, Attribute,
+                          script), Adressen, Befehle, create
   examples/               Beispiel-Entwurf
   Tests ausfuehren: cd tests && python3 -m unittest
 

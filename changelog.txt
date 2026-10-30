@@ -63,6 +63,12 @@ Versionen: siehe manifest.txt Abschnitt 16 (Beginn 0.0.1-pre1).
     Reihenfolge zaehlen), Einheiten Regeln und At-Regeln inkl.
     Verschachtelung, Adresse ueber den Selektor ("@media (...)/.btn",
     ".btn{2}"). Adressen mit Leerzeichen stehen im Patch in "...".
+  - mode html (*.html, *.htm, *.xhtml) und xml (*.xml, *.svg, *.xsd,
+    *.xsl, *.xslt): Normalform html/1, xml/1 (Kommentare, Attribut-
+    Reihenfolge, Anfuehrungszeichen, Entitaeten egal; Text-Leerraum zaehlt
+    standardmaessig; <script>/<style> ueber JS-/CSS-Normalform);
+    Einheiten Elemente mit robusten Adressen (#id, Tag + Klassen +
+    Nummer, z.B. "html/body/main/div.card[2]").
   - Engine und create formatunabhaengig: Einheiten, Positionen,
     Abstaende und Umbenennen liefert der Adapter (adapters/base.py).
 
