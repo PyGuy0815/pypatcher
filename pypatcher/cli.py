@@ -6,7 +6,7 @@ import sys
 
 from . import __version__, adapters, diff, engine, fileio, journal as jr, patchfile
 from . import profile as pf
-from .adapters import PY, ParseError
+from .adapters import ParseError
 from .errors import Conflict, PatchInvalid, PatcherError, UsageError
 from .hashing import state_hash
 
@@ -337,14 +337,15 @@ def cmd_units(args):
     out("%s  (%s)" % (rel, pf.profile_id(prof)))
     out("Datei-Hash : %s" % adapters.file_hash(doc, prof))
     out("Text-Hash  : %s" % adapters.text_hash(doc))
-    if prof["mode"] != "python":
+    ua = adapters.get(prof["mode"])
+    if not ua.has_units:
         out("(keine Einheiten bei mode %s)" % prof["mode"])
         return 0
     try:
-        info = PY.analyze(doc)
-        unit = PY.detect_unit(doc, info)
+        info = ua.analyze(doc)
+        unit = ua.detect_unit(doc, info)
     except ParseError as exc:
-        raise Conflict("%s: kein gueltiges Python (%s)" % (rel, exc))
+        raise Conflict("%s: kein gueltiges %s (%s)" % (rel, ua.label, exc))
     out("Einrueckung: %s" % ("unbekannt" if unit is None else
                              "Tab" if unit == "\t" else "%d Leerzeichen" % len(unit)))
     out("")

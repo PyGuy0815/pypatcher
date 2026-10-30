@@ -10,8 +10,9 @@ import re
 import sys
 from collections import Counter
 
-from ..errors import PatchInvalid, Conflict
+from ..errors import PatchInvalid
 from ..layout import leading_ws, detect_generic
+from .base import Adapter, Info, ParseError, Unit
 
 CODING_RE = re.compile(r"^[ \t\f]*#.*?coding[:=][ \t]*([-\w.]+)")
 DEF_TYPES = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
@@ -21,32 +22,6 @@ if sys.version_info < (3, 9):
     _INDEX, _EXTSLICE = ast.Index, ast.ExtSlice
 else:
     _INDEX = _EXTSLICE = None
-
-
-class ParseError(Exception):
-    pass
-
-
-class Unit(object):
-    """Einheit: Zeilen [start, end) inkl. Kommentaren direkt darueber."""
-
-    def __init__(self, path, kind, node, start, end, indent, parent):
-        self.path = path
-        self.kind = kind
-        self.node = node
-        self.start = start
-        self.end = end
-        self.indent = indent
-        self.parent = parent
-
-
-class Info(object):
-    def __init__(self, tree, lines, header_end, header_doc, units):
-        self.tree = tree
-        self.lines = lines
-        self.header_end = header_end
-        self.header_doc = header_doc
-        self.units = units
 
 
 def is_docstring(stmt):
@@ -130,9 +105,31 @@ def _head_lines(lines):
     return "\n".join(out)
 
 
-class PythonAdapter(object):
+RENAME_RE = re.compile(r"^(\t*(?:async[ \t]+)?(?:def|class)[ \t]+)([A-Za-z_]\w*)")
+
+
+class PythonAdapter(Adapter):
     mode = "python"
+    label = "Python"
     has_units = True
+    default_indent = "    "
+    gap_top = 2
+    gap_nested = 1
+
+    def opens_block(self, line):
+        return line.rstrip().endswith(":")
+
+    def can_contain(self, unit):
+        return unit.kind == "class"
+
+    def rename(self, rel_lines, name):
+        if not re.match(r"^[A-Za-z_]\w*$", name or ""):
+            raise PatchInvalid("as=%r ist kein gueltiger Name" % name)
+        for i, line in enumerate(rel_lines):
+            match = RENAME_RE.match(line)
+            if match:
+                return rel_lines[:i] + [match.group(1) + name + line[match.end(2):]] + rel_lines[i + 1:]
+        raise PatchInvalid("keine def/class-Zeile zum Umbenennen gefunden")
 
     def parse(self, doc):
         source = "\n".join(doc.lines) + "\n"
@@ -152,7 +149,7 @@ class PythonAdapter(object):
         header_end, header_doc = self._header(lines, tree)
         units = [Unit("@header", "header", header_doc, 0, header_end, "", None)]
         self._collect(tree.body, "", None, lines, header_end, units)
-        return Info(tree, lines, header_end, header_doc, units)
+        return Info(lines, units, tree=tree, header_end=header_end, header_doc=header_doc)
 
     def _header(self, lines, tree):
         i = 0
@@ -192,22 +189,6 @@ class PythonAdapter(object):
             unit = Unit(path, kind, st, start, st.end_lineno, indent, parent)
             out.append(unit)
             self._collect(st.body, path, unit, lines, header_end, out)
-
-    def find(self, info, path):
-        for unit in info.units:
-            if unit.path == path:
-                return unit
-        dups = [u.path for u in info.units if u.path.startswith(path + "#")
-                and "." not in u.path[len(path):]]
-        if dups:
-            raise Conflict("Einheit %r ist nicht eindeutig: %s" % (path, ", ".join(dups)))
-        raise Conflict("Einheit %r nicht gefunden" % path)
-
-    def at_span(self, info, start, end):
-        for unit in info.units:
-            if unit.kind != "header" and unit.start == start and unit.end == end:
-                return unit
-        return None
 
     def position(self, info, pos):
         """-> (zeilenindex, grundtiefe, oberste_ebene) fuer Positionsangaben (7.5)."""

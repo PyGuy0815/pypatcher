@@ -1,7 +1,6 @@
 """Journal .patcher/ - Zustand, Historie, Sicherung, Rollback, Recover
 (manifest.txt Abschnitte 11 und 12)."""
 
-import ast
 import datetime
 import fnmatch
 import json
@@ -68,16 +67,17 @@ def auto_profile(rel, data, hints=None):
     if b"\0" in data:
         return pf.complete({"mode": "raw"})
     try:
-        text = data.decode("utf-8")
+        data.decode("utf-8")
     except UnicodeDecodeError:
         return pf.complete({"mode": "raw"})
     mode = pf.default_mode(rel)
-    if mode == "python":
+    if mode != "text":
+        adapter = adapters.get(mode)
         try:
-            ast.parse(text.lstrip("﻿"))
-        except (SyntaxError, ValueError):
+            adapter.validate(fileio.decode(data, "utf-8", rel, True))
+        except (adapters.ParseError, Conflict):
             if hints is not None:
-                hints.append("%s: kein gueltiges Python - als text verwaltet" % rel)
+                hints.append("%s: kein gueltiges %s - als text verwaltet" % (rel, adapter.label))
             mode = "text"
     return pf.complete({"mode": mode})
 

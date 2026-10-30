@@ -24,7 +24,8 @@ DEFAULT_HASH_LEN = 16
 MIN_HASH_LEN = 8
 B64_WIDTH = 76
 
-MODE_SHORT = {"python": "py", "text": "txt", "raw": "raw"}
+MODE_SHORT = {"python": "py", "text": "txt", "raw": "raw", "js": "js", "css": "css",
+              "scss": "scss", "html": "html", "xml": "xml"}
 MODE_LONG = dict((v, k) for k, v in MODE_SHORT.items())
 
 FILE_CMDS = {"ADD": "add", "DEL": "delete", "REP": "replace", "MOVE": "move",
@@ -43,7 +44,7 @@ ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 BLOCK_RE = re.compile(r"^@(\d+)(?:\s+(\d+|\.)(?:\s+(lit|b64))?)?\s*$")
 REF_RE = re.compile(r"^@(\d+)$")
 POS_RE = re.compile(r"^(start|end|(after|before|start-of|end-of):\S+)$")
-PROFILE_RE = re.compile(r"^(py|txt|raw)(,[a-z_]+=[^,\s]*)*$")
+PROFILE_RE = re.compile(r"^(py|txt|raw|js|css|scss|html|xml)(,[a-z_]+=[^,\s]*)*$")
 PART_RE = re.compile(r"^(.*)\.(\d+)" + re.escape(EXT) + "$")
 
 

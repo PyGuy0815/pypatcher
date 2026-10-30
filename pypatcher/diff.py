@@ -13,7 +13,7 @@ import os
 
 from . import FORMAT, __version__, adapters, engine, fileio, journal as jr
 from . import layout as lay, profile as pf
-from .adapters import PY, ParseError
+from .adapters import ParseError
 from .errors import Conflict, PatchInvalid
 
 MAX_ROUNDS = 5
@@ -78,9 +78,10 @@ def _skeleton(info, unit):
 
 
 class UnitDiff(object):
-    """Einheiten-Unterschiede einer Python-Datei."""
+    """Einheiten-Unterschiede einer Datei (Format mit Einheiten-Adapter)."""
 
-    def __init__(self, oinfo, ninfo, unit_old, unit_new):
+    def __init__(self, ua, oinfo, ninfo, unit_old, unit_new):
+        self.ua = ua
         self.oi = oinfo
         self.ni = ninfo
         self.uo = unit_old
@@ -90,8 +91,10 @@ class UnitDiff(object):
         self.adds = []       # (neue Einheit, position)
 
     def run(self):
-        head_o, head_n = self.oi.units[0], self.ni.units[0]
-        if _lines(self.oi, head_o) != _lines(self.ni, head_n):
+        head_o = self.oi.units[0] if self.oi.units else None
+        head_n = self.ni.units[0] if self.ni.units else None
+        if head_o is not None and head_o.kind == "header" and head_n is not None \
+                and head_n.kind == "header" and _lines(self.oi, head_o) != _lines(self.ni, head_n):
             self.replaces.append(("@header", head_n))
         result = self._compare(None, None)
         if result is None:
@@ -132,8 +135,7 @@ class UnitDiff(object):
             adds.append((nu, position))
         return replaces, deletes, adds
 
-    @staticmethod
-    def _position(siblings, i, omap, parent):
+    def _position(self, siblings, i, omap, parent):
         if i > 0:
             return "after:" + siblings[i - 1].path
         following = [u for u in siblings[i + 1:] if u.path in omap]
@@ -141,7 +143,7 @@ class UnitDiff(object):
             return "before:" + following[0].path
         if parent is None:
             return "end"
-        if parent.kind == "class":
+        if self.ua.can_contain(parent):
             return "start-of:" + parent.path
         return None
 
@@ -369,12 +371,14 @@ class Creator(object):
         if (odoc.eol, odoc.bom, odoc.final_nl) != (ndoc.eol, ndoc.bom, ndoc.final_nl):
             return {"entry": replace}
         compare = None
-        if prof["mode"] == "python":
+        ua = adapters.get(prof["mode"])
+        if ua.has_units:
             try:
-                oinfo, ninfo = PY.analyze(odoc), PY.analyze(ndoc)
+                oinfo, ninfo = ua.analyze(odoc), ua.analyze(ndoc)
             except ParseError:
                 prof = pf.resolve(rel, {"mode": "text"})
                 compare = {"mode": "text"}
+                ua = adapters.get("text")
         if adapters.file_hash(odoc, prof) == adapters.file_hash(ndoc, prof) and \
                 not self.include_cosmetic:
             if rel not in self.skipped:
@@ -387,9 +391,9 @@ class Creator(object):
             entry["compare"] = compare
         plan = {"entry": entry, "prof": prof, "odoc": odoc, "ndoc": ndoc,
                 "replaces": [], "deletes": [], "adds": []}
-        if prof["mode"] == "python" and self.level == "unit" and rel not in self.text_only:
-            unit_o, unit_n = PY.detect_unit(odoc, oinfo), PY.detect_unit(ndoc, ninfo)
-            diff = UnitDiff(oinfo, ninfo, unit_o, unit_n)
+        if ua.has_units and self.level == "unit" and rel not in self.text_only:
+            unit_o, unit_n = ua.detect_unit(odoc, oinfo), ua.detect_unit(ndoc, ninfo)
+            diff = UnitDiff(ua, oinfo, ninfo, unit_o, unit_n)
             if diff.run():
                 plan.update(oinfo=oinfo, ninfo=ninfo, unit_o=unit_o, unit_n=unit_n,
                             replaces=diff.replaces, deletes=diff.deletes, adds=diff.adds)
@@ -402,13 +406,15 @@ class Creator(object):
         for rel, plan in plans.items():
             for unit in plan.get("deletes", []):
                 text = tuple(_rel(_lines(plan["oinfo"], unit), unit.indent, plan["unit_o"]) or ())
+                text = (plan["prof"]["mode"], text) if text else None
                 if text:
                     deleted.setdefault(text, []).append((rel, unit))
         before = {}   # Datei -> Dateien, die vorher kommen muessen
         moves = 0
         for rel, plan in plans.items():
             for i, (unit, position) in enumerate(plan.get("adds", [])):
-                text = tuple(_rel(_lines(plan["ninfo"], unit), unit.indent, plan["unit_n"]) or ())
+                text = (plan["prof"]["mode"],
+                        tuple(_rel(_lines(plan["ninfo"], unit), unit.indent, plan["unit_n"]) or ()))
                 for src_rel, src_unit in deleted.get(text, []):
                     if src_rel == rel or self._must_precede(before, src_rel, rel):
                         continue
@@ -431,7 +437,8 @@ class Creator(object):
                 if len(add) > 2:
                     continue
                 unit, position = add
-                text = tuple(_rel(_lines(plan["ninfo"], unit), unit.indent, plan["unit_n"]) or ())
+                text = (plan["prof"]["mode"],
+                        tuple(_rel(_lines(plan["ninfo"], unit), unit.indent, plan["unit_n"]) or ()))
                 if text in sources:
                     plan["adds"][i] = (unit, position,
                                        {"op": "copy_unit", "from": "%s::%s" % sources[text]})
@@ -440,7 +447,8 @@ class Creator(object):
         """Einheiten, die in ALT und NEU unveraendert vorhanden sind (Kopier-Quellen)."""
         out = {}
         for rel in self.old.files:
-            if rel not in self.new.files or self.profile(rel)["mode"] != "python":
+            ua = adapters.get(self.profile(rel)["mode"])
+            if rel not in self.new.files or not ua.has_units:
                 continue
             plan = plans.get(rel)
             if plan is not None and plan.get("oinfo") is not None:
@@ -448,8 +456,8 @@ class Creator(object):
             elif self.old.data(rel) == self.new.data(rel):
                 try:
                     doc = self._decode(self.old.data(rel), rel, self.profile(rel))
-                    oinfo = ninfo = PY.analyze(doc)
-                    unit = PY.detect_unit(doc, oinfo)
+                    oinfo = ninfo = ua.analyze(doc)
+                    unit = ua.detect_unit(doc, oinfo)
                 except (Conflict, ParseError):
                     continue
             else:
@@ -461,7 +469,7 @@ class Creator(object):
                     continue
                 text = _rel(_lines(oinfo, u), u.indent, unit)
                 if text:
-                    out.setdefault(tuple(text), (rel, u.path))
+                    out.setdefault((ua.mode, tuple(text)), (rel, u.path))
         return out
 
     @staticmethod
@@ -578,9 +586,10 @@ class Creator(object):
         data = self.old.data(rel)
         prof = self.profile(rel)
         doc = self._decode(data, rel, prof)
-        info = PY.analyze(doc)
-        unit = PY.find(info, path)
-        return _rel(_lines(info, unit), unit.indent, PY.detect_unit(doc, info))
+        ua = adapters.get(prof["mode"])
+        info = ua.analyze(doc)
+        unit = ua.find(info, path)
+        return _rel(_lines(info, unit), unit.indent, ua.detect_unit(doc, info))
 
 
 def create(old_root, new_root, meta, **options):

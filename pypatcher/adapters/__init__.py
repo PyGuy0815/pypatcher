@@ -2,10 +2,12 @@
 
 from ..hashing import sha256_bytes, sha256_text
 from ..profile import profile_id
-from .python import PythonAdapter, ParseError
+from .base import ParseError
+from .js import JsAdapter
+from .python import PythonAdapter
 from .text import TextAdapter
 
-ADAPTERS = {"text": TextAdapter(), "python": PythonAdapter()}
+ADAPTERS = {"text": TextAdapter(), "python": PythonAdapter(), "js": JsAdapter()}
 PY = ADAPTERS["python"]
 
 __all__ = ["ADAPTERS", "PY", "ParseError", "get", "file_hash", "unit_hash", "text_hash"]

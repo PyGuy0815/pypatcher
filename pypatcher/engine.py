@@ -1,21 +1,20 @@
 """Ausfuehrung eines Patches im Speicher (manifest.txt Abschnitte 4.5, 7, 12).
 
-Derselbe Ablauf dient zum Versiegeln (seal: Hashes und Altinhalte werden
-eingetragen) und zum Pruefen/Anwenden (check/apply: alles wird verglichen).
+Derselbe Ablauf dient zum Versiegeln (seal: Hashes werden eingetragen) und
+zum Pruefen/Anwenden (check/apply: alles Enthaltene wird verglichen).
 Geschrieben wird hier nichts - das erledigt journal.commit_apply.
+Sprachabhaengiges (Einheiten, Positionen, Abstaende, Umbenennen) liefert der
+Adapter des Profils (adapters/).
 """
 
 import base64
 import binascii
 import os
-import re
 
 from . import adapters, fileio, layout as lay, profile as pf
-from .adapters import PY, ParseError
+from .adapters import ParseError
 from .errors import Conflict, PatchInvalid
 from .patchfile import hash_match, norm_path
-
-RENAME_RE = re.compile(r"^(\t*(?:async[ \t]+)?(?:def|class)[ \t]+)([A-Za-z_]\w*)")
 
 
 class Ctx(object):
@@ -89,7 +88,7 @@ class FileState(object):
         if self.unit is None and any(lay.levels(l) for l in lines or ()):
             if not self.ctx.seal:
                 raise PatchInvalid("%s: Einrueckungseinheit nicht bestimmbar - layout angeben" % what)
-            self.unit = "    " if self.prof["mode"] == "python" else "\t"
+            self.unit = adapters.get(self.prof["mode"]).default_indent
             self.entry["layout"] = dict(self.entry.get("layout") or {}, **lay.layout_for(self.unit))
             self.ctx.hint("%s: Einrueckung nicht aus der Datei ableitbar - layout %s angenommen"
                           % (what, lay.describe(self.unit)))
@@ -101,13 +100,17 @@ class FileState(object):
 
 # -- Hilfen ---------------------------------------------------------------
 
+def _syntax(prof):
+    return adapters.get(prof["mode"]).label
+
+
 def _hash(doc, prof, what, result=False):
     try:
         return adapters.file_hash(doc, prof)
     except ParseError as exc:
         if result:
-            raise PatchInvalid("%s: Ergebnis ist kein gueltiges Python (%s)" % (what, exc))
-        raise Conflict("%s: Datei ist kein gueltiges Python (%s)" % (what, exc))
+            raise PatchInvalid("%s: Ergebnis ist kein gueltiges %s (%s)" % (what, _syntax(prof), exc))
+        raise Conflict("%s: Datei ist kein gueltiges %s (%s)" % (what, _syntax(prof), exc))
 
 
 def _chain_hash(doc, prof):
@@ -119,37 +122,41 @@ def _chain_hash(doc, prof):
         return adapters.text_hash(doc)
 
 
-def _info(doc, what, result=False):
+def _units(prof, what):
+    """Adapter mit Einheiten fuer dieses Profil."""
+    adapter = adapters.get(prof["mode"])
+    if not adapter.has_units:
+        raise PatchInvalid("%s: Einheiten gibt es bei mode %s nicht (nur Textbefehle)"
+                           % (what, prof["mode"]))
+    return adapter
+
+
+def _info(ua, doc, what, result=False):
     try:
-        return PY.analyze(doc)
+        return ua.analyze(doc)
     except ParseError as exc:
         if result:
-            raise PatchInvalid("%s: Ergebnis ist kein gueltiges Python (%s)" % (what, exc))
-        raise Conflict("%s: Datei ist kein gueltiges Python (%s)" % (what, exc))
+            raise PatchInvalid("%s: Ergebnis ist kein gueltiges %s (%s)" % (what, ua.label, exc))
+        raise Conflict("%s: Datei ist kein gueltiges %s (%s)" % (what, ua.label, exc))
 
 
-def _find(info, path, what):
+def _find(ua, info, path, what):
     if not isinstance(path, str) or not path:
         raise PatchInvalid("%s: unit fehlt" % what)
     try:
-        return PY.find(info, path)
+        return ua.find(info, path)
     except Conflict as exc:
         raise Conflict("%s: %s" % (what, exc))
 
 
-def _position(info, ch, what):
+def _position(ua, info, ch, what):
     pos = ch.get("position")
     if not isinstance(pos, str):
         raise PatchInvalid("%s: position fehlt" % what)
     try:
-        return PY.position(info, pos)
+        return ua.position(info, pos)
     except (Conflict, PatchInvalid) as exc:
         raise type(exc)("%s: %s" % (what, exc))
-
-
-def _require_py(prof, what):
-    if prof["mode"] != "python":
-        raise PatchInvalid("%s: Einheiten gibt es nur bei mode python" % what)
 
 
 def _lines(ch, key, what):
@@ -175,26 +182,28 @@ def _blank_run(lines):
     return n
 
 
-def _insert(doc, idx, block, top):
-    """Block einfuegen und den ueblichen Abstand einhalten (Python: 2 bzw. 1 Leerzeile)."""
+def _insert(ua, doc, idx, block, top):
+    """Block einfuegen und den ueblichen Abstand des Formats einhalten
+    (Python: 2 bzw. 1 Leerzeile, JS/CSS: 1, HTML/XML: 0)."""
     lines = doc.lines
-    gap = 2 if top else 1
+    gap = ua.gap_top if top else ua.gap_nested
     before, after = lines[:idx], lines[idx:]
     pre = _blank_run(reversed(before))
     post = _blank_run(after)
     add_pre = add_post = 0
     if any(l.strip() for l in before):
         prev = before[len(before) - pre - 1]
-        if not prev.rstrip().endswith(":"):
+        if not ua.opens_block(prev):
             add_pre = max(0, gap - pre)
     if any(l.strip() for l in after):
         nxt = after[post]
-        add_post = max(0, (2 if not lay.leading_ws(nxt) else gap) - post)
+        if not ua.closes_block(nxt):
+            add_post = max(0, (ua.gap_top if not lay.leading_ws(nxt) else gap) - post)
     new = before + [""] * add_pre + list(block) + [""] * add_post + after
     return doc.with_lines(new), idx + add_pre
 
 
-def _remove(doc, start, end):
+def _remove(ua, doc, start, end):
     """Block entfernen; der groessere der beiden Abstaende bleibt erhalten."""
     lines = doc.lines[:start] + doc.lines[end:]
     pre = _blank_run(reversed(lines[:start]))
@@ -204,15 +213,16 @@ def _remove(doc, start, end):
         return doc.with_lines(head)
     if not any(l.strip() for l in head):
         return doc.with_lines(tail)
-    gap = 0 if head[-1].rstrip().endswith(":") else max(pre, post)
+    opened = ua.opens_block(head[-1]) or ua.closes_block(tail[0])
+    gap = 0 if opened else max(pre, post)
     return doc.with_lines(head + [""] * gap + tail)
 
 
-def _unit_after(ctx, ch, nd, start, end, prof, what, key="unit_after"):
-    info = _info(nd, what, result=True)
-    unit = PY.at_span(info, start, end)
+def _unit_after(ua, ctx, ch, nd, start, end, prof, what, key="unit_after"):
+    info = _info(ua, nd, what, result=True)
+    unit = ua.at_span(info, start, end)
     if unit is None:
-        raise PatchInvalid("%s: der neue Block ist keine einzelne Funktion/Klasse" % what)
+        raise PatchInvalid("%s: der neue Block ist keine einzelne Einheit (%s)" % (what, ua.label))
     if ctx.seal and key == "unit" and ch.get("unit") not in (None, unit.path):
         ctx.hint("%s: unit %r korrigiert zu %r" % (what, ch.get("unit"), unit.path))
     ctx.expect(ch, key, unit.path, what, "unit")
@@ -222,45 +232,44 @@ def _unit_after(ctx, ch, nd, start, end, prof, what, key="unit_after"):
 # -- Einheiten ------------------------------------------------------------
 
 def op_replace_unit(ctx, path, doc, ch, prof, fs, what):
-    _require_py(prof, what)
-    info = _info(doc, what)
-    unit = _find(info, ch.get("unit"), what)
+    ua = _units(prof, what)
+    info = _info(ua, doc, what)
+    unit = _find(ua, info, ch.get("unit"), what)
     ctx.expect(ch, "unit_hash_before", adapters.unit_hash(doc, info, unit, prof), what, "unit")
     new = _abs(ch, "new", unit.indent, fs, what, fs.literal(ch))
     nd = doc.with_lines(doc.lines[:unit.start] + new + doc.lines[unit.end:])
     if unit.kind == "header":
-        info2 = _info(nd, what, result=True)
+        info2 = _info(ua, nd, what, result=True)
         if info2.units[0].end != len(new):
             raise PatchInvalid("%s: new bildet keinen vollstaendigen Datei-Kopf" % what)
         ctx.expect(ch, "unit_hash_after",
                    adapters.unit_hash(nd, info2, info2.units[0], prof), what, "unit")
         return nd
-    _unit_after(ctx, ch, nd, unit.start, unit.start + len(new), prof, what)
+    _unit_after(ua, ctx, ch, nd, unit.start, unit.start + len(new), prof, what)
     return nd
 
 
-def _place_unit(ctx, doc, ch, prof, fs, what):
-    info = _info(doc, what)
-    idx, base, top = _position(info, ch, what)
+def _place_unit(ua, ctx, doc, ch, prof, fs, what):
+    info = _info(ua, doc, what)
+    idx, base, top = _position(ua, info, ch, what)
     new = _abs(ch, "new", base, fs, what, fs.literal(ch))
     if not new:
         raise PatchInvalid("%s: new ist leer" % what)
-    nd, start = _insert(doc, idx, new, top)
-    _unit_after(ctx, ch, nd, start, start + len(new), prof, what, key="unit")
+    nd, start = _insert(ua, doc, idx, new, top)
+    _unit_after(ua, ctx, ch, nd, start, start + len(new), prof, what, key="unit")
     return nd
 
 
 def op_add_unit(ctx, path, doc, ch, prof, fs, what):
-    _require_py(prof, what)
-    return _place_unit(ctx, doc, ch, prof, fs, what)
+    return _place_unit(_units(prof, what), ctx, doc, ch, prof, fs, what)
 
 
 def op_delete_unit(ctx, path, doc, ch, prof, fs, what):
-    _require_py(prof, what)
-    info = _info(doc, what)
-    unit = _find(info, ch.get("unit"), what)
+    ua = _units(prof, what)
+    info = _info(ua, doc, what)
+    unit = _find(ua, info, ch.get("unit"), what)
     ctx.expect(ch, "unit_hash_before", adapters.unit_hash(doc, info, unit, prof), what, "unit")
-    return _remove(doc, unit.start, unit.end)
+    return _remove(ua, doc, unit.start, unit.end)
 
 
 def _split_from(value, path, what):
@@ -272,44 +281,41 @@ def _split_from(value, path, what):
     return path, value
 
 
-def _rename(rel, name, what):
-    if not re.match(r"^[A-Za-z_]\w*$", name or ""):
-        raise PatchInvalid("%s: as=%r ist kein gueltiger Name" % (what, name))
-    for i, line in enumerate(rel):
-        match = RENAME_RE.match(line)
-        if match:
-            return rel[:i] + [match.group(1) + name + line[match.end(2):]] + rel[i + 1:]
-    raise PatchInvalid("%s: keine def/class-Zeile zum Umbenennen gefunden" % what)
-
-
 def op_copy_unit(ctx, path, doc, ch, prof, fs, what):
-    _require_py(prof, what)
+    ua = _units(prof, what)
     src_path, src_name = _split_from(ch.get("from"), path, what)
     if src_path == path:
         sdoc, sprof = doc, prof
     else:
         sprof = ctx.profiles.get(src_path) or pf.resolve(src_path)
-        _require_py(sprof, what + " (Quelle)")
+        if sprof["mode"] != prof["mode"]:
+            raise PatchInvalid("%s: Quelle (%s) und Ziel (%s) haben verschiedene Formate"
+                               % (what, sprof["mode"], prof["mode"]))
         sdoc = ctx.get(src_path, sprof)
         if sdoc is None:
             raise Conflict("%s: Quelldatei %s existiert nicht" % (what, src_path))
-    sinfo = _info(sdoc, what + " (Quelle)")
-    src = _find(sinfo, src_name, what)
+    sinfo = _info(ua, sdoc, what + " (Quelle)")
+    src = _find(ua, sinfo, src_name, what)
     if src.kind == "header":
         raise PatchInvalid("%s: @header kann nicht kopiert werden" % what)
     ctx.expect(ch, "source_unit_hash", adapters.unit_hash(sdoc, sinfo, src, sprof), what, "unit")
     # Inhalt immer aus der Quelle (durch source_unit_hash gesichert), nicht aus dem Patch
-    sunit = fs.unit if src_path == path else PY.detect_unit(sdoc, sinfo)
+    sunit = fs.unit if src_path == path else ua.detect_unit(sdoc, sinfo)
     rel = lay.to_rel(sdoc.lines[src.start:src.end], src.indent, sunit)
     if rel is None:
         raise Conflict("%s: Quelle ist nicht relativ darstellbar" % what)
-    ch["new"] = _rename(rel, ch["as"], what) if ch.get("as") else rel
+    if ch.get("as"):
+        try:
+            rel = ua.rename(rel, ch["as"])
+        except PatchInvalid as exc:
+            raise PatchInvalid("%s: %s" % (what, exc))
+    ch["new"] = rel
     ch.pop("literal", None)
-    return _place_unit(ctx, doc, ch, prof, fs, what)
+    return _place_unit(ua, ctx, doc, ch, prof, fs, what)
 
 
 def op_move_unit(ctx, path, doc, ch, prof, fs, what):
-    _require_py(prof, what)
+    ua = _units(prof, what)
     if "from" in ch:                      # Ziel-Haelfte: einfuegen
         nd = op_copy_unit(ctx, path, doc, ch, prof, fs, what)
         ctx.moves.add(ch["move_id"])
@@ -319,8 +325,8 @@ def op_move_unit(ctx, path, doc, ch, prof, fs, what):
             raise PatchInvalid("%s: der 'from'-Teil von move_id %r muss vorher ausgefuehrt "
                                "werden" % (what, ch["move_id"]))
         return op_delete_unit(ctx, path, doc, ch, prof, fs, what)
-    info = _info(doc, what)
-    unit = _find(info, ch.get("unit"), what)
+    info = _info(ua, doc, what)
+    unit = _find(ua, info, ch.get("unit"), what)
     if unit.kind == "header":
         raise PatchInvalid("%s: @header kann nicht verschoben werden" % what)
     ctx.expect(ch, "unit_hash_before", adapters.unit_hash(doc, info, unit, prof), what, "unit")
@@ -328,11 +334,11 @@ def op_move_unit(ctx, path, doc, ch, prof, fs, what):
     rel = lay.to_rel(block, unit.indent, fs.unit)
     if rel is None:
         raise Conflict("%s: Einheit ist nicht relativ darstellbar - move nicht moeglich" % what)
-    nd1 = _remove(doc, unit.start, unit.end)
-    idx, base, top = _position(_info(nd1, what, result=True), ch, what)
+    nd1 = _remove(ua, doc, unit.start, unit.end)
+    idx, base, top = _position(ua, _info(ua, nd1, what, result=True), ch, what)
     new = lay.to_abs(rel, base, fs.unit)
-    nd, start = _insert(nd1, idx, new, top)
-    _unit_after(ctx, ch, nd, start, start + len(new), prof, what)
+    nd, start = _insert(ua, nd1, idx, new, top)
+    _unit_after(ua, ctx, ch, nd, start, start + len(new), prof, what)
     return nd
 
 
@@ -341,22 +347,22 @@ def op_move_unit(ctx, path, doc, ch, prof, fs, what):
 def _scope(ctx, doc, ch, prof, what):
     name = ch.get("scope")
     if not name:
-        return None, 0, len(doc.lines)
-    _require_py(prof, what)
-    info = _info(doc, what)
-    unit = _find(info, name, what)
+        return None, None, 0, len(doc.lines)
+    ua = _units(prof, what)
+    info = _info(ua, doc, what)
+    unit = _find(ua, info, name, what)
     ctx.expect(ch, "unit_hash_before", adapters.unit_hash(doc, info, unit, prof), what, "unit")
-    return unit, unit.start, unit.end
+    return ua, unit, unit.start, unit.end
 
 
-def _scope_after(ctx, nd, ch, prof, unit, delta, what):
+def _scope_after(ctx, nd, ch, prof, ua, unit, delta, what):
     if unit is None:
         return
-    info = _info(nd, what, result=True)
+    info = _info(ua, nd, what, result=True)
     if unit.kind == "header":
         after = info.units[0]
     else:
-        after = PY.at_span(info, unit.start, unit.end + delta)
+        after = ua.at_span(info, unit.start, unit.end + delta)
     if after is None:
         raise PatchInvalid("%s: Einheit %s ist nach der Aenderung nicht mehr abgrenzbar"
                            % (what, unit.path))
@@ -401,17 +407,17 @@ def _match(doc, ch, key, lo, hi, prof, fs, what):
 
 
 def op_replace_text(ctx, path, doc, ch, prof, fs, what):
-    unit, lo, hi = _scope(ctx, doc, ch, prof, what)
+    ua, unit, lo, hi = _scope(ctx, doc, ch, prof, what)
     idx, base, lit = _match(doc, ch, "old", lo, hi, prof, fs, what)
     k = len(ch["old"])
     new = _abs(ch, "new", base, fs, what, lit)
     nd = doc.with_lines(doc.lines[:idx] + new + doc.lines[idx + k:])
-    _scope_after(ctx, nd, ch, prof, unit, len(new) - k, what)
+    _scope_after(ctx, nd, ch, prof, ua, unit, len(new) - k, what)
     return nd
 
 
 def op_insert_text(ctx, path, doc, ch, prof, fs, what):
-    unit, lo, hi = _scope(ctx, doc, ch, prof, what)
+    ua, unit, lo, hi = _scope(ctx, doc, ch, prof, what)
     idx, base, lit = _match(doc, ch, "anchor", lo, hi, prof, fs, what)
     where = ch.get("position")
     if where not in ("before", "after"):
@@ -420,16 +426,16 @@ def op_insert_text(ctx, path, doc, ch, prof, fs, what):
         idx += len(ch["anchor"])
     new = _abs(ch, "new", base, fs, what, lit)
     nd = doc.with_lines(doc.lines[:idx] + new + doc.lines[idx:])
-    _scope_after(ctx, nd, ch, prof, unit, len(new), what)
+    _scope_after(ctx, nd, ch, prof, ua, unit, len(new), what)
     return nd
 
 
 def op_delete_text(ctx, path, doc, ch, prof, fs, what):
-    unit, lo, hi = _scope(ctx, doc, ch, prof, what)
+    ua, unit, lo, hi = _scope(ctx, doc, ch, prof, what)
     idx, _, _ = _match(doc, ch, "old", lo, hi, prof, fs, what)
     k = len(ch["old"])
     nd = doc.with_lines(doc.lines[:idx] + doc.lines[idx + k:])
-    _scope_after(ctx, nd, ch, prof, unit, -k, what)
+    _scope_after(ctx, nd, ch, prof, ua, unit, -k, what)
     return nd
 
 
@@ -448,11 +454,12 @@ OPS = {
 # -- Dateiaktionen --------------------------------------------------------
 
 def _validate(doc, prof, what):
-    if prof["mode"] == "python":
-        try:
-            PY.validate(doc)
-        except ParseError as exc:
-            raise PatchInvalid("%s: Ergebnis ist kein gueltiges Python (%s)" % (what, exc))
+    if prof["mode"] == "raw":
+        return
+    try:
+        adapters.get(prof["mode"]).validate(doc)
+    except ParseError as exc:
+        raise PatchInvalid("%s: Ergebnis ist kein gueltiges %s (%s)" % (what, _syntax(prof), exc))
 
 
 def _existing(ctx, path, prof, what):
@@ -595,7 +602,7 @@ def act_modify(ctx, entry, path, prof, what):
     try:
         detected = adapter.detect_unit(doc)
     except ParseError as exc:
-        raise Conflict("%s: Datei ist kein gueltiges Python (%s)" % (what, exc))
+        raise Conflict("%s: Datei ist kein gueltiges %s (%s)" % (what, _syntax(prof), exc))
     wanted = lay.unit_from_layout(entry.get("layout"))
     if wanted and detected and wanted != detected:
         raise Conflict("%s: Einrueckung der Datei (%s) passt nicht zum layout (%s)"

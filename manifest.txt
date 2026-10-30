@@ -94,6 +94,11 @@ Kernanforderungen:
   E19 Kein alter Code im Patch, ausser als Suchtext fuer Textaenderungen;
       Rollback ueber die Sicherung im Ziel; Patches von Version zu Version.
   E20 Pakete mit begrenzter Zeichenzahl optional (--max-size, 6.2).
+  E21 Web-Formate in der Reihenfolge JS -> CSS (inkl. verschachtelt,
+      SCSS/LESS) -> HTML/XML; TypeScript/JSX danach. HTML-Adressen
+      robust (id, Tag + Klassen + Nummer) statt kurz; HTML-Leerraum
+      zaehlt standardmaessig; <script>/<style> sind ganze Einheiten
+      ("Sicherheit vor Sparsamkeit"). Abschnitte 5.6, 7.2.
 
 
 --------------------------------------------------------------------------------
@@ -313,10 +318,54 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
   Laesst sich eine Datei nicht parsen (Syntaxfehler), wird sie
   abgelehnt; ein Patch kann fuer diese Datei mode "text" festlegen.
 
-5.6 Spaetere Modi (je Adapter, nach Bedarf)
-  js, cpp, c, java  Tokenfolge; Kommentare und Einrueckung ohne
-                    Bedeutung (indent=ignore); bei js bleiben Umbrueche,
-                    wo sie Bedeutung haben (automatische Semikolons)
+5.6 Weitere Modi (Web-Formate)
+  Einrueckung hat in diesen Formaten keine Bedeutung und zaehlt nicht;
+  es gibt daher keine Option indent. whitespace=keep / comments=keep
+  verschaerfen wie bei python.
+
+5.6.1 mode "js" - Normalform js/1 (umgesetzt)
+  Dateien *.js, *.mjs, *.cjs. Eigener Tokenizer (Standardbibliothek).
+  - Kommentare, Einrueckung und Leerraum zwischen Tokens zaehlen nicht.
+  - Zeichenketten, Template-Strings (inkl. ${...}) und regulaere
+    Ausdruecke bleiben exakt ('a' und "a" gelten als verschieden -
+    lieber eine Abweichung zu viel, N5).
+  - Zeilenumbrueche zaehlen nur, wo sie wegen der automatischen
+    Semikolon-Einfuegung (ASI) die Bedeutung aendern koennen: nach
+    return/throw/break/continue/yield/async und vor ( [ + - / ++ -- `
+    * . ?. , = => sowie vor Template-Strings und regulaeren Ausdruecken.
+    Umbrueche z.B. innerhalb einer Argumentliste zaehlen nicht.
+  - Syntaxpruefung: Tokens gueltig (Zeichenketten, Kommentare, Templates
+    geschlossen) und Klammern ausgeglichen. Keine vollstaendige
+    Grammatikpruefung.
+  - Ein "/" gilt als regulaerer Ausdruck nach Operatoren, oeffnenden
+    Klammern und Woertern wie return/typeof; nach ) ] } als Division.
+
+5.6.2 mode "css" und "scss" - Normalform css/1 (geplant, naechster Schritt)
+  css fuer *.css; scss fuer *.scss und *.less (zusaetzlich //-Kommentare,
+  #{...}-Interpolation). Verschachtelte Regeln werden unterstuetzt.
+  - Kommentare zaehlen nicht; Leerraum wird zu einem Leerzeichen
+    zusammengefasst und entfaellt neben { } ; , sowie um ":" in
+    Deklarationen. Leerraum in Selektoren bleibt (a :hover != a:hover).
+  - Ein ";" direkt vor "}" zaehlt nicht.
+  - Reihenfolge der Regeln und Deklarationen zaehlt (Kaskade).
+  - Zeichenketten und url(...) bleiben exakt.
+
+5.6.3 mode "html" und "xml" - Normalform html/1, xml/1 (geplant)
+  html fuer *.html, *.htm, *.xhtml (fehlertoleranter Parser der
+  Standardbibliothek); xml fuer *.xml, *.svg, *.xsd, *.xsl (strenger
+  Parser).
+  - Kommentare zaehlen nicht.
+  - Reihenfolge der Attribute und Art der Anfuehrungszeichen zaehlen
+    nicht; Entitaeten werden aufgeloest (&amp; == &#38;).
+  - Leerraum zaehlt standardmaessig (whitespace=keep, "auf Nummer
+    sicher"): CSS kann Leerraum sichtbar machen (white-space: pre).
+    whitespace=ignore fasst Leerraum zusammen und ignoriert reinen
+    Leerraum zwischen Elementen (ausser pre, textarea, script, style).
+  - Inhalt von <script> und <style> wird mit der JS- bzw. CSS-
+    Normalform verglichen.
+
+5.6.4 Spaeter (nach Bedarf, request.txt)
+  ts / tsx / jsx    TypeScript und JSX auf Basis des JS-Tokenizers
   shell             Kommentare entfernt, Leerraum zwischen Woertern
                     vereinheitlicht, Zeilenumbrueche bleiben
   json              parsen, Schluessel sortiert, kompakt ausgeben
@@ -535,16 +584,38 @@ Beispiel (Pruefstufe std):
 
   Zeilennummern werden bewusst nicht verwendet (zu fehleranfaellig).
 
-7.2 Unit-Adressierung (allgemein, adapterabhaengig)
+7.2 Unit-Adressierung (adapterabhaengig)
   Innerhalb des Dateieintrags: nur der Unit-Pfad. Verweis auf eine
   andere Datei (copy/move): "pfad/datei.py::Klasse.methode".
-  name                 Funktion/Klasse auf oberster Ebene
-  Klasse.methode       Methode
-  aeussere.innere      verschachtelte Funktion
-  name#2               zweite Definition gleichen Namens
-                       (z.B. @property und @x.setter)
-  @header              Kopf der Datei
+  Python:
+    name                 Funktion/Klasse auf oberster Ebene
+    Klasse.methode       Methode
+    aeussere.innere      verschachtelte Funktion
+    name#2               zweite Definition gleichen Namens
+                         (z.B. @property und @x.setter)
+    @header              Kopf der Datei
+  JavaScript:
+    name                 function name / class name /
+                         const|let|var name = function|(..) => {..}|class
+    Klasse.methode       Methode, auch #privat, get/set (name#1, name#2),
+                         Feld mit Funktion: name = (..) => {..}
+    Noch nicht: Funktionen innerhalb von Funktionen, Objekt-Methoden.
+  CSS/SCSS (geplant):
+    .btn:hover           Regel ueber ihren Selektor (Leerraum vereinheitlicht)
+    @media (max-width: 600px)/.btn    verschachtelt, Trenner "/"
+    .btn{2}              zweite Regel mit gleichem Selektor
+  HTML/XML (geplant, robust statt kurz):
+    #nav                 Element mit id (bevorzugt)
+    #main/section.intro/div.card[3]
+                         Pfad ab dem naechsten Element mit id (sonst ab
+                         der Wurzel): Tag + Klassen (sortiert) + Nummer
+                         unter gleichartigen Geschwistern, [1] entfaellt
+                         wenn eindeutig
+    head/script[2]       <script>/<style> sind ganze Einheiten
   Nicht gefunden oder nicht eindeutig -> Konflikt, Abbruch.
+  Einheiten muessen zeilenweise abgrenzbar sein (Anfang am Zeilenanfang,
+  Ende am Zeilenende); was sich eine Zeile mit anderem Code teilt, ist
+  keine Einheit und wird ueber Textbefehle geaendert.
 
 7.3 Umfang einer Einheit (Python-Adapter, sinngemaess fuer andere)
   Der Umfang bestimmt, welcher Text beim Ersetzen/Loeschen/Verschieben
@@ -627,29 +698,34 @@ Beispiel (Pruefstufe std):
 --------------------------------------------------------------------------------
  8. ADAPTER (Sprachen und Formate)
 --------------------------------------------------------------------------------
-8.1 Schnittstelle (jeder Adapter)
-  mode            Kennung, z.B. "python" (= Wert von compare.mode)
-  version         Version der Normalform, z.B. 1
-  options         erlaubte Profil-Optionen, Vorgaben, feste Werte
-                  (python: indent=exact fest)
-  extensions      Vorgabe-Zuordnung ueber Dateiendungen
-  normalize(text, profil)        -> Normalform (Grundlage des hash)
-  normalize_unit(text, unit, profil) -> Normalform einer Einheit
-  list_units(text)               -> Liste aller Einheiten
-  locate(text, unit)             -> (start, ende, quelltext) oder Fehler
-  insert(text, position, quelltext) -> neuer Text
-  check_indent(text, position, quelltext) -> Einrueckung passt? (python)
-  validate(text)                 -> Syntaxpruefung (python: ast.parse)
+8.1 Schnittstelle (adapters/base.py, jeder Adapter)
+  mode, label           Kennung (= Profil-mode) und Anzeigename
+  has_units             Einheiten-Befehle moeglich?
+  default_indent        Ebenen-Einheit, falls aus der Datei nicht ableitbar
+  gap_top, gap_nested   Leerzeilen um eingefuegte Einheiten
+  normalize(doc, profil)              -> Normalform der Datei
+  normalize_unit(doc, info, unit, p)  -> Normalform einer Einheit
+  validate(doc)                       -> Syntaxpruefung (ParseError)
+  detect_unit(doc)                    -> Ebenen-Einheit der Datei
+  analyze(doc)          -> Info: Zeilen, Einheiten (Eltern vor Kindern)
+  find(info, pfad), at_span(info, start, ende), position(info, pos)
+  can_contain(unit)     kann Einheiten aufnehmen (start-of:/end-of:)
+  opens_block(zeile), closes_block(zeile)   fuer die Abstandsregeln
+  rename(zeilen, name)  fuer UCOPY as=
+  Profil-Optionen und Dateiendungen stehen in profile.py (MODES,
+  EXTENSIONS). Engine und create sind formatunabhaengig.
 
-8.2 Erste Version
+8.2 Vorhanden
   raw      binaer gleich; nur ganze Datei
-  text     jede Textdatei; replace_text/insert_text und ganze Datei
+  text     jede Textdatei; Textbefehle und ganze Datei
   python   Funktionen, Klassen, Methoden, @header; Normalform python/1
+  js       Funktionen, Klassen, Methoden; Normalform js/1
 
-8.3 Spaetere Adapter (nach Bedarf, siehe request.txt)
-  js, cpp, c, java, shell, json, yaml, ini, xml, markdown, make - jeweils
-  mit eigener Normalform (Abschnitt 5.6). Keine Aenderung am Patchformat
-  noetig, nur neue Werte fuer compare.mode.
+8.3 Geplant (Reihenfolge festgelegt, siehe request.txt)
+  css/scss -> html/xml -> ts/tsx/jsx; spaeter shell, json, yaml, ini,
+  markdown, make, c/c++, java - jeweils mit eigener Normalform
+  (Abschnitt 5.6). Keine Aenderung am Patchformat noetig, nur neue
+  Profilnamen.
 
 
 --------------------------------------------------------------------------------
@@ -876,9 +952,11 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre1):
     adapters/
       __init__.py         Registry, Datei-/Unit-/Text-Hash (raw direkt)
       text.py             mode text
+      base.py             Schnittstelle, Unit/Info, gemeinsame Positionen
       python.py           mode python: Einheiten, Positionen,
                           Normalform python/1 (Syntaxbaum +
                           Einrueckungs-Signatur)
+      js.py               mode js: Tokenizer, Einheiten, Normalform js/1
     engine.py             alle Patch-Befehle im Speicher (seal + apply)
     diff.py               create: Baumvergleich, Einheiten-/Text-Diff,
                           Exaktheitspruefung
@@ -894,6 +972,8 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre1):
                           copy, Reihenfolge, kosmetisch, CRLF, --level
     test_format.py        Format: Hin-/Rueckweg, Pruefstufen, Hash-
                           Laenge, Pakete, optionale Hashes, Entwurf
+    test_js.py            JS: Normalform (ASI, Regex, Templates),
+                          Einheiten, Befehle, Verschieben, create
   examples/               Beispiel-Entwurf
   Tests ausfuehren: cd tests && python3 -m unittest
 

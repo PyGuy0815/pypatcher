@@ -23,13 +23,26 @@ MODES = {
         "eol": ("normalize", "keep"),
         "encoding": None,
     }),
+    "js": (1, {
+        "comments": ("ignore", "keep"),
+        "whitespace": ("ignore", "keep"),
+        "eol": ("normalize", "keep"),
+        "encoding": None,
+    }),
 }
 FREE_DEFAULTS = {"encoding": "utf-8", "comment_prefix": None}
-PY_EXTENSIONS = (".py", ".pyw")
+EXTENSIONS = {
+    "python": (".py", ".pyw"),
+    "js": (".js", ".mjs", ".cjs"),
+}
 
 
 def default_mode(path):
-    return "python" if path.lower().endswith(PY_EXTENSIONS) else "text"
+    lower = path.lower()
+    for mode, extensions in EXTENSIONS.items():
+        if lower.endswith(extensions):
+            return mode
+    return "text"
 
 
 def complete(prof, where=""):

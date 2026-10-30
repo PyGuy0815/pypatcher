@@ -6,8 +6,10 @@ R001  ERLEDIGT (0.0.1-pre1) Erste Implementierung gemaess manifest.txt
                 (Modi raw, text, python mit Normalform python/1,
                 Vergleichsprofile, Befehle "pre1" aus Abschnitt 13,
                 alle Patch-Befehle aus Abschnitt 7.1, create).
-R002  OFFEN     Weitere Modi/Normalformen nach Bedarf: js, cpp, c, java,
-                shell, json, yaml, ini, xml, markdown, make.
+R002  IN ARBEIT  Weitere Modi/Normalformen: js (ERLEDIGT 0.0.1-pre1),
+                css/scss, html/xml (in Arbeit, in dieser Reihenfolge);
+                spaeter cpp, c, java, shell, json, yaml, ini, markdown,
+                make.
 R003  OFFEN     Signierte Patches (HMAC-SHA256 oder Ed25519) als
                 zusaetzliche Kopfangabe.
 R004  OFFEN     Patch-Buendel: mehrere Patches in einer Datei/Archiv
@@ -34,3 +36,7 @@ R014  ERLEDIGT (0.0.1-pre1) Kompaktes Patchformat: Befehlsliste +
                 mit begrenzter Zeichenzahl.
 R015  OFFEN     Optionale Komprimierung grosser Datenbloecke (zlib +
                 Base64) - spart Platz, ist dann aber nicht mehr lesbar.
+R016  GEPLANT   TypeScript (.ts, .tsx) und JSX auf Basis des JS-Tokenizers
+                (nach html/xml).
+R017  OFFEN     JS: Funktionen innerhalb von Funktionen und Objekt-Methoden
+                als Einheiten.
