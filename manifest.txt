@@ -666,6 +666,13 @@ Beispiel (Pruefstufe std):
   vorkommen, das Ergebnis muss gueltige Syntax haben (Python/JS/CSS/
   XML). Dann Vorschau, Rueckfrage, Sicherung, atomares Schreiben;
   Rollback wie immer. Versiegelte Patches prueft run ueber die Hashes.
+  Konfliktanzeige (0.0.2): wird ein Suchblock nicht gefunden, zeigt die
+  Meldung die aehnlichste Stelle im Suchbereich als Diff (- Patch,
+  + Datei; ab 50 % Aehnlichkeit, ohne Einrueckung verglichen, hoechstens
+  16 Zeilen) bzw. den Hinweis, dass nur die Einrueckung abweicht. Bei
+  unbekannten Einheiten nennt sie aehnliche oder die vorhandenen
+  Einheiten. Die Meldung ist so gefasst, dass der Nutzer sie unveraendert
+  an die KI zurueckgeben kann.
   Die Anleitung fuer die KI steht in ki-prompt.txt (wird getestet);
   ki-beispiele.txt enthaelt durchgespielte Auftraege mit Antworten fuer
   Python, JS/CSS, HTML, JSON, C und eine Antwort ueber zwei Nachrichten

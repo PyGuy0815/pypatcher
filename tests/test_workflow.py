@@ -137,3 +137,40 @@ class RunWithTests(ProjectCase):
         command = 'python3 -c "open(\'ausgabe.log\', \'w\').write(\'x\')"'
         self.assertEqual(self.run_cli("run", "-y", "-q", "--test", command, self.good,
                                       "-p", self.target), 0, self.last_err)
+
+
+class ConflictDisplay(ProjectCase):
+    """R006: Konflikte zeigen die aehnlichste Stelle bzw. aehnliche Einheiten."""
+
+    def setUp(self):
+        super().setUp()
+        self.write("app.py", "class Store:\n    def find(self, word):\n"
+                   "        return [n for n in self.notes if word in n]\n")
+        shutil.copytree(self.base, self.target)
+        self.run_cli("init", "-q", "-p", self.target)
+
+    def run_draft(self, body):
+        draft = self.write("d.ppatch", "#PPATCH 1 k 1/1\nTITLE t\nFILE app.py\n" + body,
+                           root=self.tmp)
+        self.assertEqual(self.run_cli("run", "-n", draft, "-p", self.target), 3)
+        return self.last_err
+
+    def test_closest_text(self):
+        err = self.run_draft("  TEXT @1 @1\n@1 .\ndef find(self, wort):\n"
+                             "\treturn [n for n in self.notes if word in n]\n@.\n")
+        self.assertIn("aehnlichste Stelle: Zeile 2-3", err)
+        self.assertIn("-def find(self, wort):", err)
+        self.assertIn("+def find(self, word):", err)
+
+    def test_indentation_only(self):
+        err = self.run_draft("  TEXT @1 @1\n@1 .\ndef find(self, word):\n"
+                             "return [n for n in self.notes if word in n]\n@.\n")
+        self.assertIn("Einrueckung weicht ab", err)
+
+    def test_nothing_similar(self):
+        err = self.run_draft("  TEXT @1 @1\n@1 .\nganz anders\n@.\n")
+        self.assertIn("keine aehnliche Stelle", err)
+
+    def test_unit_suggestion(self):
+        err = self.run_draft("  UNIT Store.fnd @1\n@1 .\ndef find(self):\n\tpass\n@.\n")
+        self.assertIn("aehnlich: Store.find", err)

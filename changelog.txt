@@ -31,6 +31,11 @@ Versionen: siehe manifest.txt Abschnitt 16.
     den Patch dann zurueck, sonst bleibt er zur Untersuchung angewendet.
     (Exit-Code fuer doctor, spaeter, wird 7.)
 
+  Konfliktanzeige (R006):
+  - Suchblock nicht gefunden: aehnlichste Stelle als kurzer Diff
+    (- Patch, + Datei) bzw. "Inhalt gleich, Einrueckung weicht ab".
+  - Einheit nicht gefunden: aehnliche bzw. vorhandene Einheiten.
+
 0.0.1 (2026-10-30) - erste Freigabe
 -----------------------------------
   Patchformat pypatcher/1 (Befehlsliste + Datenbloecke):

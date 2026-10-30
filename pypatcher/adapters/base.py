@@ -1,5 +1,6 @@
 """Gemeinsame Grundlage der Adapter (manifest.txt Abschnitt 8)."""
 
+import difflib
 import re
 
 from ..errors import Conflict, PatchInvalid
@@ -69,7 +70,17 @@ class Adapter(object):
                 and self.dup_re.match(u.path[len(path):])]
         if dups:
             raise Conflict("Einheit %r ist nicht eindeutig: %s" % (path, ", ".join(dups)))
-        raise Conflict("Einheit %r nicht gefunden" % path)
+        raise Conflict("Einheit %r nicht gefunden%s" % (path, self.suggest(info, path)))
+
+    def suggest(self, info, path):
+        """Konfliktanzeige (R006): aehnliche bzw. vorhandene Einheiten."""
+        names = [u.path for u in info.units if u.kind != "header"]
+        close = difflib.get_close_matches(path, names, n=3, cutoff=0.6)
+        if close:
+            return " - aehnlich: " + ", ".join(close)
+        if not names:
+            return " - die Datei hat keine Einheiten"
+        return " - vorhanden: " + ", ".join(names[:12]) + (" ..." if len(names) > 12 else "")
 
     def at_span(self, info, start, end):
         for unit in info.units:

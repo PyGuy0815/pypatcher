@@ -9,6 +9,7 @@ Adapter des Profils (adapters/).
 
 import base64
 import binascii
+import difflib
 import os
 
 from . import adapters, fileio, layout as lay, profile as pf
@@ -401,11 +402,46 @@ def _match(doc, ch, key, lo, hi, prof, fs, what):
         if [norm(l) for l in rel] == want:
             hits.append((i, base))
     if not hits:
-        raise Conflict("%s: %s-Block nicht gefunden" % (what, key))
+        raise Conflict("%s: %s-Block nicht gefunden%s"
+                       % (what, key, _closest(doc.lines, pattern, lo, hi)))
     if len(hits) > 1:
         raise Conflict("%s: %s-Block nicht eindeutig (%d Treffer, Zeilen %s)"
                        % (what, key, len(hits), ", ".join(str(h[0] + 1) for h in hits)))
     return hits[0][0], hits[0][1], lit
+
+
+CLOSEST_MIN = 0.5      # ab dieser Aehnlichkeit wird die naechste Stelle gezeigt
+CLOSEST_LINES = 16     # hoechstens so viele Diff-Zeilen
+
+
+def _closest(lines, pattern, lo, hi):
+    """Konfliktanzeige (R006): die aehnlichste Stelle im Suchbereich als Diff
+    (ohne Einrueckung verglichen) - Hilfe fuer Mensch und KI."""
+    want = [l.strip() for l in pattern]
+    size = len(want)
+    best, at = 0.0, None
+    matcher = difflib.SequenceMatcher(autojunk=False)
+    matcher.set_seq2(want)
+    for i in range(lo, max(lo, hi - size) + 1):
+        matcher.set_seq1([l.strip() for l in lines[i:i + size]])
+        if matcher.real_quick_ratio() <= best or matcher.quick_ratio() <= best:
+            continue
+        ratio = matcher.ratio()
+        if ratio > best:
+            best, at = ratio, i
+    if at is None or best < CLOSEST_MIN:
+        return " (keine aehnliche Stelle)"
+    found = lines[at:at + size]
+    head = "\n    aehnlichste Stelle: Zeile %d-%d (%d%% gleich)" % (
+        at + 1, at + len(found), int(best * 100))
+    if best == 1.0:
+        return head + " - Inhalt gleich, Einrueckung weicht ab (Tabs = Ebenen relativ zur " \
+            "Zielstelle, siehe manifest.txt 7.6)"
+    diff = [l for l in difflib.unified_diff(want, [l.strip() for l in found], lineterm="", n=1)
+            if not l.startswith(("---", "+++", "@@"))]
+    more = len(diff) - CLOSEST_LINES
+    diff = diff[:CLOSEST_LINES] + (["... (%d weitere Zeilen)" % more] if more > 0 else [])
+    return head + " (- Patch, + Datei):\n      " + "\n      ".join(diff)
 
 
 def op_replace_text(ctx, path, doc, ch, prof, fs, what):

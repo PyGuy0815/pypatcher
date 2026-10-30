@@ -16,7 +16,9 @@ R004  OFFEN     Patch-Buendel: mehrere Patches in einer Datei/Archiv
                 uebertragen und in Reihenfolge anwenden.
 R005  IN ARBEIT (0.0.2) Python-Adapter erweitern: Modul-Konstanten/Zuweisungen,
                 Import-Block als eigene Einheit "@imports".
-R006  IN ARBEIT (0.0.2) Interaktive Konfliktanzeige (Diff Ist-Stand vs. erwartet).
+R006  ERLEDIGT (0.0.2-pre1) Konfliktanzeige: aehnlichste Stelle als Diff
+                bei nicht gefundenen Suchbloecken, Hinweis bei reiner
+                Einrueckungs-Abweichung, aehnliche/vorhandene Einheiten.
 R007  ERLEDIGT (0.0.1) Binaerdateien ueber mode raw (Base64, nur
                 ganze Datei).
 R008  ERLEDIGT (0.0.1) Weitergabe als Einzeldatei: patcher.py bundle
