@@ -77,6 +77,12 @@ Kernanforderungen:
       (Anzahl Leerzeichen, Tabs, Mischung) jeder Anweisungszeile werden
       exakt geprueft - nicht abschaltbar. Bei Sprachen, in denen die
       Einrueckung keine Bedeutung hat (js, c/c++ ...), wird sie ignoriert.
+  E14 Darstellung der Einrueckung in der Patchdatei: fuehrende Tabs geben
+      die Einrueckungs-EBENE an ("\t\treturn x" = Ebene 2). Woraus eine
+      Ebene in der echten Datei besteht (Tab, 4 Leerzeichen ...), legt
+      der Parameter "layout" im Dateieintrag fest (Abschnitt 6.1).
+      Damit ist die Einrueckung im Patch eindeutig lesbar und trotzdem
+      exakt.
 
 
 --------------------------------------------------------------------------------
@@ -305,10 +311,13 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
     Normalform.
   - Angepasst werden nur Zeilenenden/BOM/Encoding an die Zieldatei
     (nicht bei mode raw oder eol=keep).
-  - Python: Einrueckung wird NIE angepasst. Der neue Code muss in der
-    Einrueckung exakt zu seiner Position passen (gleiche Tiefe und
-    Zusammensetzung wie die umgebenden Anweisungen); sonst Konflikt.
-    seal/create pruefen das bereits beim Erzeugen.
+  - Einrueckung: Die Ebenen aus dem Patch werden gemaess "layout"
+    (Abschnitt 6.1) in die echte Einrueckung umgesetzt - das ist eine
+    feste, verlustfreie Umrechnung, keine Anpassung. Darueber hinaus
+    wird Python-Einrueckung NIE angepasst: Die Zieldatei muss dieselbe
+    Einrueckungs-Einheit verwenden wie im layout angegeben, und der neue
+    Code muss in der Tiefe exakt zu seiner Position passen; sonst
+    Konflikt. seal/create pruefen das bereits beim Erzeugen.
   - Nach dem Einsetzen wird der Funktions-Hash erneut berechnet und mit
     dem erwarteten Wert verglichen; zusaetzlich validate (ast.parse).
   - Weicht die Zieldatei nur kosmetisch ab (gleicher hash, anderer
@@ -322,9 +331,45 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
  6. PATCHDATEI-FORMAT (*.ppatch.json)
 --------------------------------------------------------------------------------
 JSON, UTF-8, eingerueckt (2 Leerzeichen) fuer Lesbarkeit und saubere Diffs.
-Textinhalte werden als Liste von Zeilen (ohne Zeilenende) gespeichert;
-Tabs erscheinen im JSON als "\t" und bleiben exakt erhalten.
+Textinhalte werden als Liste von Zeilen (ohne Zeilenende) gespeichert,
+die Einrueckung als fuehrende Tabs je Ebene (Abschnitt 6.1).
 Binaerinhalte (mode raw) als Base64-String im Feld "base64".
+
+6.1 Zeilen und Einrueckung ("layout")
+  Jeder Dateieintrag mit Textinhalt hat ein "layout":
+    {"lines": "levels", "indent": "spaces", "width": 4}
+    {"lines": "levels", "indent": "tabs"}
+    {"lines": "literal"}
+  lines=levels  Jede fuehrende Tab-Stelle einer Zeile im Patch = eine
+                Einrueckungs-Ebene. In der Datei wird jede Ebene durch
+                die Einheit aus "indent"/"width" ersetzt
+                (spaces/4 -> 4 Leerzeichen, tabs -> 1 Tab).
+                Was nach den Ebenen-Tabs folgt, bleibt woertlich
+                (z.B. Ausrichtung von Fortsetzungszeilen):
+                  Datei (4 Leerzeichen je Ebene):
+                    "    def f(self, a,"
+                    "              b):"
+                    "        return a"
+                  Patch:
+                    "\tdef f(self, a,"
+                    "\t\t\t  b):"          (3 Ebenen + 2 Leerzeichen)
+                    "\t\treturn a"
+  lines=literal Zeilen stehen exakt wie in der Datei (Ausweichform).
+  Regeln:
+    - Die Umrechnung ist umkehrbar eindeutig. seal/create pruefen fuer
+      jede Zeile Datei -> Patch -> Datei == Original.
+    - Ist eine Zeile so nicht darstellbar (z.B. Tab in einer Datei mit
+      Leerzeichen-Einrueckung, Leerzeichen vor Tab), schreiben
+      seal/create den Dateieintrag mit lines=literal und geben einen
+      Hinweis aus.
+    - Vorgabe fuer "indent"/"width": von seal/create aus der Datei
+      erkannt; im Entwurf frei angebbar.
+    - Die Hashes werden immer ueber den Text in Datei-Form berechnet;
+      das layout ist reine Darstellung im Patch und Teil des
+      Patch-Hashes.
+    - Zieldatei mit anderer Einrueckungs-Einheit als im layout ->
+      Konflikt (Python: Einrueckung ist exakt, E13).
+    - mode raw: kein layout (Inhalt als Base64).
 
 Beispiel:
 
@@ -350,6 +395,7 @@ Beispiel:
         "compare": {"mode": "python", "comments": "ignore",
                     "whitespace": "ignore", "docstrings": "keep",
                     "indent": "exact", "eol": "normalize"},
+        "layout": {"lines": "levels", "indent": "spaces", "width": 4},
         "hash_before": "sha256:aa11...",
         "hash_after":  "sha256:ff99...",
         "text_hash_before": "sha256:1a2b...",
@@ -364,10 +410,10 @@ Beispiel:
             "unit_hash_after":  "sha256:dd44...",
             "old": ["# Prueft, ob ueberschrieben werden darf",
                     "def check_overwrite(path, force, ask):",
-                    "    ..."],
+                    "\t..."],
             "new": ["# Prueft, ob ueberschrieben werden darf",
                     "def check_overwrite(path, force, ask):",
-                    "    ...neu..."]
+                    "\t...neu..."]
           }
         ]
       },
@@ -411,6 +457,7 @@ Dateieintrag:
   hash_before / hash_after             Funktions-Hash (null bei add/delete)
   text_hash_before / text_hash_after   Text-Hash (informativ, --exact)
   old / new     bei add/delete/replace: ganzer Inhalt (Zeilen bzw. base64).
+  layout        Darstellung von Zeilen/Einrueckung (Abschnitt 6.1).
   final_newline bei add/replace (Textmodi): endet die Datei mit Umbruch.
   changes       nur bei modify: Liste der Aenderungen (Abschnitt 7).
 
@@ -512,16 +559,18 @@ Ein Entwurf ist ein Patch ohne Hashes und ohne old-Inhalte. Minimal:
     "files": [
       {"path": "src/convert.py", "action": "modify",
        "compare": {"mode": "python"},
+       "layout": {"lines": "levels", "indent": "spaces", "width": 4},
        "changes": [
          {"op": "replace_unit", "unit": "is_udf",
-          "new": ["def is_udf(path):", "    ..."]}
+          "new": ["def is_udf(path):", "\t..."]}
        ]}
     ]
   }
 
 "patcher.py seal entwurf.json --base PROJEKT -o 0003-udf.ppatch.json"
 liest den Ist-Stand aus PROJEKT, ergaenzt fehlende Profil-Optionen mit
-Vorgaben, old-Inhalte und alle Hashes, prueft die Einrueckung (python),
+Vorgaben, das layout (falls nicht angegeben: aus der Datei erkannt),
+old-Inhalte und alle Hashes, prueft die Einrueckung (python),
 wendet den Patch probeweise im Speicher an (inkl. validate) und schreibt
 den fertigen Patch inkl. patch_hash. Aendert ein Entwurf nur Kommentare
 oder unwichtigen Leerraum (Funktions-Hash vorher == nachher), weist seal

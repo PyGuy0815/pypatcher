@@ -16,7 +16,9 @@ wird die Funktion, nicht die Schreibweise: Kommentare und unwichtige
 Leerzeichen/Tabs/Umbrueche zaehlen je nach Format nicht. Wie genau
 verglichen wird (raw = binaer gleich, text, python ...), legt die
 Patchdatei je Datei fest. Bei Python zaehlt die Einrueckung (Tiefe,
-Tabs/Leerzeichen) immer exakt. Jeder
+Tabs/Leerzeichen) immer exakt. Im Patch steht die Einrueckung als
+Tabs je Ebene; ein Parameter legt fest, woraus eine Ebene in der Datei
+besteht (z.B. 4 Leerzeichen). Jeder
 angewendete Patch laesst sich wieder zuruecknehmen. Windows-Zeilenenden
 (CRLF) werden erkannt und beibehalten.
 

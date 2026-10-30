@@ -5,6 +5,13 @@ Versionen: siehe manifest.txt Abschnitt 16 (Beginn 0.0.1-pre1).
 
 Konzeptphase (ohne Version)
 ---------------------------
+2026-10-30  Konzept Stufe 5
+  - Darstellung der Einrueckung im Patch festgelegt (E14, manifest.txt
+    Abschnitt 6.1): fuehrende Tabs = Einrueckungs-Ebenen; Parameter
+    "layout" je Datei bestimmt, woraus eine Ebene in der Datei besteht
+    (z.B. 4 Leerzeichen oder Tab). Verlustfreie Umrechnung, Ausweichform
+    lines=literal fuer nicht darstellbare Zeilen.
+
 2026-10-30  Konzept Stufe 4
   - Vergleichsprofil ("compare") je Datei in der Patchdatei: mode
     raw | text | python (spaeter weitere) mit Optionen comments,
