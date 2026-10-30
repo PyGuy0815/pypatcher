@@ -223,8 +223,10 @@ def cmd_recover(args):
 
 def cmd_init(args):
     journal = jr.Journal(args.project)
-    files, hints = journal.init()
-    out("Journal angelegt in %s (%d Dateien verwaltet)." % (journal.dir, len(files)))
+    renew = args.force and journal.exists
+    files, hints = journal.init(args.force)
+    out("Journal %s in %s (%d Dateien verwaltet)."
+        % ("neu angelegt" if renew else "angelegt", journal.dir, len(files)))
     show_hints(hints)
     return 0
 
@@ -583,7 +585,9 @@ def build_parser():
         p.set_defaults(func=func)
         return p
 
-    add("init", cmd_init, "Journal anlegen, Ist-Stand als Ausgangszustand", (common, project))
+    p = add("init", cmd_init, "Journal anlegen, Ist-Stand als Ausgangszustand", (common, project))
+    p.add_argument("--force", action="store_true",
+                   help="bestehendes Journal neu anlegen (nur ohne angewendete Patches)")
     add("status", cmd_status, "Ueberblick ueber Zustand und Patches", (common, project))
     add("verify", cmd_verify, "Ist-Stand gegen das Journal pruefen", (common, project))
     add("log", cmd_log, "Historie anzeigen", (common, project))

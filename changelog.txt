@@ -5,7 +5,22 @@ Versionen: siehe manifest.txt Abschnitt 16.
 
 0.0.2-pre1 (in Arbeit)
 ----------------------
-  - Beginn der Vorabversion 0.0.2.
+  Umfang 0.0.2 (Ergebnis eines Praxistests mit einer anderen KI):
+  Korrekturen bei Ignore-Regeln, ein Befehl je Patch (run --test),
+  Konfliktanzeige (R006), Python-Konstanten/Imports als Einheiten (R005),
+  verschachtelte JS-Funktionen und Objekt-Methoden (R017), Startablauf
+  im KI-Prompt.
+
+  Ignore-Regeln:
+  - .patcherignore wird nie verwaltet (gehoert zur Umgebung).
+  - Neue Vorgaben: .DS_Store, Thumbs.db, desktop.ini (verify meldete
+    unter macOS sonst Aenderungen) und *.ppatch (ein heruntergeladener
+    Patch im Projekt war "neue Datei ausserhalb von Patches").
+    "!muster" in .patcherignore nimmt eine Vorgabe zurueck.
+  - Geaenderte Ignore-Regeln wirken sofort: neu ignorierte Dateien
+    fallen aus der Verwaltung, statt ein neues Journal zu erzwingen.
+  - init --force legt das Journal neu an (nur ohne angewendete Patches);
+    vorher musste .patcher/ von Hand verschoben werden.
 
 0.0.1 (2026-10-30) - erste Freigabe
 -----------------------------------

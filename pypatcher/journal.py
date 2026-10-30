@@ -12,7 +12,11 @@ from .errors import Conflict, JournalError
 from .hashing import sha256_bytes, state_hash
 
 JOURNAL_DIR = ".patcher"
-DEFAULT_IGNORE = [".git", "__pycache__", "*.pyc", ".pptmp-*"]
+# .patcherignore gehoert zur Umgebung und wird nie verwaltet; Systemdateien von
+# macOS/Windows und Patchdateien im Projekt ebenso (abschaltbar mit "!muster")
+DEFAULT_IGNORE = [".git", "__pycache__", "*.pyc", ".pptmp-*", ".patcherignore",
+                  ".DS_Store", "Thumbs.db", "desktop.ini", "*.ppatch"]
+FIXED_IGNORE = (".patcherignore",)
 DEFAULT_CONFIG = {"ignore": [], "compare": {}, "require": {}}
 
 
@@ -35,13 +39,17 @@ def write_json(path, data):
 
 
 def ignore_patterns(root, config=None):
-    patterns = list(DEFAULT_IGNORE) + list((config or {}).get("ignore", []))
+    """Muster aus Vorgaben, config.json ("ignore") und .patcherignore.
+    "!muster" nimmt ein Vorgabe-Muster zurueck (z.B. "!*.ppatch")."""
+    own = list((config or {}).get("ignore", []))
     try:
         with open(os.path.join(root, ".patcherignore"), encoding="utf-8") as handle:
-            patterns += [l.strip() for l in handle if l.strip() and not l.strip().startswith("#")]
+            own += [l.strip() for l in handle if l.strip() and not l.strip().startswith("#")]
     except FileNotFoundError:
         pass
-    return patterns
+    dropped = set(p[1:] for p in own if p.startswith("!")) - set(FIXED_IGNORE)
+    return [p for p in DEFAULT_IGNORE if p not in dropped] + \
+        [p for p in own if not p.startswith("!")]
 
 
 def is_ignored(rel, patterns):
@@ -50,6 +58,17 @@ def is_ignored(rel, patterns):
         return True
     return any(fnmatch.fnmatch(rel, p) or any(fnmatch.fnmatch(part, p) for part in parts)
                for p in patterns)
+
+
+def _managed(files, patterns):
+    """Verwaltete Dateien nach den aktuellen Ignore-Regeln -> (behalten, entfallen)."""
+    keep, dropped = {}, []
+    for rel, fp in files.items():
+        if is_ignored(rel, patterns):
+            dropped.append(rel)
+        else:
+            keep[rel] = fp
+    return keep, sorted(dropped)
 
 
 def scan(root, patterns):
@@ -129,8 +148,17 @@ class Journal(object):
     def patterns(self):
         return ignore_patterns(self.root, self.config())
 
-    def state(self):
-        return read_json(self.path("state.json"), {"files": {}})
+    def state(self, dropped=None):
+        """Zustand nach den aktuellen Ignore-Regeln: neu ignorierte Dateien
+        fallen aus der Verwaltung (dropped: Liste fuer deren Namen)."""
+        state = read_json(self.path("state.json"), {"files": {}})
+        files, gone = _managed(state["files"], self.patterns())
+        if gone:
+            state = {"files": files, "state_hash": state_hash(
+                dict((rel, fp["hash"]) for rel, fp in files.items()))}
+            if dropped is not None:
+                dropped.extend(gone)
+        return state
 
     def history(self):
         return read_json(self.path("history.json"), {"applied": [], "log": []})
@@ -151,9 +179,18 @@ class Journal(object):
 
     # -- init --------------------------------------------------------------
 
-    def init(self):
+    def init(self, force=False):
         if self.exists:
-            raise JournalError("%s: Journal existiert bereits" % self.root)
+            if not force:
+                raise JournalError("%s: Journal existiert bereits (neu anlegen: init --force)"
+                                   % self.root)
+            self.require_no_txn()
+            applied = self.applied_ids()
+            if applied:
+                raise JournalError("init --force nur ohne angewendete Patches (%d angewendet, "
+                                   "zuerst 'patcher.py rollback --to' bzw. rollback)" % len(applied))
+            for name in ("patches", "backups"):
+                shutil.rmtree(self.path(name), ignore_errors=True)
         os.makedirs(self.path("patches"), exist_ok=True)
         os.makedirs(self.path("backups"), exist_ok=True)
         if not os.path.isfile(self.path("config.json")):
@@ -345,7 +382,10 @@ class Journal(object):
     def verify(self):
         """-> (fehler, hinweise)."""
         errors, notes = [], []
-        files = self.state()["files"]
+        dropped = []
+        files = self.state(dropped)["files"]
+        for rel in dropped:
+            notes.append("%s: wird jetzt ignoriert - nicht mehr verwaltet" % rel)
         present = set(scan(self.root, self.patterns()))
         for rel, fp in sorted(files.items()):
             if rel not in present:
@@ -364,5 +404,7 @@ class Journal(object):
             else:
                 errors.append("%s: funktional veraendert" % rel)
         for rel in sorted(present - set(files)):
-            errors.append("%s: neue Datei ausserhalb von Patches" % rel)
+            errors.append("%s: neue Datei ausserhalb von Patches (ignorieren: .patcherignore; "
+                          "aufnehmen: per Patch REP oder - ohne angewendete Patches - "
+                          "init --force)" % rel)
         return errors, notes

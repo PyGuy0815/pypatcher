@@ -14,9 +14,9 @@ R003  OFFEN     Signierte Patches (HMAC-SHA256 oder Ed25519) als
                 zusaetzliche Kopfangabe.
 R004  OFFEN     Patch-Buendel: mehrere Patches in einer Datei/Archiv
                 uebertragen und in Reihenfolge anwenden.
-R005  OFFEN     Python-Adapter erweitern: Modul-Konstanten/Zuweisungen,
+R005  IN ARBEIT (0.0.2) Python-Adapter erweitern: Modul-Konstanten/Zuweisungen,
                 Import-Block als eigene Einheit "@imports".
-R006  OFFEN     Interaktive Konfliktanzeige (Diff Ist-Stand vs. erwartet).
+R006  IN ARBEIT (0.0.2) Interaktive Konfliktanzeige (Diff Ist-Stand vs. erwartet).
 R007  ERLEDIGT (0.0.1) Binaerdateien ueber mode raw (Base64, nur
                 ganze Datei).
 R008  ERLEDIGT (0.0.1) Weitergabe als Einzeldatei: patcher.py bundle
@@ -39,7 +39,7 @@ R015  ERLEDIGT (0.0.1) Optionale Komprimierung (--compress, z64);
                 Befehlsliste bleibt lesbar.
 R016  OFFEN     TypeScript (.ts, .tsx) und JSX auf Basis des JS-Tokenizers
                 (hinten angestellt).
-R017  OFFEN     JS: Funktionen innerhalb von Funktionen und Objekt-Methoden
+R017  IN ARBEIT (0.0.2) JS: Funktionen innerhalb von Funktionen und Objekt-Methoden
                 als Einheiten.
 R018  ERLEDIGT (0.0.1) Ablaufsteuerung im Patch (PRINT, INPUT,
                 IF/ELIF/ELSE/END, LABEL/GOTO, SET, EXIT).
@@ -56,3 +56,14 @@ R023  OFFEN     Weitere Sprachen der C-Familie auf Basis von clike.py:
                 Java, C#, Go, PHP, Rust (je nach Bedarf).
 R024  OFFEN     JSON mit Kommentaren (JSONC, z.B. tsconfig/VS-Code-
                 Einstellungen) und JSON5.
+R025  ERLEDIGT (0.0.2-pre1) Aus dem Praxistest mit einer anderen KI:
+                Standard-Ignores (.patcherignore wird nie verwaltet,
+                .DS_Store, Thumbs.db, desktop.ini, *.ppatch; "!muster"
+                nimmt eine Vorgabe zurueck), geaenderte Ignore-Regeln wirken
+                sofort, init --force (nur ohne angewendete Patches).
+R026  IN ARBEIT (0.0.2) Ein Befehl je Patch: run --test BEFEHL (auch
+                "test" in config.json), kompakte Ergebniszeile, Exit-Code 6
+                bei fehlgeschlagenen Tests, --rollback-on-failure.
+R027  IN ARBEIT (0.0.2) ki-prompt.txt: Startablauf fuer KIs mit
+                Code-Ausfuehrung (patcher.pyz anfordern, Patches unter
+                patches/, ein Befehl je Patch).

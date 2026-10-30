@@ -176,8 +176,17 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
 4.4 Zustands-Hash (Projekt)
   SHA-256 ueber die sortierte Liste "relativer_pfad\0hash\n" aller
   verwalteten Dateien. Ignoriert werden ".patcher/", die Vorgaben
-  .git, __pycache__, *.pyc, Muster aus config.json ("ignore") und aus
-  ".patcherignore" (eine fnmatch-Maske je Zeile, # = Kommentar).
+  .git, __pycache__, *.pyc, .DS_Store, Thumbs.db, desktop.ini, *.ppatch,
+  Muster aus config.json ("ignore") und aus ".patcherignore" (eine
+  fnmatch-Maske je Zeile, # = Kommentar). "!muster" nimmt eine Vorgabe
+  zurueck (z.B. "!*.ppatch", wenn Patchdateien zum Projekt gehoeren).
+  .patcherignore selbst wird nie verwaltet: die Ignore-Regeln gehoeren
+  zur jeweiligen Umgebung und werden nicht per Patch uebertragen.
+  Ignore-Regeln gelten immer in ihrer aktuellen Fassung: eine verwaltete
+  Datei, die neu ignoriert wird, faellt aus der Verwaltung (verify:
+  Hinweis); eine nicht mehr ignorierte Datei ist "neu ausserhalb von
+  Patches" und wird per Patch (REP) oder - ohne angewendete Patches -
+  mit "init --force" aufgenommen.
   Profil je Datei fuer den Zustands-Hash: vom Patch beruehrte Dateien
   mit dem Profil aus dem Patch, alle anderen automatisch (Binaerdatei ->
   raw, *.py und parsebar -> python, sonst text).
@@ -1045,8 +1054,10 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
 
   Befehl    Ab       Aufruf / Zweck
   --------  -------  ---------------------------------------------------
-  init      0.0.1    patcher.py init [-p PROJEKT]
-                     Journal anlegen, Ist-Stand als Ausgangszustand
+  init      0.0.1    patcher.py init [-p PROJEKT] [--force]
+                     Journal anlegen, Ist-Stand als Ausgangszustand;
+                     --force (0.0.2): neu anlegen, nur ohne angewendete
+                     Patches (config.json bleibt)
   status    0.0.1    patcher.py status [-p PROJEKT]
                      Angewendete Patches, Zustand
   verify    0.0.1    patcher.py verify [-p PROJEKT]
