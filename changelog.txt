@@ -84,6 +84,18 @@ Versionen: siehe manifest.txt Abschnitt 16 (Beginn 0.0.1-pre1).
   - seal mit Ablaufsteuerung prueft jeden moeglichen Ablauf.
   - ki-prompt.txt: Anleitung fuer KI-Assistenten (Beispiel wird getestet).
 
+  Komprimierung, Erweiterbarkeit, KI mit Werkzeugen:
+  - --compress (seal/create/pack): Datenbloecke gemeinsam mit zlib +
+    Base64 in einem Sammelblock "@0 n z64"; Befehlsliste bleibt lesbar;
+    an echten Patches 53-57 % weniger Zeichen.
+  - USES: Patches nennen genutzte Funktionen (flow, z64); unbekannte
+    Funktionen oder Block-Kodierungen -> klare Meldung statt Fehldeutung.
+  - Neuer Befehl pack (umpacken/komprimieren/teilen, Hashes bleiben) und
+    bundle (pypatcher als eine Datei patcher.pyz, ca. 70 KB).
+  - ki-prompt.txt: Ablauf fuer KIs, die Code ausfuehren koennen (selbst
+    pruefen, versiegeln, als Datei liefern) und Hinweise zum Sparen von
+    Ausgabe.
+
   Selbsttest: die Aenderungen an pypatcher werden selbst als Patch
   erzeugt (create) und angewendet - siehe patch/.
 

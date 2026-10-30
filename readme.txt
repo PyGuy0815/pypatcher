@@ -85,6 +85,18 @@ Aenderungen und wendet sie nach Rueckfrage in einem Schritt an
 (zuruecknehmen: rollback). Bei einer Meldung wurde nichts geaendert - die
 Meldung an die KI zurueckgeben.
 
+Kann die KI Code ausfuehren (Code-Interpreter o.ae.), ihr zusaetzlich die
+Einzeldatei patcher.pyz geben (python3 patcher.py bundle). Sie prueft den
+Patch dann selbst gegen Ihre Dateien, versiegelt ihn und liefert ihn als
+Datei - das spart ihre Ausgabe und Ihnen Rueckfragen.
+
+Komprimieren und teilen
+-----------------------
+   python3 patcher.py pack p.ppatch -o q.ppatch --compress --max-size 8000
+--compress spart rund die Haelfte der Zeichen (nur die Daten werden
+komprimiert, die Befehlsliste bleibt lesbar); --max-size teilt in Pakete.
+Beides geht auch direkt bei seal und create.
+
 Weitere Befehle: log, units, recover - siehe "python3 patcher.py -h" und
 manifest.txt Abschnitt 13. Spaeter: doctor, canon, invert.
 

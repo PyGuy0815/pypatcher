@@ -5,10 +5,13 @@ Intern wird ein Patch als dict dargestellt (Schluessel wie in Abschnitt 6
 beschrieben); dieses Modul uebersetzt zwischen dict und Text.
 """
 
+import base64
+import binascii
 import glob
 import os
 import re
 import shlex
+import zlib
 
 from . import FORMAT
 from .errors import PatchInvalid
@@ -38,12 +41,16 @@ ACTIONS = tuple(FILE_CMDS.values())
 OPS = tuple(CHANGE_CMDS.values())
 KEYS = ("h", "t", "u", "c", "s", "ind", "nl", "eof", "src", "as", "after", "to", "id",
         "scope")
-META = ("TITLE", "DESC", "AUTHOR", "DATE", "GEN", "REQ", "MATCH", "DEFAULT", "STATE")
+META = ("TITLE", "DESC", "AUTHOR", "DATE", "GEN", "USES", "REQ", "MATCH", "DEFAULT", "STATE")
 FLOW = ("PRINT", "INPUT", "IF", "ELIF", "ELSE", "END", "LABEL", "GOTO", "SET", "EXIT")
 FENCE = "```"
 
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
-BLOCK_RE = re.compile(r"^@(\d+)(?:\s+(\d+|\.)(?:\s+(lit|b64))?)?\s*$")
+BLOCK_RE = re.compile(r"^@(\d+)(?:\s+(\d+|\.)(?:\s+([a-z0-9]+))?)?\s*$")
+BLOCK_FLAGS = ("lit", "b64", "z64")
+# Funktionen, die ein Patch ueber "USES" verlangen kann; aeltere Versionen
+# brechen bei unbekannten Funktionen mit klarer Meldung ab (Abschnitt 6.3).
+FEATURES = ("flow", "z64")
 REF_RE = re.compile(r"^@(\d+)$")
 POS_RE = re.compile(r"^(start|end|(after|before|start-of|end-of):.+)$")
 PROFILE_RE = re.compile(r"^(py|txt|raw|js|css|scss|html|xml)(,[a-z_]+=[^,\s]*)*$")
@@ -226,10 +233,12 @@ class _Writer(object):
         return " ".join(tokens)
 
 
-def dumps_body(patch, level="full", hash_len=None):
-    """Befehlsliste + Datenbloecke (ohne Kopfzeile)."""
+def dumps_body(patch, level="full", hash_len=None, compress=False):
+    """Befehlsliste + Datenbloecke (ohne Kopfzeile); compress: Datenbloecke
+    gemeinsam komprimieren (zlib + Base64), die Befehlsliste bleibt lesbar."""
     writer = _Writer(level, hash_len)
     lines = ["TITLE " + patch["title"]]
+    uses_at = len(lines)
     for line in (patch.get("description") or "").splitlines():
         lines.append("DESC " + line)
     for key, meta in (("author", "AUTHOR"), ("created", "DATE"), ("generator", "GEN")):
@@ -261,9 +270,37 @@ def dumps_body(patch, level="full", hash_len=None):
     else:
         for entry in patch["files"]:
             lines.extend(writer.entry(entry))
-    for block in writer.blocks:
-        lines.extend(block)
+    data = [line for block in writer.blocks for line in block]
+    uses = ["flow"] if patch.get("flow") else []
+    if compress and data:
+        packed = compress_lines(data)
+        if sum(len(l) + 1 for l in packed) < sum(len(l) + 1 for l in data):
+            data = packed
+            uses.append("z64")
+    if uses:
+        lines.insert(uses_at, "USES " + " ".join(uses))
+    lines.extend(data)
     return "\n".join(lines) + "\n"
+
+
+def compress_lines(lines):
+    """Datenbloecke -> ein Sammelblock "@0 <n> z64" (zlib Stufe 9, Base64)."""
+    raw = ("\n".join(lines) + "\n").encode("utf-8")
+    text = base64.b64encode(zlib.compress(raw, 9)).decode("ascii")
+    rows = [text[i:i + B64_WIDTH] for i in range(0, len(text), B64_WIDTH)]
+    return ["@0 %d z64" % len(rows)] + rows
+
+
+def _expand(content, where):
+    try:
+        raw = zlib.decompress(base64.b64decode("".join(content), validate=True))
+        text = raw.decode("utf-8")
+    except (binascii.Error, ValueError, zlib.error, UnicodeDecodeError) as exc:
+        raise PatchInvalid("%s: komprimierter Datenblock beschaedigt (%s)" % (where, exc))
+    lines = text.split("\n")
+    if lines and lines[-1] == "":
+        lines.pop()
+    return lines
 
 
 def flow_line(item):
@@ -300,11 +337,13 @@ def dumps(patch, level="full", hash_len=None):
                                 short(sha256_text(body), hash_len or DEFAULT_HASH_LEN), body)
 
 
-def split(patch_id, body, max_size, hash_len=DEFAULT_HASH_LEN):
-    """Inhalt in Pakete mit hoechstens max_size Zeichen teilen (nur an Zeilengrenzen)."""
+def split(patch_id, body, max_size, hash_len=DEFAULT_HASH_LEN, draft=False):
+    """Inhalt in Pakete mit hoechstens max_size Zeichen teilen (nur an Zeilengrenzen).
+    draft: Entwurf ohne Hashes (Kopfzeilen "#PPATCH 1 <id>" bzw. "<id> i/n")."""
     total = short(sha256_text(body), hash_len)
+    single = "%s %s %s" % (MAGIC, FORMAT_VERSION, patch_id) + ("" if draft else " " + total)
     if not max_size:
-        return ["%s %s %s %s\n%s" % (MAGIC, FORMAT_VERSION, patch_id, total, body)]
+        return [single + "\n" + body]
     head_len = len("%s %s %s %s 999/999 %s\n" % (MAGIC, FORMAT_VERSION, patch_id, total,
                                                  "0" * hash_len))
     budget = max_size - head_len
@@ -322,8 +361,11 @@ def split(patch_id, body, max_size, hash_len=DEFAULT_HASH_LEN):
         size += len(line)
     chunks.append("".join(cur))
     if len(chunks) == 1:
-        return ["%s %s %s %s\n%s" % (MAGIC, FORMAT_VERSION, patch_id, total, body)]
+        return [single + "\n" + body]
     n = len(chunks)
+    if draft:
+        return ["%s %s %s %d/%d\n%s" % (MAGIC, FORMAT_VERSION, patch_id, i, n, chunk)
+                for i, chunk in enumerate(chunks, 1)]
     return ["%s %s %s %s %d/%d %s\n%s" % (MAGIC, FORMAT_VERSION, patch_id, total, i, n,
                                           short(sha256_text(chunk), hash_len), chunk)
             for i, chunk in enumerate(chunks, 1)]
@@ -336,14 +378,17 @@ def part_paths(path, count):
     return ["%s.%d%s" % (stem, i, EXT) for i in range(1, count + 1)]
 
 
-def save(patch, path, level="std", hash_len=DEFAULT_HASH_LEN, max_size=None):
-    """Patch schreiben; liefert (Liste der Dateien, Gesamt-Hash)."""
-    body = dumps_body(patch, level, hash_len)
-    parts = split(patch["id"], body, max_size, hash_len)
+def save(patch, path, level="std", hash_len=DEFAULT_HASH_LEN, max_size=None, compress=False,
+         draft=False):
+    """Patch schreiben; liefert (Liste der Dateien, Gesamt-Hash).
+    hash_len=None behaelt vorhandene Hashes unveraendert (z.B. bei pack)."""
+    body = dumps_body(patch, level, hash_len, compress)
+    head_len = hash_len or DEFAULT_HASH_LEN
+    parts = split(patch["id"], body, max_size, head_len, draft)
     paths = part_paths(path, len(parts))
     for target, text in zip(paths, parts):
         atomic_write(target, text.encode("utf-8"))
-    return paths, short(sha256_text(body), hash_len)
+    return paths, short(sha256_text(body), head_len)
 
 
 # -- Lesen -------------------------------------------------------------------
@@ -540,6 +585,9 @@ def _blocks(lines, where):
         if not match or match.group(2) is None:
             raise PatchInvalid("%s: Datenblock erwartet in Zeile '%s'" % (where, lines[i][:60]))
         n, count, flag = int(match.group(1)), match.group(2), match.group(3)
+        if flag is not None and flag not in BLOCK_FLAGS:
+            raise PatchInvalid("%s: Kodierung %r von Block @%d ist dieser Version unbekannt - "
+                               "neuere pypatcher-Version verwenden" % (where, flag, n))
         i += 1
         if count == ".":
             end = i
@@ -553,6 +601,16 @@ def _blocks(lines, where):
             if len(content) != int(count):
                 raise PatchInvalid("%s: Block @%d unvollstaendig" % (where, n))
             i += int(count)
+        if flag == "z64":
+            if n != 0:
+                raise PatchInvalid("%s: z64 nur fuer den Sammelblock @0" % where)
+            inner = _blocks(_expand(content, where), where)
+            for k in inner:
+                if k in blocks:
+                    raise PatchInvalid("%s: Block @%d doppelt" % (where, k))
+            blocks.update(inner)
+            blocks["compressed"] = True
+            continue
         if n in blocks:
             raise PatchInvalid("%s: Block @%d doppelt" % (where, n))
         blocks[n] = (content, flag)
@@ -700,8 +758,20 @@ def parse_body(body, where="Patch"):
     if lines and lines[-1] == "":
         lines.pop()
     first = next((i for i, l in enumerate(lines) if BLOCK_RE.match(l)), len(lines))
-    reader = _Reader(_blocks(lines[first:], where), where)
+    for line in lines[:first]:          # USES vor allem anderen pruefen (Abschnitt 6.3)
+        word, _, rest = line.strip().partition(" ")
+        if word == "USES":
+            unknown = [f for f in rest.split() if f not in FEATURES]
+            if unknown:
+                raise PatchInvalid("%s: der Patch nutzt Funktionen, die diese Version nicht "
+                                   "kennt: %s - neuere pypatcher-Version verwenden"
+                                   % (where, ", ".join(unknown)))
+    blocks = _blocks(lines[first:], where)
+    compressed = bool(blocks.pop("compressed", False))
+    reader = _Reader(blocks, where)
     patch = {"format": FORMAT, "files": [], "requires": [], "match": "file"}
+    if compressed:
+        patch["compressed"] = True
     desc, flow, has_flow = [], [], False
     entry = last_file = None
     for raw in lines[:first]:
@@ -725,6 +795,8 @@ def parse_body(body, where="Patch"):
                 patch["created"] = rest
             elif word == "GEN":
                 patch["generator"] = rest
+            elif word == "USES":
+                pass
             elif word == "REQ":
                 patch["requires"] = rest.split()
             elif word == "MATCH":

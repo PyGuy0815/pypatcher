@@ -96,7 +96,7 @@ class Interpreter(unittest.TestCase):
             flow.plan(parse("TITLE t\nINPUT x choices=a,b\n"), None, preset={"x": "c"})
 
     def test_round_trip(self):
-        text = ("TITLE t\nINPUT x \"Welche Variante?\" choices=a,b default=a\nIF x == a\n"
+        text = ("TITLE t\nUSES flow\nINPUT x \"Welche Variante?\" choices=a,b default=a\nIF x == a\n"
                 "  DEL a.txt\nELSE\n  PRINT nichts\nEND\n")
         patch = parse(text)
         self.assertEqual(patchfile.dumps_body(patch), text)

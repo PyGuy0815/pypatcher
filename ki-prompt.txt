@@ -3,7 +3,9 @@ PYPATCHER - PROMPT FUER KI-ASSISTENTEN
 Diesen Text zu Beginn eines Chats (oder als Systemanweisung) an die KI
 geben. Er erklaert, wie die KI Aenderungen als pypatcher-Entwurf liefert:
 vollstaendig, auch ueber mehrere Nachrichten, und ohne dass der Nutzer
-etwas von Hand einarbeiten muss.
+etwas von Hand einarbeiten muss. Kann die KI Code ausfuehren, zusaetzlich
+patcher.pyz hochladen (erzeugen mit: python3 patcher.py bundle) - dann
+gilt Abschnitt 10.
 
 ----------------------------------------------------------------- ab hier
 Du lieferst Aenderungen an Dateien des Nutzers nicht als Erklaerung oder
@@ -103,6 +105,43 @@ sichert vorher und kann alles zuruecknehmen.
      Entwurf mit derselben id liefern.
    - Nur Dateien aendern, deren aktuellen Inhalt du gesehen hast oder die
      neu sind. Nichts erfinden, nichts weglassen; keine Binaerdateien.
+
+10. WENN DU CODE AUSFUEHREN KANNST (Sandbox, Code-Interpreter)
+   Dann benutze pypatcher selbst - das spart Ausgabe und Fehler:
+   a) Projektdateien des Nutzers (hochgeladen) in einen Ordner legen,
+      z.B. projekt/, und einmal: python3 patcher.pyz init -p projekt
+   b) Aenderung erzeugen - je nach Umfang:
+      - Entwurf wie oben in eine Datei schreiben, oder
+      - eine Kopie neu/ des Projekts direkt bearbeiten und dann
+        python3 patcher.pyz create projekt neu -o p.ppatch --id ID --title T
+        (findet Funktionen/Regeln/Elemente selbst und erzeugt den
+        kleinsten exakten Patch)
+   c) Selbst pruefen, bevor der Nutzer etwas sieht:
+        python3 patcher.pyz run -n entwurf.ppatch -p projekt
+      Fehler selbst beheben.
+   d) Versiegeln (mit Hashes - sicherer als ein Entwurf):
+        python3 patcher.pyz seal entwurf.ppatch --base projekt -o p.ppatch
+   e) Ausliefern - Reihenfolge der Wahl:
+      1. als Datei zum Herunterladen (spart Ausgabe am meisten; den
+         Patch-Text dann NICHT zusaetzlich in die Nachricht schreiben)
+      2. als Text, wenn kein Download moeglich ist; bei begrenzter
+         Nachrichtenlaenge vorher packen:
+           python3 patcher.pyz pack p.ppatch -o q.ppatch --compress --max-size 6000
+         und die Pakete q.1.ppatch, q.2.ppatch ... je in einem Codeblock
+         ausgeben. --compress spart rund die Haelfte der Zeichen (die
+         Befehlsliste bleibt lesbar); Tokens spart es kaum - Base64 ist
+         fuer Sprachmodelle teuer. Nur bei Zeichengrenzen nutzen.
+   f) Dem Nutzer sagen: bei versiegelten Patches
+        python3 patcher.py apply p.ppatch -p <projekt>
+      (oder run - prueft dann die Hashes).
+
+11. AUSGABE SPAREN
+   - Code nur einmal ausgeben: im Patch, nicht zusaetzlich in der
+     Erklaerung. Die Erklaerung kurz halten (TITLE/PRINT genuegen oft).
+   - Kleinste passende Einheit waehlen: TEXT mit scope statt ganzer
+     Funktion, UNIT statt ganzer Datei, UCOPY/UMOVE/MOVE/COPY statt den
+     Inhalt neu zu schreiben.
+   - REP (ganze Datei) nur, wenn sich der Grossteil aendert.
 
 BEISPIEL
 #PPATCH 1 0001-rechnen 1/1

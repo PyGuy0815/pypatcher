@@ -3,7 +3,10 @@
 import argparse
 import copy
 import os
+import shutil
 import sys
+import tempfile
+import zipapp
 
 from . import __version__, adapters, diff, engine, fileio, flow, journal as jr, patchfile
 from . import profile as pf
@@ -278,10 +281,54 @@ def _save(patch, args):
     if not patchfile.MIN_HASH_LEN <= args.hash_len <= 64:
         raise UsageError("--hash-len muss zwischen %d und 64 liegen" % patchfile.MIN_HASH_LEN)
     paths, total = patchfile.save(patch, args.output, level=args.verify,
-                                  hash_len=args.hash_len, max_size=args.max_size)
-    size = sum(os.path.getsize(p) for p in paths)
-    out("Patch %s (%d Zeichen, Pruefstufe %s, Hash %s) -> %s"
-        % (patch["id"], size, args.verify, total, ", ".join(paths)))
+                                  hash_len=args.hash_len, max_size=args.max_size,
+                                  compress=args.compress)
+    _report(patch, paths, "Pruefstufe %s, Hash %s" % (args.verify, total))
+
+
+def _report(patch, paths, info):
+    sizes, packed = [], False
+    for path in paths:
+        with open(path, encoding="utf-8") as handle:
+            text = handle.read()
+        sizes.append(len(text))
+        packed = packed or "\nUSES " in text and " z64" in text.split("\nUSES ", 1)[1].split("\n")[0]
+    if packed:
+        info = "Daten komprimiert, " + info
+    parts = " in %d Paketen (max. %d)" % (len(paths), max(sizes)) if len(paths) > 1 else ""
+    out("Patch %s (%d Zeichen%s, %s) -> %s"
+        % (patch["id"], sum(sizes), parts, info, ", ".join(paths)))
+
+
+def cmd_bundle(args):
+    """pypatcher als eine Datei (zipapp), z.B. zum Hochladen in eine KI-Sandbox."""
+    package = os.path.dirname(os.path.abspath(__file__))
+    if not os.path.isdir(package):
+        raise UsageError("pypatcher laeuft bereits als Einzeldatei - diese einfach kopieren")
+    with tempfile.TemporaryDirectory() as tmp:
+        shutil.copytree(package, os.path.join(tmp, "pypatcher"),
+                        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+        with open(os.path.join(tmp, "__main__.py"), "w", encoding="utf-8") as handle:
+            handle.write("import sys\nfrom pypatcher.cli import main\nsys.exit(main())\n")
+        zipapp.create_archive(tmp, args.output, interpreter="/usr/bin/env python3",
+                              compressed=True)
+    out("pypatcher %s als Einzeldatei -> %s (%d Bytes); Aufruf: python3 %s BEFEHL ..."
+        % (__version__, args.output, os.path.getsize(args.output), args.output))
+    return 0
+
+
+def cmd_pack(args):
+    """Patch oder Entwurf umpacken: komprimieren/entpacken, in Pakete teilen.
+    Inhalt und Hashes bleiben unveraendert."""
+    patch = patchfile.load(args.patch, verify=False)
+    sealed = "patch_hash" in patch
+    if sealed:
+        patch = patchfile.load(args.patch)
+    paths, total = patchfile.save(patch, args.output, level="full", hash_len=None,
+                                  max_size=args.max_size, compress=args.compress,
+                                  draft=not sealed)
+    _report(patch, paths, "Hash %s" % total if sealed else "Entwurf ohne Hash")
+    return 0
 
 
 def cmd_seal(args):
@@ -436,6 +483,8 @@ def cmd_show(args):
         out("Beschreib.: %s" % line)
     out("Patch-Hash: %s" % ("OK" if ok else ("Entwurf (ohne Hash)" if "patch_hash" not in patch
                                             else "FEHLER")))
+    if patch.get("compressed"):
+        out("Daten    : komprimiert (z64) - hier entpackt dargestellt")
     if patch.get("flow"):
         depth = 0
         for item in patch["flow"]:
@@ -541,6 +590,13 @@ def build_parser():
     p = add("units", cmd_units, "Einheiten einer Datei mit Hashes")
     p.add_argument("file")
     p.add_argument("--compare", help='Profil, z.B. "python" oder "text,whitespace=keep"')
+    p = add("bundle", cmd_bundle, "pypatcher als eine Datei (patcher.pyz) erzeugen")
+    p.add_argument("-o", "--output", default="patcher.pyz", help="Ausgabe (Standard patcher.pyz)")
+    p = add("pack", cmd_pack, "Patch/Entwurf umpacken: komprimieren, entpacken, teilen")
+    p.add_argument("patch", help="Patch oder Entwurf (bei Paketen: ein beliebiges)")
+    p.add_argument("-o", "--output", required=True, help="Ausgabe *.ppatch")
+    p.add_argument("--compress", action="store_true", help="Datenbloecke komprimieren")
+    p.add_argument("--max-size", type=int, help="in Pakete mit hoechstens N Zeichen teilen")
     p = add("run", cmd_run, "Entwurf (z.B. von einer KI) direkt pruefen und anwenden",
             (common, project))
     p.add_argument("patch", help="Patch/Entwurf; Teile duerfen in einer Datei stehen")
@@ -560,6 +616,9 @@ def build_parser():
                        help="Laenge der Hashes in Hex-Zeichen (8-64, Standard 16)")
         p.add_argument("--max-size", type=int,
                        help="in Pakete mit hoechstens N Zeichen teilen")
+        p.add_argument("--compress", action="store_true",
+                       help="Datenbloecke komprimieren (zlib + Base64, ca. 55%% weniger "
+                       "Zeichen; Befehlsliste bleibt lesbar)")
 
     p = add("seal", cmd_seal, "Entwurf versiegeln (Hashes und Altinhalte eintragen)")
     p.add_argument("draft", metavar="ENTWURF")

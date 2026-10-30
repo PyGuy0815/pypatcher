@@ -105,7 +105,16 @@ Kernanforderungen:
   E23 KI-Nutzung: eine KI im Chat schreibt Entwuerfe (ohne Hashes), auch
       ueber mehrere Nachrichten; "run" prueft sie gegen das Zielprojekt
       und wendet sie an. Prompt: ki-prompt.txt (6.9).
-  E24 TypeScript/JSX (R016) und Komprimierung (R015) hinten angestellt.
+  E24 TypeScript/JSX (R016) hinten angestellt.
+  E25 Komprimierung optional (--compress): nur die Datenbloecke, gemeinsam
+      (zlib + Base64); die Befehlsliste bleibt lesbar (6.10). Ziel sind
+      Zeichengrenzen bei der Uebertragung - Tokens spart Base64 kaum.
+  E26 Offen fuer Erweiterungen: Patches nennen genutzte Funktionen
+      (USES); Versionen ohne diese Funktion brechen mit klarer Meldung ab
+      statt falsch zu lesen (6.3). Gleiches gilt fuer unbekannte
+      Block-Kodierungen.
+  E27 KI mit Werkzeugen nutzt pypatcher selbst (patcher.pyz): prueft,
+      versiegelt und liefert den Patch als Datei (6.9, ki-prompt.txt).
 
 
 --------------------------------------------------------------------------------
@@ -498,6 +507,11 @@ Beispiel (Pruefstufe std):
   TITLE text       Pflicht, Kurzbeschreibung
   DESC text        Beschreibung; mehrere DESC-Zeilen = mehrere Zeilen
   AUTHOR / DATE / GEN    optional (GEN = erzeugende Programmversion)
+  USES funktion ...  genutzte Funktionen, die nicht jede Version kennt:
+                   flow (Ablaufsteuerung 6.8), z64 (Komprimierung 6.10).
+                   Wird vom Programm selbst eingetragen. Kennt eine
+                   Version eine genannte Funktion nicht -> klare Meldung
+                   "neuere pypatcher-Version verwenden", nichts geschieht.
   REQ id ...       Patches, die vorher angewendet sein muessen
   MATCH state|unit Pruefumfang (Standard file, Abschnitt 4.6)
   DEFAULT profil   Vorgabe-Profil fuer alle Dateien dieses Patches
@@ -543,6 +557,8 @@ Beispiel (Pruefstufe std):
                           das Programm; kein Escaping, keine Endmarke)
   @N .                    Zeilen bis zur Zeile "@." (fuer handgeschriebene
                           Entwuerfe, kein Zaehlen noetig)
+  @0 <anzahl> z64        Sammelblock: alle Datenbloecke komprimiert (6.10)
+  Unbekannte Kennungen -> Meldung "neuere Version verwenden".
   lit = Zeilen exakt wie in der Datei (6.1); b64 = Binaerinhalt (mode raw)
   als Base64 mit 76 Zeichen je Zeile.
 
@@ -607,6 +623,27 @@ Beispiel (Pruefstufe std):
   XML). Dann Vorschau, Rueckfrage, Sicherung, atomares Schreiben;
   Rollback wie immer. Versiegelte Patches prueft run ueber die Hashes.
   Die Anleitung fuer die KI steht in ki-prompt.txt (wird getestet).
+  Kann die KI Code ausfuehren, nutzt sie pypatcher selbst (Einzeldatei
+  patcher.pyz, "bundle"): Projekt einlesen, Entwurf schreiben oder eine
+  Kopie bearbeiten und "create" nutzen, mit "run -n" selbst pruefen,
+  versiegeln und als Datei liefern; nur ohne Download als Text, bei
+  Zeichengrenzen mit "pack --compress --max-size N".
+
+6.10 Komprimierung (optional)
+  seal/create/pack --compress: alle Datenbloecke werden gemeinsam mit
+  zlib (Stufe 9) komprimiert und als Base64 (76 Zeichen je Zeile) in
+  einem Sammelblock "@0 <n> z64" abgelegt; Kopfangabe "USES z64".
+  - Die Befehlsliste bleibt lesbar; show stellt die Daten entpackt dar.
+  - Nur wenn es kleiner wird (sonst bleibt der Patch unkomprimiert).
+  - An echten Patches: 53-57 % weniger Zeichen.
+  - Base64 statt Base85: kaum groesser (2-3 %), aber ohne Zeichen, die in
+    Chats/Markdown stoeren (` @ # *).
+  - Patch- und Paket-Hashes gelten fuer den gespeicherten (komprimierten)
+    Text; Datei- und Funktions-Hashes bleiben unveraendert.
+  - Zweck: Zeichengrenzen bei der Uebertragung. Ausgabe-Tokens einer KI
+    spart es kaum (Base64 ist fuer Sprachmodelle teuer); Tokens spart vor
+    allem die Lieferung als Datei und knappe Befehle (UNIT/TEXT statt REP).
+  Weitere Kodierungen koennen spaeter als neue Kennung hinzukommen.
 
 
 --------------------------------------------------------------------------------
@@ -974,6 +1011,12 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
                      Probelauf, aendert nichts
   apply     pre1     patcher.py apply PATCH [-p PROJEKT]
                      [--match file|state|unit] [--exact]
+  pack      pre1     patcher.py pack PATCH -o DATEI [--compress] [--max-size N]
+                     Patch/Entwurf umpacken (komprimieren, entpacken,
+                     teilen); Inhalt und Hashes bleiben (6.10)
+  bundle    pre1     patcher.py bundle [-o patcher.pyz]
+                     pypatcher als eine Datei (zipapp, ca. 70 KB), z.B.
+                     fuer eine KI-Sandbox; Aufruf python3 patcher.pyz ...
   run       pre1     patcher.py run PATCH [-p PROJEKT] [-n] [--set V=W ...]
                      Entwurf (z.B. von einer KI) oder Patch direkt
                      pruefen und anwenden; -n = Probelauf (6.9)
@@ -1002,7 +1045,8 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
                "text,whitespace=keep" oder "raw".
   AUSGABE (seal, create): --verify min|std|full (Pruefstufe, 6.6;
                Standard std), --hash-len N (8-64, Standard 16),
-               --max-size N (Pakete mit hoechstens N Zeichen, 6.2).
+               --max-size N (Pakete mit hoechstens N Zeichen, 6.2),
+               --compress (Datenbloecke komprimieren, 6.10).
   PATCH (show, check, apply, run): Patchdatei oder ein beliebiges Paket;
                Teile duerfen in einer Datei stehen.
   --set V=W (check, apply, run): Antwort auf INPUT vorgeben (6.8).
@@ -1043,6 +1087,7 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre1):
                           Adressen, Normalform html/1, xml/1
     engine.py             alle Patch-Befehle im Speicher (seal + apply)
     flow.py               Ablaufsteuerung: Interpreter, Ablaeufe fuer seal
+  (patchfile.py: zusaetzlich Komprimierung z64 und USES)
     diff.py               create: Baumvergleich, Einheiten-/Text-Diff,
                           Exaktheitspruefung
     journal.py            .patcher/: Zustand, Historie, Sicherung,
@@ -1064,6 +1109,8 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre1):
                           script), Adressen, Befehle, create
     test_script.py        Ablaufsteuerung, run mit Chat-Entwuerfen in
                           Teilen, seal ueber alle Ablaeufe, Prompt-Beispiel
+    test_pack.py          Komprimierung, USES/unbekannte Funktionen, pack,
+                          bundle (Einzeldatei)
   ki-prompt.txt           Anleitung fuer KI-Assistenten
   examples/               Beispiel-Entwurf
   Tests ausfuehren: cd tests && python3 -m unittest
