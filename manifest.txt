@@ -99,6 +99,13 @@ Kernanforderungen:
       robust (id, Tag + Klassen + Nummer) statt kurz; HTML-Leerraum
       zaehlt standardmaessig; <script>/<style> sind ganze Einheiten
       ("Sicherheit vor Sparsamkeit"). Abschnitte 5.6, 7.2.
+  E22 Ablaufsteuerung im Patch (PRINT, INPUT, IF/ELIF/ELSE/END,
+      LABEL/GOTO, SET, EXIT): Entscheidungen werden beim Anwenden
+      abgefragt statt von Hand nachgearbeitet (6.8).
+  E23 KI-Nutzung: eine KI im Chat schreibt Entwuerfe (ohne Hashes), auch
+      ueber mehrere Nachrichten; "run" prueft sie gegen das Zielprojekt
+      und wendet sie an. Prompt: ki-prompt.txt (6.9).
+  E24 TypeScript/JSX (R016) und Komprimierung (R015) hinten angestellt.
 
 
 --------------------------------------------------------------------------------
@@ -469,7 +476,8 @@ Beispiel (Pruefstufe std):
 6.2 Kopfzeile und Pakete
   Einteilig :  #PPATCH 1 <id> <patch-hash>
   Paket i/n :  #PPATCH 1 <id> <patch-hash> <i>/<n> <paket-hash>
-  Entwurf   :  #PPATCH 1 <id>                  (ohne Hash, nur fuer seal)
+  Entwurf   :  #PPATCH 1 <id>                  (ohne Hash: seal oder run)
+  Entwurfsteil: #PPATCH 1 <id> <i>/<n|?>        (ohne Hash, 6.9)
   patch-hash = SHA-256 ueber den gesamten Inhalt ohne Kopfzeile(n), bei
   Paketen ueber die Inhalte in Reihenfolge; paket-hash = SHA-256 ueber den
   Inhalt dieses Pakets. Beide gekuerzt auf --hash-len.
@@ -481,6 +489,10 @@ Beispiel (Pruefstufe std):
   selben Verzeichnis gesucht (gleicher Name, sonst gleiche Kennung und
   gleicher patch-hash). Fehlt ein Paket oder ist eines beschaedigt ->
   Abbruch, es wird nichts geaendert.
+  Mehrere Teile duerfen hintereinander in EINER Datei stehen. Text vor
+  der ersten Kopfzeile und Code-Zaeune (```) werden ignoriert; bei
+  Entwuerfen beendet ein Code-Zaun ausserhalb eines Datenblocks den Teil
+  (folgender Chat-Text bis zur naechsten Kopfzeile entfaellt).
 
 6.3 Kopfangaben
   TITLE text       Pflicht, Kurzbeschreibung
@@ -555,6 +567,46 @@ Beispiel (Pruefstufe std):
     abgesichert durch deren Hash (s=).
   Patches fuehren von Version zu Version: ein Patch setzt den passenden
   Ausgangsstand voraus.
+
+6.8 Ablaufsteuerung
+  Steuerbefehle stehen zwischen den Dateibefehlen (Einrueckung beliebig):
+    PRINT text                  Hinweis ausgeben; ${var} wird ersetzt
+    INPUT var ["Frage"] [choices=a,b,c] [default=a]
+                                Antwort abfragen (interaktiv, --set
+                                var=wert oder default bei -y/ohne Terminal)
+    IF bedingung / ELIF bedingung / ELSE / END
+                                Bedingung: var == wert | var != wert |
+                                var in a,b,c | var (nicht leer, nicht
+                                nein/no/0/false)
+    LABEL name / GOTO name      Sprung (auch Schleifen, z.B. mit INPUT)
+    SET var wert                Variable setzen (${var} moeglich)
+    EXIT [grund]                Abbruch ohne jede Aenderung
+  Aenderungszeilen (UNIT, TEXT ...) nach einem Steuerbefehl gehoeren zur
+  zuletzt genannten Datei (IF/ELSE innerhalb eines FILE).
+  Ablauf: Zuerst werden alle Fragen beantwortet und die Zweige bestimmt;
+  das Ergebnis ist eine Liste von Dateibefehlen. Erst diese wird geprueft
+  und atomar angewendet - eine Entscheidung kann nie ein halb gepatchtes
+  Projekt hinterlassen. Die Antworten stehen im Journal (history.json).
+  Grenzen: hoechstens 10000 Schritte (Endlosschleife -> Abbruch); ein
+  Dateibefehl wird hoechstens einmal ausgefuehrt.
+  seal mit Ablaufsteuerung spielt jeden moeglichen Ablauf (jede
+  Kombination der choices, hoechstens 64) im Speicher durch; Hashes, die
+  in allen Ablaeufen gleich sind, werden eingetragen, ablaufabhaengige
+  entfallen (Hinweis). INPUT, das in IF verwendet wird, braucht dafuer
+  choices. STATE ist mit Ablaufsteuerung nicht moeglich.
+
+6.9 Entwuerfe aus dem Chat (KI-Nutzung)
+  Eine KI ohne Dateizugriff kann keine Hashes berechnen. Sie liefert
+  deshalb Entwuerfe, ggf. in Teilen ueber mehrere Nachrichten:
+    #PPATCH 1 <id> 1/?    ...    #PPATCH 1 <id> 3/3
+  (Gesamtzahl erst im letzten Teil). Der Nutzer kopiert alle Teile in eine
+  Datei und ruft "patcher.py run DATEI -p PROJEKT" auf.
+  run prueft den Entwurf inhaltlich gegen das Zielprojekt: Einheiten
+  muessen existieren und eindeutig sein, Suchbloecke genau einmal
+  vorkommen, das Ergebnis muss gueltige Syntax haben (Python/JS/CSS/
+  XML). Dann Vorschau, Rueckfrage, Sicherung, atomares Schreiben;
+  Rollback wie immer. Versiegelte Patches prueft run ueber die Hashes.
+  Die Anleitung fuer die KI steht in ki-prompt.txt (wird getestet).
 
 
 --------------------------------------------------------------------------------
@@ -779,6 +831,8 @@ Zusaetzlich im Entwurf:
               Verzeichnis des Entwurfs). Binaerdateien werden mode raw.
   --state     traegt STATE ein (MATCH state).
 Beispiel: examples/entwurf-beispiel.ppatch
+Ein Entwurf kann statt mit seal auch direkt mit "run" gegen das
+Zielprojekt geprueft und angewendet werden (6.9).
 
 
 --------------------------------------------------------------------------------
@@ -920,6 +974,9 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
                      Probelauf, aendert nichts
   apply     pre1     patcher.py apply PATCH [-p PROJEKT]
                      [--match file|state|unit] [--exact]
+  run       pre1     patcher.py run PATCH [-p PROJEKT] [-n] [--set V=W ...]
+                     Entwurf (z.B. von einer KI) oder Patch direkt
+                     pruefen und anwenden; -n = Probelauf (6.9)
   rollback  pre1     patcher.py rollback [-p PROJEKT] [--to ID]
   recover   pre1     patcher.py recover [-p PROJEKT]
   create    pre1     patcher.py create ALT NEU -o DATEI --id ID --title T
@@ -946,7 +1003,9 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
   AUSGABE (seal, create): --verify min|std|full (Pruefstufe, 6.6;
                Standard std), --hash-len N (8-64, Standard 16),
                --max-size N (Pakete mit hoechstens N Zeichen, 6.2).
-  PATCH (show, check, apply): Patchdatei oder ein beliebiges Paket.
+  PATCH (show, check, apply, run): Patchdatei oder ein beliebiges Paket;
+               Teile duerfen in einer Datei stehen.
+  --set V=W (check, apply, run): Antwort auf INPUT vorgeben (6.8).
 
 Exit-Codes:
   0 OK | 1 Bedienfehler | 2 Patch ungueltig/beschaedigt
@@ -983,6 +1042,7 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre1):
       markup.py           mode html/xml: Elementbaum mit Positionen,
                           Adressen, Normalform html/1, xml/1
     engine.py             alle Patch-Befehle im Speicher (seal + apply)
+    flow.py               Ablaufsteuerung: Interpreter, Ablaeufe fuer seal
     diff.py               create: Baumvergleich, Einheiten-/Text-Diff,
                           Exaktheitspruefung
     journal.py            .patcher/: Zustand, Historie, Sicherung,
@@ -1002,6 +1062,9 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.1-pre1):
     test_css.py           CSS/SCSS: Normalform, Einheiten, Befehle, create
     test_markup.py        HTML/XML: Normalform (Leerraum, Attribute,
                           script), Adressen, Befehle, create
+    test_script.py        Ablaufsteuerung, run mit Chat-Entwuerfen in
+                          Teilen, seal ueber alle Ablaeufe, Prompt-Beispiel
+  ki-prompt.txt           Anleitung fuer KI-Assistenten
   examples/               Beispiel-Entwurf
   Tests ausfuehren: cd tests && python3 -m unittest
 

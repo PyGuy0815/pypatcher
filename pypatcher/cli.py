@@ -1,10 +1,11 @@
 """Kommandozeile (manifest.txt Abschnitt 13)."""
 
 import argparse
+import copy
 import os
 import sys
 
-from . import __version__, adapters, diff, engine, fileio, journal as jr, patchfile
+from . import __version__, adapters, diff, engine, fileio, flow, journal as jr, patchfile
 from . import profile as pf
 from .adapters import ParseError
 from .errors import Conflict, PatchInvalid, PatcherError, UsageError
@@ -30,11 +31,55 @@ def confirm(args, question):
     return answer in ("j", "ja", "y", "yes")
 
 
+# -- Ablauf (PRINT/INPUT/IF ...) ---------------------------------------------
+
+def _preset(args):
+    values = {}
+    for item in getattr(args, "set", None) or []:
+        var, sep, value = item.partition("=")
+        if not sep or not var:
+            raise UsageError("--set erwartet NAME=WERT, nicht %r" % item)
+        values[var] = value
+    return values
+
+
+def _ask(args):
+    def ask(item):
+        choices, default = item["choices"], item["default"]
+        if args.yes or not sys.stdin.isatty():
+            if default is not None:
+                return default
+            raise UsageError("Antwort fuer %s fehlt - mit --set %s=WERT angeben"
+                             % (item["var"], item["var"]))
+        text = item["prompt"] or item["var"]
+        if choices:
+            text += " [%s]" % "/".join(choices)
+        if default is not None:
+            text += " (Vorgabe: %s)" % default
+        while True:
+            answer = input(text + ": ").strip()
+            if not answer and default is not None:
+                return default
+            if answer and (not choices or answer in choices):
+                return answer
+            print("Bitte eine der Moeglichkeiten angeben: %s" % ", ".join(choices or ["Text"]))
+    return ask
+
+
+def _plan(patch, args):
+    """Ablauf bestimmen: Fragen beantworten, Zweige waehlen (vor jeder Pruefung)."""
+    entries, answers = flow.plan(patch, _ask(args), say=lambda text: print("| " + text),
+                                 preset=_preset(args))
+    if patch.get("flow"):
+        out("Ablauf: %d Dateibefehle%s" % (len(entries), "" if not answers else
+                                           " (" + ", ".join("%s=%s" % kv for kv in
+                                                            sorted(answers.items())) + ")"))
+    return entries, answers
+
+
 # -- Patch anwenden / pruefen ----------------------------------------------
 
-def _prepare(args):
-    patch = patchfile.load(args.patch)
-    patchfile.validate(patch)
+def _journal_checks(patch, args):
     journal = jr.Journal(args.project)
     journal.require()
     journal.require_no_txn()
@@ -44,6 +89,14 @@ def _prepare(args):
     missing = [r for r in patch.get("requires", []) if r not in applied]
     if missing:
         raise Conflict("Patch %s benoetigt zuerst: %s" % (patch["id"], ", ".join(missing)))
+    return journal
+
+
+def _prepare(args):
+    patch = patchfile.load(args.patch)
+    patchfile.validate(patch)
+    journal = _journal_checks(patch, args)
+    entries, answers = _plan(patch, args)
     match = args.match or patch.get("match", "file")
     ctx = engine.Ctx(journal.root, match=match, exact=args.exact,
                      allow_mixed=args.allow_mixed_eol, config=journal.config())
@@ -55,12 +108,12 @@ def _prepare(args):
         if not patchfile.hash_match(patch["state_before"], current):
             raise Conflict("Projektzustand stimmt nicht (state_before)\n    erwartet: %s\n"
                            "    gefunden: %s" % (patch["state_before"], current))
-    engine.process(patch, ctx)
-    if match == "state" and patch.get("state_after"):
+    engine.process(patch, ctx, entries)
+    if match == "state" and patch.get("state_after") and not patch.get("flow"):
         after = state_hash(jr.project_hashes(journal.root, patterns, ctx.docs, ctx.profiles))
         if not patchfile.hash_match(patch["state_after"], after):
             raise Conflict("Projektzustand nach dem Patch stimmt nicht (state_after)")
-    return patch, ctx, journal
+    return patch, ctx, journal, answers
 
 
 def _summary(ctx):
@@ -73,7 +126,7 @@ def _summary(ctx):
 
 
 def cmd_check(args):
-    patch, ctx, _ = _prepare(args)
+    patch, ctx, _, _ = _prepare(args)
     out("Patch %s (%s): Pruefung erfolgreich - wuerde aendern:" % (patch["id"], patch["title"]))
     for line in _summary(ctx):
         out(line)
@@ -82,7 +135,7 @@ def cmd_check(args):
 
 
 def cmd_apply(args):
-    patch, ctx, journal = _prepare(args)
+    patch, ctx, journal, answers = _prepare(args)
     out("Patch %s (%s): Pruefung erfolgreich." % (patch["id"], patch["title"]))
     for line in _summary(ctx):
         out(line)
@@ -90,8 +143,39 @@ def cmd_apply(args):
     if not confirm(args, "Patch anwenden?"):
         out("Abgebrochen - nichts geaendert.")
         return 1
-    journal.commit_apply(patch, ctx)
+    journal.commit_apply(patch, ctx, answers)
     out("Patch %s angewendet." % patch["id"])
+    return 0
+
+
+def cmd_run(args):
+    """Entwurf (z.B. von einer KI) direkt pruefen und anwenden: Ablauf, Inhalts-
+    pruefung gegen das Zielprojekt, Vorschau, Rueckfrage, Sicherung."""
+    patch = patchfile.load(args.patch, verify=False)
+    sealed = "patch_hash" in patch
+    if sealed:
+        patch = patchfile.load(args.patch)
+    patchfile.validate(patch, sealed=False)
+    journal = _journal_checks(patch, args)
+    entries, answers = _plan(patch, args)
+    ctx = engine.Ctx(journal.root, seal=not sealed, allow_mixed=args.allow_mixed_eol,
+                     config=journal.config(),
+                     source_dir=os.path.dirname(os.path.abspath(args.patch)))
+    engine.process(patch, ctx, entries)
+    out("Patch %s (%s): %s erfolgreich - %s:"
+        % (patch["id"], patch["title"], "Hash-Pruefung" if sealed else "Inhaltspruefung",
+           "wuerde aendern" if args.dry_run else "aendert"))
+    for line in _summary(ctx):
+        out(line)
+    show_hints(ctx.hints)
+    if args.dry_run:
+        out("Probelauf - nichts geaendert.")
+        return 0
+    if not confirm(args, "Patch anwenden?"):
+        out("Abgebrochen - nichts geaendert.")
+        return 1
+    journal.commit_apply(patch, ctx, answers)
+    out("Patch %s angewendet (zuruecknehmen: patcher.py rollback)." % patch["id"])
     return 0
 
 
@@ -210,9 +294,11 @@ def cmd_seal(args):
     config = journal.config() if journal.exists else {}
     patch["generator"] = "pypatcher " + __version__
     patch.setdefault("created", jr.now())
+    source_dir = os.path.dirname(os.path.abspath(args.draft))
+    if patch.get("flow"):
+        return _seal_flow(patch, args, base, config, source_dir)
     ctx = engine.Ctx(base, seal=True, allow_mixed=args.allow_mixed_eol, config=config,
-                     no_layout=args.no_layout,
-                     source_dir=os.path.dirname(os.path.abspath(args.draft)))
+                     no_layout=args.no_layout, source_dir=source_dir)
     engine.process(patch, ctx)
     if args.state or patch["match"] == "state":
         patterns = jr.ignore_patterns(base, config)
@@ -223,6 +309,58 @@ def cmd_seal(args):
     for line in _summary(ctx):
         out(line)
     show_hints(ctx.hints)
+    return 0
+
+
+HASH_KEYS = ("hash_before", "hash_after", "text_hash_before", "text_hash_after")
+CHANGE_KEYS = ("file_hash_before", "file_hash_after", "unit_hash_before", "unit_hash_after",
+               "source_unit_hash", "unit_after", "unit")
+
+
+def _merge(versions, keys, what, hints):
+    """Werte, die in allen Ablaeufen gleich sind, bleiben; abweichende entfallen."""
+    base = copy.deepcopy(versions[0])
+    for key in keys:
+        values = set(str(v.get(key)) for v in versions)
+        if len(values) > 1:
+            base.pop(key, None)
+            hints.append("%s: %s haengt vom Ablauf ab - wird nicht geprueft" % (what, key))
+    return base
+
+
+def _seal_flow(patch, args, base, config, source_dir):
+    """seal mit Ablaufsteuerung: jeder moegliche Ablauf wird im Speicher
+    durchgespielt; Hashes, die in allen Ablaeufen gleich sind, werden eingetragen."""
+    if args.state or patch["match"] == "state":
+        raise PatchInvalid("STATE/--state ist mit Ablaufsteuerung nicht moeglich")
+    results, hints = [], []
+    for answers, indices in flow.explore(patch):
+        trial = copy.deepcopy(patch)
+        ctx = engine.Ctx(base, seal=True, allow_mixed=args.allow_mixed_eol, config=config,
+                         no_layout=args.no_layout, source_dir=source_dir)
+        label = ", ".join("%s=%s" % kv for kv in sorted(answers.items())) or "ohne Fragen"
+        try:
+            engine.process(trial, ctx, [trial["files"][i] for i in indices])
+        except (Conflict, PatchInvalid) as exc:
+            raise type(exc)("Ablauf (%s): %s" % (label, exc))
+        results.append((set(indices), trial))
+        hints.extend("Ablauf (%s): %s" % (label, h) for h in ctx.hints)
+    for i in range(len(patch["files"])):
+        versions = [trial["files"][i] for indices, trial in results if i in indices]
+        what = "Dateibefehl %d (%s)" % (i + 1, patch["files"][i]["path"])
+        if not versions:
+            hints.append("%s wird in keinem Ablauf ausgefuehrt" % what)
+            continue
+        entry = _merge(versions, HASH_KEYS, what, hints)
+        for k, ch in enumerate(entry.get("changes") or []):
+            merged = _merge([v["changes"][k] for v in versions], CHANGE_KEYS,
+                            "%s, Aenderung %d" % (what, k + 1), hints)
+            entry["changes"][k] = merged
+        patch["files"][i] = entry
+    patchfile.validate(patch)
+    _save(patch, args)
+    out("  %d moegliche Ablaeufe geprueft" % len(results))
+    show_hints(hints)
     return 0
 
 
@@ -285,7 +423,8 @@ def cmd_show(args):
     except PatchInvalid as exc:
         patch = patchfile.load(args.patch, verify=False)
         ok = False
-        print("FEHLER: %s" % exc)
+        if "patch_hash" in patch:
+            print("FEHLER: %s" % exc)
     out("Patch     : %s - %s" % (patch.get("id"), patch.get("title")))
     for key, label in (("generator", "Erzeugt"), ("author", "Autor"), ("created", "Datum"),
                        ("match", "Pruefung")):
@@ -295,39 +434,55 @@ def cmd_show(args):
         out("Benoetigt : %s" % ", ".join(patch["requires"]))
     for line in (patch.get("description") or "").splitlines():
         out("Beschreib.: %s" % line)
-    out("Patch-Hash: %s" % ("OK" if ok else "FEHLER"))
-    for n, entry in enumerate(patch.get("files", []), 1):
-        prof = patchfile.profile_short(entry.get("compare")) or "auto"
-        target = " -> " + entry["to"] if entry.get("to") else ""
-        checks = "Hash" if entry.get("hash_before") or entry.get("hash_after") else "ohne Hash"
-        out("")
-        out("[%d] %s %s%s  (%s, %s)" % (n, patchfile.CMD_OF[entry["action"]], entry["path"],
-                                       target, prof, checks))
-        unit = _indent_unit(args, entry)
-        if entry["action"] in ("add", "replace") and args.diff:
-            if isinstance(entry.get("new"), dict):
-                out("      (Binaerinhalt, %d Zeichen Base64)" % len(entry["new"]["base64"]))
+    out("Patch-Hash: %s" % ("OK" if ok else ("Entwurf (ohne Hash)" if "patch_hash" not in patch
+                                            else "FEHLER")))
+    if patch.get("flow"):
+        depth = 0
+        for item in patch["flow"]:
+            if item["stmt"] in ("elif", "else", "end"):
+                depth -= 1
+            if item["stmt"] == "file":
+                _show_entry(args, item["index"] + 1, patch["files"][item["index"]], "  " * depth)
             else:
-                for line in _block(entry.get("new"), "+", unit, entry.get("literal")):
-                    out(line)
-        for i, ch in enumerate(entry.get("changes", []), 1):
-            details = [ch.get(k) for k in ("unit", "from", "position") if ch.get(k)]
-            for key in ("as", "to", "scope", "move_id"):
-                if ch.get(key):
-                    details.append("%s=%s" % (key, ch[key]))
-            checks = "Funktion geprueft" if ch.get("unit_hash_before") or \
-                ch.get("unit_hash_after") else ""
-            out("    %d. %s %s%s" % (i, patchfile.CMD_OF[ch["op"]], " ".join(details),
-                                     "  (%s)" % checks if checks else ""))
-            if not args.diff:
-                continue
-            lit = ch.get("literal")
-            for key, mark in (("anchor", "@"), ("old", "-"), ("new", "+")):
-                if ch["op"] in ("copy_unit", "move_unit"):
-                    break
-                for line in _block(ch.get(key), mark, unit, lit):
-                    out(line)
-    return 0 if ok else PatchInvalid.exit_code
+                out("%s%s" % ("  " * depth, patchfile.flow_line(item)))
+            if item["stmt"] in ("if", "elif", "else"):
+                depth += 1
+    else:
+        for n, entry in enumerate(patch.get("files", []), 1):
+            _show_entry(args, n, entry, "")
+    return 0 if ok or "patch_hash" not in patch else PatchInvalid.exit_code
+
+
+def _show_entry(args, n, entry, pad):
+    prof = patchfile.profile_short(entry.get("compare")) or "auto"
+    target = " -> " + entry["to"] if entry.get("to") else ""
+    checks = "Hash" if entry.get("hash_before") or entry.get("hash_after") else "ohne Hash"
+    out("%s[%d] %s %s%s  (%s, %s)" % (pad, n, patchfile.CMD_OF[entry["action"]],
+                                     entry["path"], target, prof, checks))
+    unit = _indent_unit(args, entry)
+    if entry["action"] in ("add", "replace") and args.diff:
+        if isinstance(entry.get("new"), dict):
+            out("      (Binaerinhalt, %d Zeichen Base64)" % len(entry["new"]["base64"]))
+        else:
+            for line in _block(entry.get("new"), "+", unit, entry.get("literal")):
+                out(line)
+    for i, ch in enumerate(entry.get("changes", []), 1):
+        details = [ch.get(k) for k in ("unit", "from", "position") if ch.get(k)]
+        for key in ("as", "to", "scope", "move_id"):
+            if ch.get(key):
+                details.append("%s=%s" % (key, ch[key]))
+        checks = "Funktion geprueft" if ch.get("unit_hash_before") or \
+            ch.get("unit_hash_after") else ""
+        out("    %d. %s %s%s" % (i, patchfile.CMD_OF[ch["op"]], " ".join(details),
+                                 "  (%s)" % checks if checks else ""))
+        if not args.diff:
+            continue
+        lit = ch.get("literal")
+        for key, mark in (("anchor", "@"), ("old", "-"), ("new", "+")):
+            if ch["op"] in ("copy_unit", "move_unit"):
+                break
+            for line in _block(ch.get(key), mark, unit, lit):
+                out(line)
 
 
 def cmd_units(args):
@@ -386,6 +541,12 @@ def build_parser():
     p = add("units", cmd_units, "Einheiten einer Datei mit Hashes")
     p.add_argument("file")
     p.add_argument("--compare", help='Profil, z.B. "python" oder "text,whitespace=keep"')
+    p = add("run", cmd_run, "Entwurf (z.B. von einer KI) direkt pruefen und anwenden",
+            (common, project))
+    p.add_argument("patch", help="Patch/Entwurf; Teile duerfen in einer Datei stehen")
+    p.add_argument("-n", "--dry-run", action="store_true", help="nur pruefen, nichts aendern")
+    p.add_argument("--set", action="append", metavar="NAME=WERT",
+                   help="Antwort auf eine INPUT-Frage vorgeben (mehrfach moeglich)")
     p = add("show", cmd_show, "Patch lesbar anzeigen und Hashes pruefen")
     p.add_argument("patch", help="Patchdatei (bei Paketen: eine beliebige davon)")
     p.add_argument("--no-diff", dest="diff", action="store_false", help="ohne Inhalte")
@@ -432,6 +593,8 @@ def build_parser():
                        help="Pruefumfang (Standard: aus dem Patch)")
         p.add_argument("--exact", action="store_true",
                        help="zusaetzlich Text-Hashes pruefen (Kommentare/Leerraum exakt)")
+        p.add_argument("--set", action="append", metavar="NAME=WERT",
+                       help="Antwort auf eine INPUT-Frage vorgeben (mehrfach moeglich)")
     p = add("rollback", cmd_rollback, "Patches zuruecknehmen", (common, project))
     p.add_argument("--to", metavar="ID", help="alle Patches nach ID zuruecknehmen")
     add("recover", cmd_recover, "Unterbrochene Transaktion bereinigen", (common, project))
@@ -444,12 +607,21 @@ def main(argv=None):
     QUIET = args.quiet
     try:
         return args.func(args)
+    except flow.FlowExit as exc:
+        print("ABBRUCH: %s - nichts geaendert." % exc, file=sys.stderr)
+        return 1
     except PatcherError as exc:
         print("FEHLER: %s" % exc, file=sys.stderr)
         return exc.exit_code
     except KeyboardInterrupt:
         print("Abgebrochen.", file=sys.stderr)
         return 1
+    except BrokenPipeError:            # Ausgabe z.B. an "head" weitergeleitet
+        try:
+            sys.stdout = open(os.devnull, "w")
+        except OSError:
+            pass
+        return 0
     except Exception as exc:  # interner Fehler
         if args.verbose:
             raise

@@ -175,7 +175,7 @@ class Journal(object):
 
     # -- apply -------------------------------------------------------------
 
-    def commit_apply(self, patch, ctx):
+    def commit_apply(self, patch, ctx, answers=None):
         pid = patch["id"]
         touched = sorted(ctx.touched())
         bdir = self.path("backups", pid)
@@ -231,7 +231,8 @@ class Journal(object):
         history = self.history()
         history["applied"].append({"id": pid, "title": patch.get("title", ""),
                                    "patch_hash": patch.get("patch_hash"),
-                                   "applied_at": now(), "files": files_info})
+                                   "applied_at": now(), "files": files_info,
+                                   "answers": answers or {}})
         history["log"].append({"time": now(), "action": "apply", "id": pid})
         write_json(self.path("history.json"), history)
         self._save_state(state["files"])

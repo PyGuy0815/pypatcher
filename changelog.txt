@@ -72,6 +72,18 @@ Versionen: siehe manifest.txt Abschnitt 16 (Beginn 0.0.1-pre1).
   - Engine und create formatunabhaengig: Einheiten, Positionen,
     Abstaende und Umbenennen liefert der Adapter (adapters/base.py).
 
+  Ablaufsteuerung und KI-Nutzung:
+  - Steuerbefehle PRINT, INPUT (choices/default), IF/ELIF/ELSE/END,
+    LABEL/GOTO, SET, EXIT; auch innerhalb eines FILE. Erst wird der
+    Ablauf bestimmt, dann atomar angewendet; Antworten im Journal.
+  - Neuer Befehl run: Entwurf direkt gegen das Zielprojekt pruefen und
+    anwenden (Vorschau, Rueckfrage, Sicherung); --set fuer Antworten,
+    -n Probelauf. check/apply ebenfalls mit --set.
+  - Entwuerfe in Teilen ohne Hash ("1/?" ... "3/3"), mehrere Teile in
+    einer Datei, Code-Zaeune und Chat-Text werden ignoriert.
+  - seal mit Ablaufsteuerung prueft jeden moeglichen Ablauf.
+  - ki-prompt.txt: Anleitung fuer KI-Assistenten (Beispiel wird getestet).
+
   Selbsttest: die Aenderungen an pypatcher werden selbst als Patch
   erzeugt (create) und angewendet - siehe patch/.
 

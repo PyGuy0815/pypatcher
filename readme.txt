@@ -73,6 +73,18 @@ Typischer Ablauf
    Bei Paketen genuegt ein beliebiges Paket als Angabe; die uebrigen
    muessen im selben Verzeichnis liegen.
 
+Mit einer KI arbeiten
+---------------------
+ki-prompt.txt an den Anfang eines Chats geben. Die KI liefert Aenderungen
+dann als Entwurf (auch ueber mehrere Nachrichten, ggf. mit Fragen wie
+"Dunkles Design? [ja/nein]"). Alle Codebloecke in eine Datei kopieren
+(Text dazwischen stoert nicht) und anwenden:
+   python3 patcher.py run aenderung.ppatch -p projekt/      (-n = Probelauf)
+Das Programm stellt die Fragen, prueft alles gegen das Projekt, zeigt die
+Aenderungen und wendet sie nach Rueckfrage in einem Schritt an
+(zuruecknehmen: rollback). Bei einer Meldung wurde nichts geaendert - die
+Meldung an die KI zurueckgeben.
+
 Weitere Befehle: log, units, recover - siehe "python3 patcher.py -h" und
 manifest.txt Abschnitt 13. Spaeter: doctor, canon, invert.
 
@@ -97,3 +109,4 @@ Dokumentation
   manifest.txt   ausfuehrliche Programmbeschreibung
   changelog.txt  Aenderungshistorie
   request.txt    Wuensche fuer kuenftige Aenderungen
+  ki-prompt.txt  Anleitung fuer KI-Assistenten

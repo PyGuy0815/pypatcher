@@ -653,12 +653,13 @@ def _peek_binary(ctx, entry, path):
     return False
 
 
-def process(patch, ctx):
-    """Alle Dateieintraege der Reihe nach im Speicher ausfuehren."""
+def process(patch, ctx, entries=None):
+    """Dateieintraege der Reihe nach im Speicher ausfuehren (entries: Ergebnis der
+    Ablaufsteuerung; ohne Angabe alle Eintraege)."""
     defaults = (patch.get("defaults") or {}).get("compare")
     project = ctx.config.get("compare")
     required = ctx.config.get("require")
-    for n, entry in enumerate(patch["files"], 1):
+    for n, entry in enumerate(patch["files"] if entries is None else entries, 1):
         path = norm_path(entry["path"])
         what = "Datei %d (%s)" % (n, path)
         project_default = pf.lookup(project, path) if ctx.seal else None

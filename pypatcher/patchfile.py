@@ -39,6 +39,8 @@ OPS = tuple(CHANGE_CMDS.values())
 KEYS = ("h", "t", "u", "c", "s", "ind", "nl", "eof", "src", "as", "after", "to", "id",
         "scope")
 META = ("TITLE", "DESC", "AUTHOR", "DATE", "GEN", "REQ", "MATCH", "DEFAULT", "STATE")
+FLOW = ("PRINT", "INPUT", "IF", "ELIF", "ELSE", "END", "LABEL", "GOTO", "SET", "EXIT")
+FENCE = "```"
 
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 BLOCK_RE = re.compile(r"^@(\d+)(?:\s+(\d+|\.)(?:\s+(lit|b64))?)?\s*$")
@@ -243,11 +245,52 @@ def dumps_body(patch, level="full", hash_len=None):
     state = _pair(patch.get("state_before"), patch.get("state_after"), hash_len)
     if state:
         lines.append("STATE " + state)
-    for entry in patch["files"]:
-        lines.extend(writer.entry(entry))
+    if patch.get("flow"):
+        depth = 0
+        for item in patch["flow"]:
+            stmt = item["stmt"]
+            if stmt in ("elif", "else", "end"):
+                depth -= 1
+            pad = "  " * depth
+            if stmt == "file":
+                lines.extend(pad + line for line in writer.entry(patch["files"][item["index"]]))
+            else:
+                lines.append(pad + flow_line(item))
+            if stmt in ("if", "elif", "else"):
+                depth += 1
+    else:
+        for entry in patch["files"]:
+            lines.extend(writer.entry(entry))
     for block in writer.blocks:
         lines.extend(block)
     return "\n".join(lines) + "\n"
+
+
+def flow_line(item):
+    """Steuerbefehl als Zeile (Abschnitt 6.8)."""
+    stmt = item["stmt"]
+    if stmt == "print":
+        return "PRINT " + item["text"]
+    if stmt == "exit":
+        return ("EXIT " + item["text"]).rstrip()
+    if stmt == "input":
+        tokens = ["INPUT", item["var"]]
+        if item.get("prompt"):
+            tokens.append(_quote(item["prompt"]))
+        if item.get("choices"):
+            tokens.append("choices=" + _quote(",".join(item["choices"])))
+        if item.get("default") is not None:
+            tokens.append("default=" + _quote(item["default"]))
+        return " ".join(tokens)
+    if stmt in ("if", "elif"):
+        return " ".join([stmt.upper()] + [_quote(t) for t in item["cond"]])
+    if stmt in ("else", "end"):
+        return stmt.upper()
+    if stmt in ("label", "goto"):
+        return "%s %s" % (stmt.upper(), item["name"])
+    if stmt == "set":
+        return "SET %s %s" % (item["var"], _quote(item["value"]))
+    raise PatchInvalid("unbekannter Steuerbefehl %r" % stmt)
 
 
 def dumps(patch, level="full", hash_len=None):
@@ -305,7 +348,13 @@ def save(patch, path, level="std", hash_len=DEFAULT_HASH_LEN, max_size=None):
 
 # -- Lesen -------------------------------------------------------------------
 
-def _read(path):
+def _read_parts(path):
+    """Datei lesen und an Kopfzeilen "#PPATCH" in Teile zerlegen.
+
+    Mehrere Teile duerfen in einer Datei hintereinander stehen (z.B. aus
+    mehreren Chat-Nachrichten zusammenkopiert); Code-Zaeune (```) und Text
+    vor der ersten Kopfzeile werden ignoriert.
+    """
     try:
         with open(path, encoding="utf-8", newline="") as handle:
             text = handle.read()
@@ -313,54 +362,164 @@ def _read(path):
         raise PatchInvalid("%s: nicht lesbar (%s)" % (path, exc))
     except UnicodeDecodeError as exc:
         raise PatchInvalid("%s: kein UTF-8 (%s)" % (path, exc))
-    text = text.replace("\r\n", "\n")
-    head, _, body = text.partition("\n")
-    tokens = head.split()
-    if len(tokens) < 3 or tokens[0] != MAGIC:
-        raise PatchInvalid("%s: keine pypatcher-Datei (erste Zeile '%s ...' erwartet)"
-                           % (path, MAGIC))
-    if tokens[1] != FORMAT_VERSION:
-        raise PatchInvalid("%s: Formatversion %s wird nicht unterstuetzt" % (path, tokens[1]))
-    return tokens[2:], body
+    text = text.replace("\r\n", "\n").lstrip("\ufeff")
+    parts, current = [], None
+    for line in text.split("\n"):
+        if line.startswith(MAGIC + " "):
+            tokens = line.split()
+            if len(tokens) < 3:
+                raise PatchInvalid("%s: Kopfzeile unvollstaendig: %s" % (path, line))
+            if tokens[1] != FORMAT_VERSION:
+                raise PatchInvalid("%s: Formatversion %s wird nicht unterstuetzt" % (path, tokens[1]))
+            current = {"head": tokens[2:], "lines": [], "path": path}
+            parts.append(current)
+        elif current is not None:
+            current["lines"].append(line)
+    if not parts:
+        raise PatchInvalid("%s: keine pypatcher-Datei (Zeile '%s 1 ...' erwartet)" % (path, MAGIC))
+    for part in parts:
+        lines = part.pop("lines")
+        while lines and (lines[-1] == "" or lines[-1].strip() == FENCE):
+            lines.pop()
+        part["body"] = "\n".join(lines) + "\n" if lines else ""
+    return parts
 
 
-def _collect_parts(path, pid, total, count):
-    """Alle Pakete eines Patches finden (gleicher Name mit .N oder gleiche Kennung)."""
-    match = PART_RE.match(path)
-    candidates = []
-    if match:
-        candidates = ["%s.%d%s" % (match.group(1), i, EXT) for i in range(1, count + 1)]
-    if not all(os.path.isfile(c) for c in candidates):
-        candidates = sorted(glob.glob(os.path.join(os.path.dirname(path) or ".", "*" + EXT)))
-    found = {}
-    for candidate in candidates:
-        if not os.path.isfile(candidate):
+def _trim(body, state):
+    """Chat-Reste entfernen: ausserhalb von Datenbloecken beendet ein Code-Zaun
+    (```) den Teil. state = [modus, rest] wird ueber Teilgrenzen weitergereicht,
+    damit Bloecke ueber mehrere Teile laufen duerfen."""
+    out = []
+    for line in body.split("\n")[:-1] if body.endswith("\n") else body.split("\n"):
+        mode = state[0]
+        if mode == "count":
+            out.append(line)
+            state[1] -= 1
+            if state[1] <= 0:
+                state[0] = "cmd"
             continue
-        head, body = _read(candidate)
-        if len(head) == 4 and head[0] == pid and head[1] == total:
-            index, _, n = head[2].partition("/")
-            if int(n) != count:
-                raise PatchInvalid("%s: Paketanzahl passt nicht" % candidate)
-            if not hash_match(head[3], sha256_text(body)):
-                raise PatchInvalid("%s: Paket beschaedigt (Paket-Hash stimmt nicht)" % candidate)
-            found[int(index)] = body
+        if mode == "dot":
+            out.append(line)
+            if line == "@.":
+                state[0] = "cmd"
+            continue
+        if line.strip().startswith(FENCE):
+            if out:                     # schliessender Zaun: Rest bis zur naechsten Kopfzeile ist Chat
+                break
+            continue
+        match = BLOCK_RE.match(line)
+        if match and match.group(2) == ".":
+            state[0] = "dot"
+        elif match and match.group(2) and int(match.group(2)) > 0:
+            state[0], state[1] = "count", int(match.group(2))
+        out.append(line)
+    return "\n".join(out) + "\n" if out else ""
+
+
+def _kind(head):
+    """single: <id> [hash] | part: <id> <hash> <i>/<n> <paket-hash> | draftpart: <id> <i>/<n|?>"""
+    if len(head) == 4:
+        return "part"
+    if len(head) == 2 and "/" in head[1]:
+        return "draftpart"
+    if len(head) <= 2:
+        return "single"
+    raise PatchInvalid("Kopfzeile nicht lesbar: %s" % " ".join(head))
+
+
+def _index(value, where):
+    index, _, count = value.partition("/")
+    try:
+        return int(index), (None if count == "?" else int(count))
+    except ValueError:
+        raise PatchInvalid("%s: Teilangabe %r ungueltig (z.B. 2/5 oder 2/?)" % (where, value))
+
+
+def _siblings(path, pid):
+    """Weitere Dateien mit Teilen desselben Patches im selben Verzeichnis."""
+    match = PART_RE.match(path)
+    names = []
+    if match:
+        names = sorted(glob.glob(match.group(1) + ".*" + EXT))
+    names += sorted(glob.glob(os.path.join(os.path.dirname(path) or ".", "*" + EXT)))
+    out, seen = [], set([os.path.abspath(path)])
+    for name in names:
+        if os.path.abspath(name) in seen or not os.path.isfile(name):
+            continue
+        seen.add(os.path.abspath(name))
+        try:
+            parts = _read_parts(name)
+        except PatchInvalid:
+            continue
+        out.extend(p for p in parts if p["head"][0] == pid)
+    return out
+
+
+def _complete(parts, kind, path):
+    pos = 2 if kind == "part" else 1
+    indices = [_index(p["head"][pos], path) for p in parts]
+    counts = set(n for _, n in indices if n is not None)
+    if len(counts) != 1:
+        return False
+    return set(i for i, _ in indices) >= set(range(1, counts.pop() + 1))
+
+
+def _join_parts(path, parts, pid, sealed):
+    found, count = {}, None
+    for part in parts:
+        head = part["head"]
+        if sealed:
+            index, n = _index(head[2], part["path"])
+            if not hash_match(head[3], sha256_text(part["body"])):
+                raise PatchInvalid("%s: Paket %d beschaedigt (Paket-Hash stimmt nicht)"
+                                   % (part["path"], index))
+        else:
+            index, n = _index(head[1], part["path"])
+        if n is not None:
+            if count is not None and n != count:
+                raise PatchInvalid("Patch %s: widerspruechliche Teilanzahl (%d/%d)" % (pid, n, count))
+            count = n
+        if index in found and found[index] != part["body"]:
+            raise PatchInvalid("Patch %s: Teil %d doppelt mit verschiedenem Inhalt" % (pid, index))
+        found[index] = part["body"]
+    if count is None:
+        raise PatchInvalid("Patch %s: Gesamtzahl der Teile unbekannt - der letzte Teil muss "
+                           "z.B. 3/3 angeben" % pid)
     missing = [str(i) for i in range(1, count + 1) if i not in found]
     if missing:
-        raise PatchInvalid("Patch %s: Pakete fehlen: %s von %d" % (pid, ", ".join(missing), count))
-    return "".join(found[i] for i in range(1, count + 1))
+        raise PatchInvalid("Patch %s: Teile fehlen: %s von %d" % (pid, ", ".join(missing), count))
+    if sealed:
+        return "".join(found[i] for i in range(1, count + 1))
+    state = ["cmd", 0]
+    return "".join(_trim(found[i], state) for i in range(1, count + 1))
 
 
 def load(path, verify=True):
-    """Patch (oder Entwurf) laden; mehrteilige Patches werden zusammengesetzt."""
-    head, body = _read(path)
-    pid = head[0]
-    total = head[1] if len(head) > 1 else None
-    if len(head) == 4:
-        count = int(head[2].partition("/")[2])
-        body = _collect_parts(path, pid, total, count)
+    """Patch oder Entwurf laden; Teile/Pakete werden zusammengesetzt
+    (aus derselben Datei und aus Dateien im selben Verzeichnis)."""
+    parts = _read_parts(path)
+    head = parts[0]["head"]
+    pid, kind = head[0], _kind(head)
+    total = None
+    if kind == "single":
+        if len(parts) > 1:
+            raise PatchInvalid("%s: mehrere Patches in einer Datei" % path)
+        total = head[1] if len(head) > 1 else None
+        body = parts[0]["body"] if total else _trim(parts[0]["body"], ["cmd", 0])
+    else:
+        same = [p for p in parts if p["head"][0] == pid and _kind(p["head"]) == kind]
+        if len(same) != len(parts):
+            raise PatchInvalid("%s: Teile verschiedener Patches in einer Datei" % path)
+        if not _complete(same, kind, path):
+            same += [p for p in _siblings(path, pid) if _kind(p["head"]) == kind]
+        if kind == "part":
+            total = head[1]
+            same = [p for p in same if p["head"][1] == total]
+        body = _join_parts(path, same, pid, kind == "part")
     if verify:
         if total is None:
-            raise PatchInvalid("%s: Entwurf ohne Patch-Hash - zuerst versiegeln (seal)" % path)
+            raise PatchInvalid("%s: Entwurf ohne Patch-Hash - zuerst versiegeln (seal) "
+                               "oder direkt mit 'run' anwenden" % path)
         if not hash_match(total, sha256_text(body)):
             raise PatchInvalid("%s: Patch-Hash stimmt nicht - Datei beschaedigt oder veraendert"
                                % path)
@@ -374,6 +533,9 @@ def load(path, verify=True):
 def _blocks(lines, where):
     blocks, i = {}, 0
     while i < len(lines):
+        if lines[i].strip() == FENCE or not lines[i].strip():
+            i += 1
+            continue
         match = BLOCK_RE.match(lines[i])
         if not match or match.group(2) is None:
             raise PatchInvalid("%s: Datenblock erwartet in Zeile '%s'" % (where, lines[i][:60]))
@@ -540,14 +702,19 @@ def parse_body(body, where="Patch"):
     first = next((i for i, l in enumerate(lines) if BLOCK_RE.match(l)), len(lines))
     reader = _Reader(_blocks(lines[first:], where), where)
     patch = {"format": FORMAT, "files": [], "requires": [], "match": "file"}
-    desc = []
-    entry = None
+    desc, flow, has_flow = [], [], False
+    entry = last_file = None
     for raw in lines[:first]:
         line = raw.rstrip()
-        if not line.strip() or line.lstrip().startswith("#"):
+        if not line.strip() or line.lstrip().startswith(("#", FENCE)):
             continue
         word, _, rest = line.strip().partition(" ")
-        if word in META and not raw[:1].isspace():
+        if word in FLOW:
+            flow.append(_flow_item(word, rest, line.strip(), where))
+            has_flow = True
+            entry = None
+            continue
+        if word in META:
             if word == "TITLE":
                 patch["title"] = rest
             elif word == "DESC":
@@ -569,10 +736,18 @@ def parse_body(body, where="Patch"):
                 patch["state_before"], patch["state_after"] = b, a
             continue
         cmd, pos, keys, refs = _split_tokens(line.strip(), where)
-        if cmd in FILE_CMDS and not raw[:1].isspace():
-            entry = reader.entry(cmd, pos, keys, refs, line.strip())
+        if cmd in FILE_CMDS:
+            entry = last_file = reader.entry(cmd, pos, keys, refs, line.strip())
+            flow.append({"stmt": "file", "index": len(patch["files"])})
             patch["files"].append(entry)
         elif cmd in CHANGE_CMDS:
+            if entry is None and last_file is not None and last_file["action"] == "modify":
+                # Aenderung nach IF/ELSE/... innerhalb eines FILE: eigener Dateibefehl im Zweig
+                entry = dict((k, v) for k, v in last_file.items()
+                             if k in ("action", "path", "compare", "layout"))
+                entry["changes"] = []
+                flow.append({"stmt": "file", "index": len(patch["files"])})
+                patch["files"].append(entry)
             if entry is None or entry["action"] != "modify":
                 raise PatchInvalid("%s: %s nur innerhalb eines FILE-Befehls" % (where, cmd))
             entry["changes"].append(reader.change(cmd, pos, keys, refs, line.strip()))
@@ -584,7 +759,70 @@ def parse_body(body, where="Patch"):
             "@%d" % n for n in unused)))
     if desc:
         patch["description"] = "\n".join(desc)
+    if has_flow:
+        _drop_empty(patch, flow)
+        patch["flow"] = flow
     return patch
+
+
+def _drop_empty(patch, flow):
+    """FILE-Befehle ohne eigene Aenderungen (nur Rahmen fuer IF-Zweige) entfallen."""
+    keep = [i for i, e in enumerate(patch["files"])
+            if not (e["action"] == "modify" and not e["changes"] and "hash_before" not in e)]
+    new_index = dict((old, new) for new, old in enumerate(keep))
+    patch["files"] = [patch["files"][i] for i in keep]
+    flow[:] = [dict(item, index=new_index[item["index"]]) if item["stmt"] == "file" else item
+               for item in flow if item["stmt"] != "file" or item["index"] in new_index]
+
+
+def _flow_item(word, rest, line, where):
+    """Steuerbefehl lesen (Abschnitt 6.8)."""
+    what = "%s: %s" % (where, line[:60])
+    if word == "PRINT":
+        return {"stmt": "print", "text": rest}
+    if word == "EXIT":
+        return {"stmt": "exit", "text": rest.strip()}
+    try:
+        tokens = shlex.split(rest, posix=True)
+    except ValueError as exc:
+        raise PatchInvalid("%s: Zeile nicht lesbar (%s)" % (what, exc))
+    if word in ("ELSE", "END"):
+        if tokens:
+            raise PatchInvalid("%s: %s erwartet keine Angaben" % (what, word))
+        return {"stmt": word.lower()}
+    if word in ("LABEL", "GOTO"):
+        if len(tokens) != 1 or not re.match(r"^[A-Za-z_][\w.-]*$", tokens[0]):
+            raise PatchInvalid("%s: %s braucht einen Namen" % (what, word))
+        return {"stmt": word.lower(), "name": tokens[0]}
+    if word == "SET":
+        if len(tokens) != 2:
+            raise PatchInvalid("%s: SET name wert" % what)
+        return {"stmt": "set", "var": tokens[0], "value": tokens[1]}
+    if word == "INPUT":
+        item = {"stmt": "input", "var": None, "prompt": "", "choices": None, "default": None}
+        rest_tokens = []
+        for token in tokens:
+            key, sep, value = token.partition("=")
+            if sep and key == "choices":
+                item["choices"] = [c.strip() for c in value.split(",") if c.strip()]
+            elif sep and key == "default":
+                item["default"] = value
+            else:
+                rest_tokens.append(token)
+        if not rest_tokens or not re.match(r"^[A-Za-z_]\w*$", rest_tokens[0]):
+            raise PatchInvalid("%s: INPUT braucht einen Variablennamen" % what)
+        item["var"] = rest_tokens[0]
+        item["prompt"] = " ".join(rest_tokens[1:])
+        if item["choices"] and item["default"] is not None and \
+                item["default"] not in item["choices"]:
+            raise PatchInvalid("%s: default ist keine der choices" % what)
+        return item
+    if word in ("IF", "ELIF"):
+        if not (len(tokens) == 1 or (len(tokens) == 3 and tokens[1] in ("==", "!=", "in"))):
+            raise PatchInvalid("%s: Bedingung z.B. 'IF var == wert', 'IF var != wert', "
+                               "'IF var in a,b' oder 'IF var'" % what)
+        return {"stmt": word.lower(), "cond": tokens}
+    raise PatchInvalid("%s: unbekannter Steuerbefehl" % what)
 
 
 # -- Pruefung ----------------------------------------------------------------
