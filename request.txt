@@ -2,10 +2,11 @@ PYPATCHER - REQUESTS (Wuensche fuer kuenftige Aenderungen)
 =========================================================
 Status: OFFEN | GEPLANT | IN ARBEIT | ERLEDIGT (Version) | ABGELEHNT
 
-R001  GEPLANT   Implementierung Version 1.0 gemaess manifest.txt 0.2.0
-                (Python- und Text-Adapter, alle Befehle aus Abschn. 12).
-R002  OFFEN     Weitere Adapter nach Bedarf: shell, c/c++/java/js
-                (Klammerbloecke), ini, json/yaml, xml, markdown.
+R001  GEPLANT   Erste Implementierung 0.0.1-pre1 gemaess manifest.txt
+                (Python- und Text-Adapter, Normalformen python-ast/1 und
+                text/1, alle Befehle aus Abschnitt 13).
+R002  OFFEN     Weitere Adapter/Normalformen nach Bedarf: shell,
+                c/c++/java/js, ini, json/yaml, xml, markdown, make.
 R003  OFFEN     Signierte Patches (HMAC-SHA256 oder Ed25519); Feld
                 "signature" ist im Format bereits vorgesehen.
 R004  OFFEN     Patch-Buendel: mehrere Patches in einer Datei/Archiv
@@ -16,3 +17,5 @@ R006  OFFEN     Interaktive Konfliktanzeige (Diff Ist-Stand vs. erwartet).
 R007  OFFEN     Binaerdateien (Base64, nur ganze Datei) - vorgesehen,
                 niedrige Prioritaet.
 R008  OFFEN     Weitergabe als Einzeldatei bzw. .pyz (zipapp).
+R009  OFFEN     Option "docstrings": "ignore" (Docstrings wie Kommentare
+                behandeln) - abhaengig von Offenem Punkt O1.

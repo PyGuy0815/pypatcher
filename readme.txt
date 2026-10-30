@@ -1,8 +1,9 @@
 PYPATCHER - README
 ==================
 
-Status: KONZEPTPHASE (Version 0.2.0) - das Programm ist noch nicht
-implementiert. Die ausfuehrliche Beschreibung steht in manifest.txt.
+Status: KONZEPTPHASE (noch keine Version) - das Programm ist noch nicht
+implementiert. Erste Version wird 0.0.1-pre1. Die ausfuehrliche
+Beschreibung steht in manifest.txt.
 
 Was macht der Patcher?
 ----------------------
@@ -10,7 +11,9 @@ Er uebertraegt Aenderungen an einem Projekt mit einer einzigen Patchdatei
 (*.ppatch.json) in eine andere Umgebung - ohne ganze Dateien zu kopieren.
 Aenderungen koennen bis auf einzelne Funktionen/Methoden genau beschrieben
 werden ("ersetze in Datei X die Funktion Y"). Jede Datei und jede einzelne
-Aenderung wird per SHA-256-Hash geprueft (vorher und nachher). Jeder
+Aenderung wird per SHA-256-Hash geprueft (vorher und nachher). Geprueft
+wird die Funktion, nicht die Schreibweise: Kommentare und unwichtige
+Leerzeichen/Tabs/Umbrueche zaehlen je nach Format nicht. Jeder
 angewendete Patch laesst sich wieder zuruecknehmen. Windows-Zeilenenden
 (CRLF) werden erkannt und beibehalten.
 
@@ -33,7 +36,7 @@ Zielumgebung:
   patcher.py status   -p projekt/
   patcher.py rollback -p projekt/          (letzten Patch zuruecknehmen)
 
-Alle Befehle: siehe manifest.txt, Abschnitt 12.
+Alle Befehle: siehe manifest.txt, Abschnitt 13.
 
 Dokumentation
 -------------

@@ -2,14 +2,14 @@
  PYPATCHER - MANIFEST (ausfuehrliche Programmbeschreibung / Konzept)
 ================================================================================
 Programm      : patcher.py
-Version       : 0.2.0 (Konzeptphase - noch keine Implementierung)
-Status        : KONZEPT - Entscheidungen eingearbeitet, bereit zur Umsetzung
+Version       : keine (Konzeptphase). Erste Version: 0.0.1-pre1
+Status        : KONZEPT - bereit zur Umsetzung
 Sprache       : Python >= 3.8, nur Standardbibliothek (keine Fremdpakete)
 Repository    : pypatcher (privat, eigenstaendig)
 Stand         : 2026-10-30
 
 Diese Datei ist die verbindliche, ausfuehrliche Beschreibung des Programms.
-Sie wird bei jeder Aenderung am Programm mitgepflegt (siehe Abschnitt 15).
+Sie wird bei jeder Aenderung am Programm mitgepflegt (siehe Abschnitt 16).
 
 
 --------------------------------------------------------------------------------
@@ -30,32 +30,43 @@ Kernanforderungen:
   A4  Jeder angewendete Patch kann vollstaendig zurueckgenommen werden
       (Rollback auf den vorherigen Stand).
   A5  Ein Patch wird ganz oder gar nicht angewendet (atomar).
-  A6  Abweichungen vom erwarteten Stand (z.B. manuelle Aenderungen) werden
-      erkannt und fuehren zum Abbruch, bevor etwas veraendert wird.
-  A7  Erweiterbar auf weitere Sprachen/Formate ueber Adapter (Abschnitt 7).
+  A6  Abweichungen vom erwarteten Stand werden erkannt und fuehren zum
+      Abbruch, bevor etwas veraendert wird.
+  A7  Erweiterbar auf weitere Sprachen/Formate ueber Adapter (Abschnitt 8).
+  A8  Die Pruefung bewertet die FUNKTION, nicht die Schreibweise:
+      Kommentare und unwichtige Leerzeichen/Tabs/Umbrueche fliessen je
+      nach Format nicht in den Hash ein (Normalform, Abschnitt 5).
+  A9  Der Patcher veraendert niemals die Funktion von Code durch
+      Umformatierung. Er formatiert nichts um; die Normalform dient
+      ausschliesslich der Hash-Berechnung.
 
 
 --------------------------------------------------------------------------------
  2. ENTSCHEIDUNGEN (geklaerte Punkte)
 --------------------------------------------------------------------------------
   E1  Sprachen: langfristig alle Sprachen und Formate, umgesetzt nach Bedarf
-      ueber Adapter. Version 1.0: Python-Adapter + allgemeiner Text-Adapter.
+      ueber Adapter. Erste Version: Python-Adapter + allgemeiner Text-Adapter.
   E2  Patchformat: JSON.
-  E3  Pruefung grundsaetzlich auf Dateiebene (strict). Alle Aenderungen an
-      einer Datei werden im Patch unter dieser Datei gesammelt; jede
-      einzelne Aenderung wird ebenfalls per Hash geprueft (Kette von
-      Zwischen-Hashes, Abschnitt 4.6).
-  E4  Kommentare direkt ueber einer Funktion/Klasse gehoeren zur Einheit.
-      Der Kopf der Datei (Header) ist davon getrennt und eine eigene
-      Einheit "@header" (Abschnitt 6.3).
-  E5  Zielumgebung kann Windows/CRLF sein: Zeilenenden werden erkannt,
-      beim Hash normalisiert und beim Schreiben beibehalten (Abschnitt 4.3).
-      Vor dem ersten Einsatz prueft "doctor" die Umgebung.
-  E6  Eigenes, privates Repository "pypatcher".
-  E7  Signatur: im Format vorgesehen (Feld "signature"), in 1.0 nicht
+  E3  Pruefung grundsaetzlich auf Dateiebene. Alle Aenderungen an einer
+      Datei werden im Patch unter dieser Datei gesammelt; jede einzelne
+      Aenderung wird ebenfalls per Hash geprueft (Pruefkette, Abschn. 4.5).
+  E4  Kommentare direkt ueber einer Funktion/Klasse gehoeren raeumlich zur
+      Einheit (sie wandern mit). Der Kopf der Datei ist eine eigene
+      Einheit "@header" (Abschnitt 7.3).
+  E5  Funktion vor Schreibweise: Gepruefte Hashes werden ueber eine
+      formatabhaengige Normalform gebildet. Kommentare sind der Funktion
+      untergeordnet und fliessen nicht ein; ebenso nicht unwichtige
+      Leerzeichen, Tabs und Umbrueche (je nach Format, Abschnitt 5).
+  E6  Zielumgebung kann Windows/CRLF sein: Zeilenenden werden erkannt
+      und beim Schreiben beibehalten. "doctor" prueft vorab die Umgebung.
+  E7  Eigenes, privates Repository "pypatcher".
+  E8  Signatur: im Format vorgesehen (Feld "signature"), zunaechst nicht
       umgesetzt.
-  E8  Binaerdateien: vorgesehen (Base64, nur ganze Datei), niedrige
+  E9  Binaerdateien: vorgesehen (Base64, nur ganze Datei), niedrige
       Prioritaet.
+  E10 Versionierung: waehrend der Konzeptphase keine Versionsnummern.
+      Erste Version 0.0.1; bis zur Freigabe als 0.0.1-pre1, -pre2, ...
+      (Abschnitt 16).
 
 
 --------------------------------------------------------------------------------
@@ -68,10 +79,16 @@ Aenderung      Einzelner Schritt innerhalb eines Dateieintrags
                (z.B. replace_unit).
 Einheit (Unit) Adressierbarer Abschnitt einer Datei, z.B. Funktion
                "parse_cue", Methode "Converter.run" oder "@header".
-Adapter        Sprach-/Formatmodul, das Einheiten findet, ausschneidet und
-               einsetzt (python, text, spaeter shell, c, js, ini, json ...).
+Adapter        Sprach-/Formatmodul: findet Einheiten, bildet die Normalform,
+               setzt Einheiten ein (python, text, spaeter shell, c, js ...).
+Normalform     Formatabhaengige Darstellung eines Inhalts, die nur noch die
+               Funktion enthaelt (ohne Kommentare und unwichtige
+               Leerzeichen). Grundlage des Funktions-Hashes.
+Funktions-Hash Hash ueber die Normalform ("hash"). Wird geprueft.
+Text-Hash      Hash ueber den exakten Text (nur Zeilenenden vereinheitlicht)
+               ("text_hash"). Wird protokolliert, nur auf Wunsch geprueft.
 Hash           SHA-256, notiert als "sha256:<64 hex-zeichen>".
-Zustand        Gesamtheit aller Datei-Hashes des Projekts (Zustands-Hash).
+Zustand        Gesamtheit aller Datei-Hashes des Projekts.
 Journal        Verwaltungsverzeichnis ".patcher/" in der Projektwurzel.
 Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
                wird mit "seal" zu einem vollstaendigen Patch.
@@ -84,39 +101,32 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
   SHA-256 (hashlib). Schreibweise "sha256:..." damit spaeter weitere
   Algorithmen moeglich sind, ohne das Format zu brechen.
 
-4.2 Textdatei oder Binaerdatei
-  Eine Datei gilt als Text, wenn sie sich mit dem angegebenen Encoding
-  (Standard UTF-8) dekodieren laesst und kein NUL-Byte enthaelt.
-  Sonst Binaerdatei.
+4.2 Zwei Hash-Arten
+  hash       Funktions-Hash: SHA-256 ueber die Normalform (Abschnitt 5).
+             Aendert sich NUR, wenn sich die Funktion aendert. Wird bei
+             apply/check/rollback immer geprueft.
+  text_hash  Text-Hash: SHA-256 ueber den Text nach Entfernen des BOM
+             und Vereinheitlichen der Zeilenenden auf LF. Aendert sich
+             bei jeder Aenderung, auch an Kommentaren/Leerzeichen.
+             Wird protokolliert (Journal) und meldet kosmetische
+             Abweichungen als Hinweis. Mit --exact wird er zusaetzlich
+             streng geprueft.
+  Binaerdateien haben nur "hash" = SHA-256 der rohen Bytes.
+  Jeder Dateieintrag nennt die verwendete Normalform ("canon", z.B.
+  "python-ast/1"), damit Hashes eindeutig reproduzierbar sind.
 
-4.3 Datei-Hash
-  Textdatei : SHA-256 ueber den Inhalt nach Normalisierung:
-              - BOM entfernt
-              - Zeilenenden CRLF/CR -> LF
-              Der Inhalt selbst (auch Leerzeichen am Zeilenende) bleibt
-              unveraendert; jede inhaltliche Abweichung faellt auf.
-              Zusaetzlich werden Zeilenende-Stil ("lf"/"crlf"), BOM und
-              Encoding der Zieldatei erkannt und beim Schreiben
-              beibehalten. Gemischte Zeilenenden: Warnung, Abbruch ohne
-              --allow-mixed-eol.
-  Binaerdatei: SHA-256 ueber die rohen Bytes.
-  Dadurch passt ein unter Linux erzeugter Patch auch auf ein Projekt mit
-  Windows-Zeilenenden, ohne die Pruefung aufzuweichen.
+4.3 Datei-Hash und Einheiten-Hash
+  Datei   : hash/text_hash ueber die gesamte Datei.
+  Einheit : hash/text_hash ueber die Einheit. Der Einheiten-Hash ist
+            unabhaengig von der Einrueckung (eine Methode hat denselben
+            Hash, egal wie tief sie eingerueckt ist).
 
-4.4 Einheiten-Hash (Unit-Hash)
-  SHA-256 ueber den Quelltext der Einheit (inkl. zugehoeriger Kommentare
-  und Decorators, Abschnitt 6.3) nach Normalisierung:
-    - Zeilenenden LF
-    - gemeinsame Einrueckung entfernt (eine Methode hat denselben Hash,
-      egal wie tief sie eingerueckt ist)
-  Leerzeichen am Zeilenende zaehlen mit (strenge Pruefung, E3).
-
-4.5 Zustands-Hash (Projekt)
-  SHA-256 ueber die sortierte Liste "relativer_pfad\0datei_hash\n" aller
+4.4 Zustands-Hash (Projekt)
+  SHA-256 ueber die sortierte Liste "relativer_pfad\0hash\n" aller
   verwalteten Dateien. Ignoriert werden ".patcher/" und Muster aus
   ".patcherignore" (eine fnmatch-Maske je Zeile, # = Kommentar).
 
-4.6 Pruefkette innerhalb einer Datei
+4.5 Pruefkette innerhalb einer Datei
   Jeder Dateieintrag hat hash_before und hash_after der ganzen Datei.
   Jede Aenderung im Eintrag hat zusaetzlich:
     unit_hash_before / unit_hash_after   - Hash der Einheit
@@ -131,33 +141,116 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
   Stimmt ein Hash nicht -> Konflikt mit genauer Angabe (Datei, Aenderung,
   Einheit, erwartet/gefunden), nichts wird geschrieben.
 
-4.7 Pruefmodus (Option --match)
-  file  (Standard): Datei-Hashes und Unit-Hashes muessen exakt stimmen.
-  state           : zusaetzlich muss der gesamte Projektzustand
-                    (state_before) exakt stimmen.
-  unit            : nur Unit-Hashes; die Datei darf an anderer Stelle
-                    abweichen (Notfall, muss ausdruecklich angegeben werden).
+4.6 Pruefmodus
+  --match file  (Standard): Funktions-Hashes von Datei und Einheiten.
+  --match state           : zusaetzlich gesamter Projektzustand
+                            (state_before) muss stimmen.
+  --match unit            : nur Unit-Hashes; die Datei darf an anderer
+                            Stelle funktional abweichen (Notfall, muss
+                            ausdruecklich angegeben werden).
+  --exact                 : zusaetzlich Text-Hashes (Kommentare und
+                            Leerzeichen muessen exakt stimmen).
 
-4.8 Patch-Hash (Integritaet der Patchdatei)
+4.7 Patch-Hash (Integritaet der Patchdatei)
   Feld "patch_hash" = SHA-256 ueber die kanonische JSON-Darstellung des
   Patches OHNE die Felder "patch_hash" und "signature"
   (json.dumps(..., sort_keys=True, separators=(",", ":"),
   ensure_ascii=False), UTF-8). Erkennt beschaedigte oder veraenderte
   Patchdateien. Falscher Patch-Hash -> Patch wird abgelehnt.
+  (Hier zaehlt jedes Zeichen - die Patchdatei selbst wird exakt geprueft.)
 
-4.9 Signatur (vorgesehen, nicht in 1.0)
+4.8 Signatur (vorgesehen, zunaechst nicht umgesetzt)
   Feld "signature": null oder {"alg": "...", "key_id": "...",
   "value": "..."} ueber denselben kanonischen Inhalt wie der Patch-Hash.
-  Moegliche Verfahren spaeter: HMAC-SHA256 (gemeinsamer Schluessel) oder
-  Ed25519. Ist "signature" null, wird nichts geprueft (siehe request.txt).
+  Moegliche Verfahren spaeter: HMAC-SHA256 oder Ed25519 (request.txt).
 
 
 --------------------------------------------------------------------------------
- 5. PATCHDATEI-FORMAT (*.ppatch.json)
+ 5. NORMALFORM (Festlegung der Formatierung fuer die Pruefung)
+--------------------------------------------------------------------------------
+5.1 Grundsaetze
+  N1  Die Normalform enthaelt alles, was die Funktion bestimmt, und
+      nichts anderes.
+  N2  Kommentare fliessen nicht ein (der Funktion untergeordnet).
+  N3  Leerzeichen, Tabs und Umbrueche fliessen nur ein, wenn sie im
+      jeweiligen Format Bedeutung haben (z.B. Python-Einrueckung als
+      Blockstruktur, YAML-Einrueckung, Tabs in Makefiles, Inhalt von
+      Zeichenketten).
+  N4  Inhalte von Zeichenketten bleiben immer unveraendert.
+  N5  Im Zweifel gilt etwas als funktional (lieber eine Abweichung zu
+      viel melden als eine echte Aenderung uebersehen).
+  N6  Jede Normalform hat eine Kennung mit Version ("python-ast/1").
+      Eine Aenderung der Regeln ergibt eine neue Version; alte Patches
+      bleiben mit ihrer Version pruefbar.
+  N7  Die Normalform ist unabhaengig von Betriebssystem, Zeilenenden,
+      Encoding/BOM und Python-Version des Patchers.
+
+5.2 python-ast/1 (Python-Dateien)
+  Grundlage ist der Syntaxbaum (Modul ast), nicht der Text. Damit sind
+  automatisch ohne Bedeutung: Kommentare, Leerzeilen, Leerzeichen
+  innerhalb von Zeilen, Tabs vs. Leerzeichen bei der Einrueckung,
+  Zeilenumbrueche in Klammern, Backslash-Fortsetzungen, Klammerung ohne
+  Wirkung, Anfuehrungszeichen-Art ('a' == "a"), Zahlenschreibweise
+  (0x10 == 16), Zeichenketten-Verkettung ("a" "b" == "ab").
+  Funktional und damit Teil der Normalform:
+    - alle Anweisungen/Ausdruecke, Namen, Werte, Reihenfolge
+    - Decorators
+    - Docstrings (sie sind zur Laufzeit als __doc__ verfuegbar und
+      werden z.B. von argparse-Hilfen genutzt; siehe Offener Punkt O1)
+    - Shebang-Zeile und Encoding-Zeile (bestimmen Interpreter bzw.
+      Dekodierung) - nur fuer Datei und @header
+  Serialisierung (eigene, versionsfeste Ausgabe statt ast.dump, da sich
+  ast.dump zwischen Python-Versionen unterscheidet):
+    - Knoten: Typname(feld=wert,...) in fester Feldreihenfolge
+    - Felder mit None oder leerer Liste werden weggelassen
+      (Unterschiede der Python-Versionen, z.B. type_params ab 3.12)
+    - ignoriert: Positionsangaben, ctx, type_comment, kind
+    - versionsbedingte Knoten werden vereinheitlicht (z.B. Index/
+      ExtSlice aus Python 3.8 -> Form ab 3.9)
+    - Konstanten mit Typkennung: str/bytes/int/float/complex/bool/None
+  Laesst sich eine Datei nicht parsen (Syntaxfehler), wird die Datei
+  abgelehnt; "--canon text" erzwingt notfalls den Text-Adapter.
+
+5.3 text/1 (allgemeine Textdateien, Format unbekannt)
+  Da Kommentarzeichen und Bedeutung von Leerraum unbekannt sind, wird
+  vorsichtig normalisiert (N5):
+    - Zeilenenden -> LF, BOM entfernt
+    - Leerzeichen/Tabs am Zeilenende entfernt
+    - Leerzeilen am Dateiende entfernt
+  Einrueckung, Leerzeilen im Text und Kommentare bleiben funktional.
+  Ueber ".patcher/config.json" je Dateimuster einstellbar (z.B.
+  Kommentarzeichen "#" -> reine Kommentarzeilen ignorieren).
+
+5.4 Spaetere Normalformen (je Adapter, nach Bedarf)
+  json/1      parsen, Schluessel sortiert, kompakt ausgeben
+  ini/1       Abschnitte/Schluessel/Werte getrimmt, Kommentare entfernt
+  yaml/1      parsen (Einrueckung ist funktional)
+  shell/1     Kommentare entfernt, Leerraum zwischen Woertern
+              vereinheitlicht, Zeilenumbrueche bleiben (Befehlsgrenzen)
+  c/1, js/1   Tokenfolge ohne Kommentare und Leerraum; bei js bleiben
+              Umbrueche wo sie Bedeutung haben (automatische Semikolons)
+  make/1      Tabs am Zeilenanfang funktional
+
+5.5 Was beim Schreiben passiert (A9)
+  - Geschrieben wird exakt der Text aus dem Patch ("new"), nicht die
+    Normalform.
+  - Angepasst werden nur: Zeilenenden/BOM/Encoding an die Zieldatei und
+    die Einrueckungstiefe einer Einheit an ihre Position (Methode in
+    Klasse). Die Einrueckungsart (Tabs/Leerzeichen) der Zieldatei wird
+    uebernommen. Nach jeder Anpassung wird der Funktions-Hash erneut
+    geprueft - eine Anpassung kann die Funktion nie unbemerkt aendern.
+  - Weicht die Zieldatei nur kosmetisch ab (gleicher hash, anderer
+    text_hash), wird der Patch angewendet und ein Hinweis ausgegeben.
+    Kommentare INNERHALB einer ersetzten Einheit werden durch die des
+    Patches ersetzt; der vorherige exakte Text liegt im Journal und wird
+    beim Rollback exakt wiederhergestellt.
+
+
+--------------------------------------------------------------------------------
+ 6. PATCHDATEI-FORMAT (*.ppatch.json)
 --------------------------------------------------------------------------------
 JSON, UTF-8, eingerueckt (2 Leerzeichen) fuer Lesbarkeit und saubere Diffs.
-Textinhalte werden als Liste von Zeilen (ohne Zeilenende) gespeichert -
-gut lesbar, kein Escaping von Zeilenumbruechen, Zeilenende-unabhaengig.
+Textinhalte werden als Liste von Zeilen (ohne Zeilenende) gespeichert.
 Binaerinhalte als Base64-String im Feld "base64".
 
 Beispiel:
@@ -178,8 +271,11 @@ Beispiel:
         "path": "src/convert.py",
         "action": "modify",
         "adapter": "python",
+        "canon": "python-ast/1",
         "hash_before": "sha256:aa11...",
         "hash_after":  "sha256:ff99...",
+        "text_hash_before": "sha256:1a2b...",
+        "text_hash_after":  "sha256:3c4d...",
         "changes": [
           {
             "op": "replace_unit",
@@ -224,31 +320,32 @@ Kopffelder:
   match         Standard-Pruefmodus dieses Patches (file|state|unit).
   state_before / state_after     optional, Pflicht bei match=state.
   files         Liste der Dateieintraege (Reihenfolge = Ausfuehrung).
-  signature     null (vorgesehen, Abschnitt 4.9).
-  patch_hash    Pflicht (Abschnitt 4.8).
+  signature     null (vorgesehen, Abschnitt 4.8).
+  patch_hash    Pflicht (Abschnitt 4.7).
 
 Dateieintrag:
   path          Relativer Pfad, immer mit "/" (auch unter Windows).
   action        add | delete | modify | replace | rename
-  adapter       Adapter fuer Einheiten (python, text, ...). Standard ueber
-                Dateiendung (Abschnitt 7.3).
+  adapter       Adapter (python, text, ...). Standard ueber Dateiendung.
+  canon         Normalform inkl. Version (z.B. "python-ast/1", "text/1").
   to            nur bei rename: neuer Pfad.
   binary        true bei Binaerdateien (nur add/delete/replace).
-  hash_before   null bei add.
-  hash_after    null bei delete.
+  hash_before / hash_after             Funktions-Hash (null bei add/delete)
+  text_hash_before / text_hash_after   Text-Hash (informativ, --exact)
   old / new     bei add/delete/replace: ganzer Inhalt (Zeilen bzw. base64).
   final_newline bei add/replace: endet die Datei mit Zeilenumbruch.
-  changes       nur bei modify: Liste der Aenderungen (Abschnitt 6).
+  changes       nur bei modify: Liste der Aenderungen (Abschnitt 7).
 
 Da alte UND neue Inhalte enthalten sind, ist jeder Patch IN SICH
-UMKEHRBAR: Rollback ist auch ohne Backup allein aus der Patchdatei
-moeglich.
+UMKEHRBAR (funktional): Rollback ist auch ohne Journal allein aus der
+Patchdatei moeglich. Mit Journal wird zusaetzlich der exakte Text
+(inkl. Kommentare) wiederhergestellt.
 
 
 --------------------------------------------------------------------------------
- 6. AENDERUNGEN (changes) UND EINHEITEN
+ 7. AENDERUNGEN (changes) UND EINHEITEN
 --------------------------------------------------------------------------------
-6.1 Operationen innerhalb einer Datei (action = modify)
+7.1 Operationen innerhalb einer Datei (action = modify)
   replace_unit   Einheit ersetzen (old -> new). Umbenennen einer Funktion
                  = replace_unit mit neuem Namen im new-Block.
   add_unit       Neue Einheit einfuegen. "position":
@@ -256,13 +353,13 @@ moeglich.
                    "start" (direkt nach @header), "end",
                    "end-of:<klasse>"
   delete_unit    Einheit entfernen (old bleibt im Patch).
-  replace_text   Textblock ersetzen: old muss GENAU EINMAL in der Datei
-                 vorkommen, sonst Konflikt. Fuer jede Textdatei nutzbar.
+  replace_text   Textblock ersetzen. Der Block wird ueber die Normalform
+                 gesucht und muss GENAU EINMAL vorkommen, sonst Konflikt.
   insert_text    Text vor/nach einem eindeutigen Anker einfuegen
                  ("anchor": [Zeilen], "position": "before"|"after").
   Zeilennummern werden bewusst nicht verwendet (zu fehleranfaellig).
 
-6.2 Unit-Adressierung (allgemein, adapterabhaengig)
+7.2 Unit-Adressierung (allgemein, adapterabhaengig)
   name                 Funktion/Klasse auf oberster Ebene
   Klasse.methode       Methode
   aeussere.innere      verschachtelte Funktion
@@ -271,18 +368,20 @@ moeglich.
   @header              Kopf der Datei
   Nicht gefunden oder nicht eindeutig -> Konflikt, Abbruch.
 
-6.3 Umfang einer Einheit (Python-Adapter, sinngemaess fuer andere)
+7.3 Umfang einer Einheit (Python-Adapter, sinngemaess fuer andere)
+  Der Umfang bestimmt, welcher Text beim Ersetzen/Loeschen/Verschieben
+  mitgenommen wird. In den Hash fliesst davon nur die Normalform ein.
   @header     Beginnt in Zeile 1 und umfasst, sofern vorhanden:
-                - Shebang ("#!...")
-                - Encoding-Zeile ("# -*- coding: ... -*-")
-                - den zusammenhaengenden Kommentarblock am Dateianfang
-                - den Modul-Docstring
-              Endet vor der ersten Zeile, die nicht dazugehoert
-              (Import, Code, Leerzeile nach dem Kommentarblock ohne
-              folgenden Docstring). Imports gehoeren NICHT zum Header.
+                - Shebang ("#!...")             -> funktional
+                - Encoding-Zeile                -> funktional
+                - zusammenhaengender Kommentarblock am Dateianfang
+                                                -> nicht funktional
+                - Modul-Docstring               -> funktional (O1)
+              Endet vor der ersten Zeile, die nicht dazugehoert.
+              Imports gehoeren NICHT zum Header.
   Funktion/Klasse/Methode:
                 - zusammenhaengende Kommentarzeilen DIREKT darueber
-                  (ohne Leerzeile dazwischen), gleiche Einrueckung
+                  (ohne Leerzeile dazwischen, gleiche Einrueckung)
                 - alle Decorators
                 - Definition bis Ende des Rumpfs (ast: end_lineno)
               Vorrang: Was zum @header gehoert, gehoert nie zu einer
@@ -293,33 +392,36 @@ moeglich.
 
 
 --------------------------------------------------------------------------------
- 7. ADAPTER (Sprachen und Formate)
+ 8. ADAPTER (Sprachen und Formate)
 --------------------------------------------------------------------------------
-7.1 Schnittstelle (jeder Adapter)
+8.1 Schnittstelle (jeder Adapter)
   name            Kennung, z.B. "python"
+  canon           Kennung der Normalform, z.B. "python-ast/1"
   extensions      zugeordnete Dateiendungen
-  list_units(text)          -> Liste aller Einheiten (fuer "show"/"create")
+  normalize(text)           -> Normalform (Grundlage des hash)
+  normalize_unit(text, unit)-> Normalform einer Einheit
+  list_units(text)          -> Liste aller Einheiten (fuer show/units/create)
   locate(text, unit)        -> (start, ende, quelltext) oder Fehler
   insert(text, position, quelltext) -> neuer Text
   validate(text)            -> Syntaxpruefung nach der Aenderung
-                               (optional; Python: ast.parse)
+                               (Python: ast.parse)
 
-7.2 Version 1.0
-  python   ueber Modul ast (Funktionen, Klassen, Methoden, @header)
-  text     jede Textdatei; nur replace_text/insert_text und ganze Datei
+8.2 Erste Version
+  python   Modul ast; Funktionen, Klassen, Methoden, @header; python-ast/1
+  text     jede Textdatei; replace_text/insert_text und ganze Datei; text/1
 
-7.3 Zuordnung
+8.3 Zuordnung
   Standard ueber Dateiendung, ueberschreibbar im Dateieintrag ("adapter")
   oder global in ".patcher/config.json" ("adapters": {"*.cfg": "ini"}).
 
-7.4 Spaetere Adapter (nach Bedarf, siehe request.txt)
-  shell (Funktionen), c/c++/java/js (Klammerbloecke), ini (Abschnitt.
-  Schluessel), json/yaml (Pfad wie "server.port"), xml (XPath-aehnlich),
-  markdown (Ueberschriften). Neue Adapter erfordern keine Formataenderung.
+8.4 Spaetere Adapter (nach Bedarf, siehe request.txt)
+  shell, c/c++/java/js, ini, json/yaml, xml, markdown, make - jeweils mit
+  eigener Normalform (Abschnitt 5.4). Keine Aenderung am Patchformat
+  noetig.
 
 
 --------------------------------------------------------------------------------
- 8. ENTWURF (fuer "seal")
+ 9. ENTWURF (fuer "seal")
 --------------------------------------------------------------------------------
 Ein Entwurf ist ein Patch ohne Hashes und ohne old-Inhalte. Minimal:
 
@@ -339,11 +441,12 @@ Ein Entwurf ist ein Patch ohne Hashes und ohne old-Inhalte. Minimal:
 "patcher.py seal entwurf.json --base PROJEKT -o 0003-udf.ppatch.json"
 liest den Ist-Stand aus PROJEKT, ergaenzt old-Inhalte und alle Hashes,
 wendet den Patch probeweise im Speicher an (inkl. validate) und schreibt
-den fertigen Patch inkl. patch_hash.
+den fertigen Patch inkl. patch_hash. Aendert ein Entwurf nur Kommentare
+oder Leerraum (Funktions-Hash vorher == nachher), weist seal darauf hin.
 
 
 --------------------------------------------------------------------------------
- 9. ARBEITSABLAUF
+10. ARBEITSABLAUF
 --------------------------------------------------------------------------------
   Entwicklungsumgebung                       Zielumgebung
   --------------------                       ------------
@@ -358,38 +461,41 @@ den fertigen Patch inkl. patch_hash.
   "create" vergleicht zwei Staende. Fuer Dateien mit Unit-Adapter werden
   geaenderte/neue/geloeschte Einheiten erkannt (replace/add/delete_unit),
   restliche Unterschiede als replace_text. Ohne Adapter: replace_text
-  bzw. ganze Datei. Hashes werden NIE von Hand geschrieben.
+  bzw. ganze Datei. Rein kosmetische Unterschiede werden mit
+  "--include-cosmetic" uebernommen, sonst nur gemeldet.
+  Hashes werden NIE von Hand geschrieben.
 
 
 --------------------------------------------------------------------------------
-10. JOURNAL / ROLLBACK
+11. JOURNAL / ROLLBACK
 --------------------------------------------------------------------------------
 Verzeichnis ".patcher/" in der Projektwurzel:
 
   .patcher/
-    config.json          Einstellungen (Adapter-Zuordnung, Encoding ...)
-    state.json           Zustands-Hash + Datei-Hashes
+    config.json          Einstellungen (Adapter-Zuordnung, Normalform ...)
+    state.json           je Datei: hash, text_hash; Zustands-Hash
     history.json         Stapel der angewendeten Patches: ID, Zeitpunkt,
                          patch_hash, Zustand vorher/nachher
     patches/<ID>.ppatch.json   Kopie jedes angewendeten Patches
-    backups/<ID>/        Originaldateien vor dem Patch (Sicherheitsnetz)
+    backups/<ID>/        exakte Originaldateien vor dem Patch
     txn.json             nur waehrend einer laufenden Transaktion
 
 Rollback:
   - Standard: nur der zuletzt angewendete Patch (LIFO).
   - "rollback --to <ID>": alle Patches nach <ID>, neuester zuerst.
-  - Ablauf: Patch wird umgekehrt (old <-> new, add <-> delete,
-    Hashes vorher/nachher getauscht, Aenderungen in umgekehrter
-    Reihenfolge) und mit derselben Hash-Pruefung angewendet. Weicht der
-    Ist-Stand vom Stand nach dem Patch ab -> Abbruch.
-  - "--from-backup": stellt die gesicherten Originaldateien wieder her
-    (Notfall).
+  - Ablauf: Pruefung, dass der Ist-Stand funktional dem Stand nach dem
+    Patch entspricht (hash_after). Dann werden die exakten
+    Originaldateien aus backups/<ID>/ zurueckgeschrieben (inkl.
+    Kommentare und Formatierung). Weicht der Ist-Stand ab -> Abbruch.
+  - Fehlt das Journal, kann der Patch umgekehrt angewendet werden
+    ("invert"): old <-> new, add <-> delete, Hashes getauscht,
+    Aenderungen in umgekehrter Reihenfolge - funktional exakt.
   - "invert PATCH -o UNDO": erzeugt einen eigenstaendigen
     Rueckwaerts-Patch, z.B. zur Weitergabe.
 
 
 --------------------------------------------------------------------------------
-11. ATOMARITAET / FEHLERSICHERHEIT
+12. ATOMARITAET / FEHLERSICHERHEIT
 --------------------------------------------------------------------------------
 apply laeuft in drei Phasen:
   1. PRUEFEN    patch_hash, (signature), requires, doppelte ID, alle
@@ -408,28 +514,31 @@ backups/<ID>/ wiederherstellt. Dateirechte bleiben erhalten.
 
 
 --------------------------------------------------------------------------------
-12. BEFEHLE (KOMMANDOZEILE)
+13. BEFEHLE (KOMMANDOZEILE)
 --------------------------------------------------------------------------------
   patcher.py doctor   [-p PROJEKT]           Umgebung pruefen: Python-
                       Version, Betriebssystem, Schreibrechte, Encoding,
-                      Zeilenenden im Projekt (LF/CRLF/gemischt)
+                      Zeilenenden (LF/CRLF/gemischt), parsebare Dateien
   patcher.py init     [-p PROJEKT]           Journal anlegen, Ist-Stand
                                              als Ausgangszustand speichern
   patcher.py status   [-p PROJEKT]           Angewendete Patches, Zustand
-  patcher.py verify   [-p PROJEKT]           Ist-Stand gegen state.json
+  patcher.py verify   [-p PROJEKT]           Ist-Stand gegen state.json;
+                      meldet funktionale Abweichungen (Fehler) und
+                      kosmetische Abweichungen (Hinweis) getrennt
   patcher.py units    DATEI                  Einheiten einer Datei + Hashes
+  patcher.py canon    DATEI [--unit U]       Normalform anzeigen (Diagnose)
   patcher.py create   ALT NEU -o DATEI [--id ID --title T]
-                      [--level file|unit|text]
+                      [--level file|unit|text] [--include-cosmetic]
   patcher.py seal     ENTWURF --base PROJEKT -o DATEI
   patcher.py show     PATCH                  Lesbare Zusammenfassung / Diff
   patcher.py check    PATCH [-p PROJEKT]     Probelauf, aendert nichts
-  patcher.py apply    PATCH [-p PROJEKT] [--match file|state|unit]
-  patcher.py rollback [-p PROJEKT] [--to ID] [--from-backup]
+  patcher.py apply    PATCH [-p PROJEKT] [--match file|state|unit] [--exact]
+  patcher.py rollback [-p PROJEKT] [--to ID]
   patcher.py invert   PATCH -o DATEI
   patcher.py log      [-p PROJEKT]
   patcher.py recover  [-p PROJEKT]
   Allgemein: -v (ausfuehrlich), -q (still), -y (keine Rueckfragen),
-             --allow-mixed-eol
+             --allow-mixed-eol, --version
 
 Exit-Codes:
   0 OK | 1 Bedienfehler | 2 Patch ungueltig/beschaedigt
@@ -438,53 +547,73 @@ Exit-Codes:
 
 
 --------------------------------------------------------------------------------
-13. ARCHITEKTUR (geplant)
+14. ARCHITEKTUR (geplant)
 --------------------------------------------------------------------------------
-Eigenes Repository "pypatcher". Ein Paket mit einem Einstiegsskript:
+Ein Paket mit einem Einstiegsskript:
 
   patcher.py              Einstieg (CLI)
   pypatcher/
-    hashing.py            Hashes, Normalisierung, Text/Binaer-Erkennung
+    __init__.py           __version__
+    hashing.py            Hashes, Text/Binaer-Erkennung
     fileio.py             Lesen/Schreiben mit Erhalt von EOL/BOM/Encoding,
                           atomares Schreiben
     patchfile.py          JSON-Format lesen/schreiben/validieren,
                           patch_hash, (signature)
     adapters/
       base.py             Adapter-Schnittstelle + Registry
-      python.py           Python-Adapter (ast)
-      text.py             Text-Adapter
+      python.py           Python-Adapter + Normalform python-ast/1
+      text.py             Text-Adapter + Normalform text/1
     ops.py                Operationen inkl. apply() und invert()
     engine.py             Transaktion: pruefen, sichern, schreiben
     journal.py            .patcher/-Verwaltung, Historie, Rollback, Recover
     diff.py               "create": Baumvergleich, Einheiten-Erkennung
     cli.py                argparse, Befehle, Ausgaben
-  tests/                  unittest (Standardbibliothek)
+  tests/                  unittest (Standardbibliothek); insbesondere
+                          Testfaelle zur Normalform: Kommentar-/
+                          Leerraum-Aenderung -> gleicher hash;
+                          jede funktionale Aenderung -> anderer hash.
 
 Fuer die Weitergabe kann spaeter optional eine Einzeldatei bzw. ein
 .pyz-Archiv (zipapp) erzeugt werden.
 
 
 --------------------------------------------------------------------------------
-14. GRENZEN / BEWUSSTE NICHT-ZIELE
+15. GRENZEN / BEWUSSTE NICHT-ZIELE / OFFENE PUNKTE
 --------------------------------------------------------------------------------
   - Kein Ersatz fuer git; keine automatische Zusammenfuehrung (Merge).
-    Bei Konflikt wird abgebrochen und gemeldet.
-  - Version 1.0: Einheiten nur fuer Python; andere Dateien ueber
+  - Kein Code-Formatierer: der Patcher formatiert nie um (A9).
+  - Erste Version: Einheiten nur fuer Python; andere Dateien ueber
     Text-Operationen bzw. ganze Datei.
   - Patches bauen aufeinander auf; Rollback in umgekehrter Reihenfolge.
   - Patch-Hash schuetzt gegen Beschaedigung, nicht gegen absichtliche
     Manipulation (dafuer spaeter "signature").
+  Offene Punkte:
+  O1  Docstrings: derzeit funktional (Teil des Hashes), da sie zur
+      Laufzeit genutzt werden koennen. Alternative: wie Kommentare
+      behandeln (Option "docstrings": "ignore").
 
 
 --------------------------------------------------------------------------------
-15. DOKUMENTATIONSREGELN
+16. DOKUMENTATIONSREGELN UND VERSIONIERUNG
 --------------------------------------------------------------------------------
   readme.txt     Kurzanleitung fuer Anwender (Installation, Befehle,
                  Beispiele). Bei jeder Bedienungsaenderung anpassen.
-  changelog.txt  Jede Aenderung mit Version und Datum, neueste oben.
+  changelog.txt  Jede Aenderung mit Version (bzw. "Konzeptphase") und
+                 Datum, neueste oben.
   request.txt    Wuensche/Ideen fuer kuenftige Aenderungen mit Status
-                 (OFFEN / GEPLANT / IN ARBEIT / ERLEDIGT x.y / ABGELEHNT).
+                 (OFFEN / GEPLANT / IN ARBEIT / ERLEDIGT x.y.z / ABGELEHNT).
   manifest.txt   Diese Datei: vollstaendige Beschreibung. Bei jeder
-                 Aenderung an Format, Befehlen oder Verhalten anpassen.
-  Versionierung: MAJOR.MINOR.PATCH; Aenderung am Patchformat erhoeht die
-  Formatversion ("pypatcher/<n>") und die MAJOR-Version.
+                 Aenderung an Format, Normalform, Befehlen oder Verhalten
+                 anpassen.
+
+  Versionierung:
+  - Konzeptphase: keine Versionsnummern.
+  - Schema MAJOR.MINOR.PATCH, Beginn mit 0.0.1.
+  - Vorabstaende bis zur Freigabe: 0.0.1-pre1, 0.0.1-pre2, ... (aufsteigend).
+  - Freigabe: Suffix entfaellt (0.0.1). Danach naechste Version wieder
+    mit -pre1 beginnend (z.B. 0.0.2-pre1).
+  - Version steht in pypatcher/__init__.py (__version__), wird mit
+    --version ausgegeben und in jeden erzeugten Patch eingetragen
+    ("generator": "pypatcher 0.0.1-pre1").
+  - Formatversion ("pypatcher/<n>") und Normalform-Versionen
+    ("python-ast/<n>") werden davon unabhaengig gezaehlt.

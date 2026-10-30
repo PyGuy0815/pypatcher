@@ -1,29 +1,38 @@
 PYPATCHER - CHANGELOG
 =====================
-Format: Version (Datum) - Aenderungen. Neueste Version oben.
+Format: Version (Datum) - Aenderungen. Neueste oben.
+Versionen: siehe manifest.txt Abschnitt 16 (Beginn 0.0.1-pre1).
 
-0.2.0 (2026-10-30)
-  - Konzept ueberarbeitet nach Klaerung der offenen Punkte
-    (manifest.txt Abschnitt 2 "Entscheidungen"):
-    - Patchformat jetzt JSON (*.ppatch.json), Textinhalte als Zeilenlisten,
-      Patch-Hash ueber kanonisches JSON.
-    - Aenderungen je Datei gesammelt; Pruefkette mit Zwischen-Hashes fuer
-      jede einzelne Aenderung (Abschnitt 4.6). Standard-Pruefmodus "file".
-    - Kommentare direkt ueber Funktionen gehoeren zur Einheit; Datei-Kopf
-      ist eigene Einheit "@header" (Abschnitt 6.3).
-    - Zeilenenden: Hash ueber normalisierten Text, EOL/BOM/Encoding der
-      Zieldatei bleiben erhalten; neuer Befehl "doctor" prueft vorab die
-      Umgebung.
-    - Adapter-Schnittstelle fuer beliebige Sprachen/Formate; 1.0 mit
-      Python- und Text-Adapter. Neuer Befehl "units".
-    - Signatur im Format vorgesehen (Feld "signature"), nicht umgesetzt.
-    - Architektur als Paket (pypatcher/) statt Einzeldatei.
+Konzeptphase (ohne Version)
+---------------------------
+2026-10-30  Konzept Stufe 3
+  - Normalform festgelegt (manifest.txt Abschnitt 5): gepruefte Hashes
+    bewerten nur die Funktion. Kommentare und unwichtige Leerzeichen/
+    Tabs/Umbrueche fliessen je nach Format nicht ein.
+    Python: Normalform ueber den Syntaxbaum (python-ast/1), Text: text/1.
+  - Zwei Hash-Arten: "hash" (Funktion, wird geprueft) und "text_hash"
+    (exakter Text, protokolliert; streng nur mit --exact).
+  - Grundsatz: der Patcher formatiert nie um und veraendert nie die
+    Funktion; Rollback stellt den exakten Text aus dem Journal her.
+  - Neuer Befehl "canon" (Normalform anzeigen), Option "--exact",
+    "create --include-cosmetic".
+  - Versionierung festgelegt: keine Versionen im Konzept, Beginn mit
+    0.0.1, Vorabstaende -pre1, -pre2, ...
+  - Offener Punkt O1: Docstrings funktional oder wie Kommentare?
 
-0.1.0 (2026-10-30)
-  - Erstes Konzept erstellt (manifest.txt): Patchformat, Hash-Konzept
-    (Datei, Einheit, Zustand, Patch), Operationen, Journal, Rollback,
-    Atomaritaet, Befehle, Exit-Codes, Architektur.
+2026-10-30  Konzept Stufe 2
+  - Patchformat JSON (*.ppatch.json), Textinhalte als Zeilenlisten,
+    Patch-Hash ueber kanonisches JSON.
+  - Aenderungen je Datei gesammelt; Pruefkette mit Zwischen-Hashes.
+  - Kommentare direkt ueber Funktionen gehoeren zur Einheit; Datei-Kopf
+    ist eigene Einheit "@header".
+  - Zeilenenden (CRLF) werden erkannt und beibehalten; Befehl "doctor".
+  - Adapter-Schnittstelle fuer beliebige Sprachen/Formate.
+  - Signatur im Format vorgesehen, nicht umgesetzt.
+
+2026-10-30  Konzept Stufe 1
+  - Erstes Konzept: Patchformat, Hash-Konzept, Operationen, Journal,
+    Rollback, Atomaritaet, Befehle, Exit-Codes, Architektur.
   - Dokumentation angelegt: readme.txt, changelog.txt, request.txt,
     manifest.txt.
-  - Ablageort festgelegt: eigenes privates Repository "pypatcher"
-    (nicht in simple_converters).
+  - Eigenes privates Repository "pypatcher".
