@@ -3,11 +3,13 @@ PYPATCHER - CHANGELOG
 Format: Version (Datum) - Aenderungen. Neueste oben.
 Versionen: siehe manifest.txt Abschnitt 16.
 
-0.0.3-pre1 (in Arbeit)
-----------------------
+0.0.3 (2026-10-31) - Freigabe
+-----------------------------
   Umfang 0.0.3: TypeScript/JSX (R016), Java (R032), Visual Basic
   (VB.NET und VBA/VB6, R033), Lua (R034), JSON mit Kommentaren (R024),
-  Antworten aus einer Datei (--answers, R020).
+  Antworten aus einer Datei (--answers, R020). Dazu aus drei weiteren
+  Praxistests: Sicherheit (.git, symbolische Links), JSON-Ausgabe,
+  Verzeichnis-Befehle, doctor, ignore, Abbruch-Tests und Korrekturen.
 
   TypeScript, TSX, JSX (R016):
   - mode ts (*.ts, *.mts, *.cts), tsx (*.tsx), jsx (*.jsx) auf Basis des

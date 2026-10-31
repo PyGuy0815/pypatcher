@@ -1,6 +1,6 @@
 # pypatcher
 
-Hash-gepruefter Patcher fuer Projekte (Version 0.0.3-pre1, Python >= 3.8, nur
+Hash-gepruefter Patcher fuer Projekte (Version 0.0.3, Python >= 3.8, nur
 Standardbibliothek).
 
 Aenderungen werden als kompakte, lesbare Patchdatei (`*.ppatch`)

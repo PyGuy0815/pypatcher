@@ -25,7 +25,7 @@ R008  ERLEDIGT (0.0.1) Weitergabe als Einzeldatei: patcher.py bundle
                 -> patcher.pyz.
 R009  ERLEDIGT (0.0.1) Profil-Option "docstrings": "ignore" (nur
                 ausdruecklich; Standard ist keep, da programmrelevant).
-R010  IN ARBEIT  Befehle create (ERLEDIGT 0.0.1), doctor (ERLEDIGT 0.0.3-pre1), canon,
+R010  IN ARBEIT  Befehle create (ERLEDIGT 0.0.1), doctor (ERLEDIGT 0.0.3), canon,
                 invert (folgen; invert nutzt die Sicherung im Journal,
                 da der Patch keinen alten Code enthaelt).
 R011  OFFEN     copy/move auch fuer Textbloecke (copy_text/move_text).
@@ -39,7 +39,7 @@ R014  ERLEDIGT (0.0.1) Kompaktes Patchformat: Befehlsliste +
                 mit begrenzter Zeichenzahl.
 R015  ERLEDIGT (0.0.1) Optionale Komprimierung (--compress, z64);
                 Befehlsliste bleibt lesbar.
-R016  ERLEDIGT (0.0.3-pre1) TypeScript (.ts, .tsx) und JSX auf Basis des JS-Tokenizers
+R016  ERLEDIGT (0.0.3) TypeScript (.ts, .tsx) und JSX auf Basis des JS-Tokenizers
                 (hinten angestellt).
 R017  ERLEDIGT (0.0.2) JS: Funktionen innerhalb von Funktionen und Objekt-Methoden
                 als Einheiten.
@@ -47,7 +47,7 @@ R018  ERLEDIGT (0.0.1) Ablaufsteuerung im Patch (PRINT, INPUT,
                 IF/ELIF/ELSE/END, LABEL/GOTO, SET, EXIT).
 R019  ERLEDIGT (0.0.1) KI-Nutzung: Befehl run, Entwurfsteile ohne
                 Hash, Prompt ki-prompt.txt.
-R020  ERLEDIGT (0.0.3-pre1) run/apply/check: Antworten aus einer Datei lesen (--answers), z.B. fuer
+R020  ERLEDIGT (0.0.3) run/apply/check: Antworten aus einer Datei lesen (--answers), z.B. fuer
                 wiederholte Anwendung in mehreren Umgebungen.
 R021  OFFEN     Weitere Kodierungen bei Bedarf (z.B. z85, lzma) - als neue
                 Block-Kennung und USES-Funktion, ohne Formatbruch.
@@ -56,7 +56,7 @@ R022  OFFEN     Token-sparende Entwurfsbefehle fuer KIs (z.B. Ersetzen
                 Praxis Bedarf zeigt.
 R023  OFFEN     Weitere Sprachen der C-Familie auf Basis von clike.py:
                 C#, Go, PHP, Rust (je nach Bedarf); Java: R032.
-R024  ERLEDIGT (0.0.3-pre1) JSON mit Kommentaren (JSONC, z.B. tsconfig/VS-Code-
+R024  ERLEDIGT (0.0.3) JSON mit Kommentaren (JSONC, z.B. tsconfig/VS-Code-
                 Einstellungen); JSON5 offen als R035.
 R025  ERLEDIGT (0.0.2) Aus dem Praxistest mit einer anderen KI:
                 Standard-Ignores (.patcherignore wird nie verwaltet,
@@ -88,39 +88,39 @@ R031  ERLEDIGT (0.0.2) Vierter Praxistest (KI mit Prompt, Chat-Entwuerfe
                 Block; Meldung "nur innerhalb eines FILE-Befehls" mit Zeile
                 und Korrektur; "rollback_on_failure" in config.json;
                 Prompt: FILE-Pflicht, mehrere Einheiten, REQ, Rollback.
-R032  ERLEDIGT (0.0.3-pre1) Java (*.java): Klassen, Interfaces, Enums, Records, Methoden,
+R032  ERLEDIGT (0.0.3) Java (*.java): Klassen, Interfaces, Enums, Records, Methoden,
                 Konstruktoren, innere Klassen ("Klasse.methode",
                 "Aussen.Innen.methode", Ueberladungen name#1, name#2);
                 Annotationen und Javadoc gehoeren zur Einheit. Basis
                 clike.py.
-R033  ERLEDIGT (0.0.3-pre1) Visual Basic: VB.NET (*.vb) sowie VBA/VB6 (*.bas, *.cls,
+R033  ERLEDIGT (0.0.3) Visual Basic: VB.NET (*.vb) sowie VBA/VB6 (*.bas, *.cls,
                 *.frm): Sub, Function, Property, Class, Module, Structure
                 als Einheiten ("Modul.Prozedur"); Bloecke ueber End Sub /
                 End Function ..., Gross-/Kleinschreibung der Schluessel-
                 woerter egal, Kommentare mit ' bzw. REM, Zeilenfortsetzung
                 " _". VBA-Exporte: Kopfzeilen (VERSION, Attribute ...)
                 als @header.
-R034  ERLEDIGT (0.0.3-pre1) Lua (*.lua): function name / local function / M.name =
+R034  ERLEDIGT (0.0.3) Lua (*.lua): function name / local function / M.name =
                 function / function M:methode als Einheiten ("M.name",
                 "M:methode"), Bloecke ueber end, Kommentare -- und
                 --[[ ]], lange Zeichenketten [[ ]] bzw. [==[ ]==].
 R035  OFFEN     JSON5 (Schluessel ohne Anfuehrungszeichen, einfache
                 Anfuehrungszeichen, Hex-Zahlen ...).
-R036  ERLEDIGT (0.0.3-pre1) Fuenfter Praxistest: Leerzeichen-Einrueckung in
+R036  ERLEDIGT (0.0.3) Fuenfter Praxistest: Leerzeichen-Einrueckung in
                 Suchbloecken (TEXT/TINS/TDEL) wie in Einfuegebloecken;
                 Hinweis bei Pfaden mit Leerzeichen; Hinweis bei Patches auf
                 ignorierte Dateien.
-R037  ERLEDIGT (0.0.3-pre1) Sechster Praxistest: .git/.hg/.svn gesperrt, keine
+R037  ERLEDIGT (0.0.3) Sechster Praxistest: .git/.hg/.svn gesperrt, keine
                 Pfade ueber symbolische Links, help-Befehl.
-R038  ERLEDIGT (0.0.3-pre1) Vorschlaege aus dem sechsten Praxistest: --json-Ausgabe fuer
+R038  ERLEDIGT (0.0.3) Vorschlaege aus dem sechsten Praxistest: --json-Ausgabe fuer
                 check/run (stabile Fehlercodes fuer KIs/Werkzeuge; ERLEDIGT
-                0.0.3-pre1), doctor
+                0.0.3), doctor
                 (siehe R010), "ignore explain PFAD", Verzeichnis-Befehle
                 (DMOVE/DCOPY/DDEL mit versiegelter Dateiliste; ERLEDIGT
-                0.0.3-pre1), Fehler-
+                0.0.3), Fehler-
                 Injektionstests fuer Abbrueche beim Schreiben (alle
-                ERLEDIGT 0.0.3-pre1).
-R039  ERLEDIGT (0.0.3-pre1) Siebter Praxistest (Grossputz mit MOVE/DMOVE): mitverschobener
+                ERLEDIGT 0.0.3).
+R039  ERLEDIGT (0.0.3) Siebter Praxistest (Grossputz mit MOVE/DMOVE): mitverschobener
                 Bytecode (__pycache__) ging verloren; ignorierte Dateien
                 im Patch erzeugten Dauerhinweise; Hinweise zu
                 unverwalteten Dateien gebuendelt; Pfade bei "ignore"
