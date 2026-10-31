@@ -88,7 +88,7 @@ R031  ERLEDIGT (0.0.2) Vierter Praxistest (KI mit Prompt, Chat-Entwuerfe
                 Block; Meldung "nur innerhalb eines FILE-Befehls" mit Zeile
                 und Korrektur; "rollback_on_failure" in config.json;
                 Prompt: FILE-Pflicht, mehrere Einheiten, REQ, Rollback.
-R032  OFFEN     Java (*.java): Klassen, Interfaces, Enums, Records, Methoden,
+R032  ERLEDIGT (0.0.3-pre1) Java (*.java): Klassen, Interfaces, Enums, Records, Methoden,
                 Konstruktoren, innere Klassen ("Klasse.methode",
                 "Aussen.Innen.methode", Ueberladungen name#1, name#2);
                 Annotationen und Javadoc gehoeren zur Einheit. Basis

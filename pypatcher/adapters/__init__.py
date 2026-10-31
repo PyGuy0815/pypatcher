@@ -3,7 +3,7 @@
 from ..hashing import sha256_bytes, sha256_text
 from ..profile import profile_id
 from .base import ParseError
-from .clike import CAdapter, CppAdapter
+from .clike import CAdapter, CppAdapter, JavaAdapter
 from .css import CssAdapter, ScssAdapter
 from .js import JsAdapter, JsxAdapter, TsAdapter, TsxAdapter
 from .jsondata import JsonAdapter
@@ -14,7 +14,7 @@ from .text import TextAdapter
 ADAPTERS = {"text": TextAdapter(), "python": PythonAdapter(), "js": JsAdapter(),
             "css": CssAdapter(), "scss": ScssAdapter(), "html": HtmlAdapter(),
             "xml": XmlAdapter(), "c": CAdapter(), "cpp": CppAdapter(), "json": JsonAdapter(),
-            "ts": TsAdapter(), "tsx": TsxAdapter(), "jsx": JsxAdapter()}
+            "ts": TsAdapter(), "tsx": TsxAdapter(), "jsx": JsxAdapter(), "java": JavaAdapter()}
 PY = ADAPTERS["python"]
 
 __all__ = ["ADAPTERS", "PY", "ParseError", "get", "file_hash", "unit_hash", "text_hash"]

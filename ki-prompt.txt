@@ -57,6 +57,9 @@ sichert vorher und kann alles zuruecknehmen.
    HTML/XML: #id, sonst Pfad mit Tag, Klassen, Nummer:
            html/body/main/div.card[2]
    C/C++:  name, struct/class-Name, Klasse::methode, ns::Klasse::methode
+   Java:   Klasse, Klasse.methode, Klasse.Innen.methode; Ueberladungen
+           name#1, name#2 (Reihenfolge in der Datei); Annotationen gehoeren
+           zur Methode
    JSON:   Pfad aus Schluesseln/Indizes, z.B. server/port, plugins/0
            (Kommas beim Einfuegen/Loeschen richtet das Programm)
    Andere Dateien (Shell, YAML, Markdown ...): nur TEXT/TINS/TDEL/ADD/REP.

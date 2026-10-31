@@ -1,4 +1,4 @@
-"""mode c / cpp - Sprachen der C-Familie (manifest.txt Abschnitte 5.6.4, 7.2).
+"""mode c / cpp / java - Sprachen der C-Familie (manifest.txt Abschnitte 5.6.4, 7.2).
 
 Normalform c/1: Tokenfolge ohne Kommentare und Leerraum; Zeichenketten,
 Zeichenliterale und Praeprozessorzeilen bleiben (Praeprozessorzeilen mit
@@ -23,6 +23,9 @@ NUMBER_RE = re.compile(r"(?:\d|\.\d)(?:[eEpP][+-]|[\w.']|(?<=\d)'(?=\w))*")
 RAW_RE = re.compile(r'(?:u8|u|U|L)?R"([^ ()\\\t\n]{0,16})\(')
 PREFIX_RE = re.compile(r"(?:u8|u|U|L)(?=['\"])")
 TYPE_WORDS = ("struct", "union", "enum", "class")
+JAVA_PUNCT = sorted(PUNCT + [">>>", ">>>=", "@"], key=len, reverse=True)
+JAVA_TYPES = ("class", "interface", "enum", "record")
+JAVA_CONTAINERS = ("class", "interface", "enum", "record", "annotation")
 CLOSE = {"(": ")", "[": "]", "{": "}"}
 SPACE = " \t\r\f\v"
 
@@ -53,9 +56,11 @@ def _scan_quoted(src, i, quote):
     raise ParseError("Zeichenkette/Zeichen ohne Ende (Position %d)" % i)
 
 
-def tokenize(src):
+def tokenize(src, java=False):
+    """java: kein Praeprozessor, "@" (Annotationen), Text-Bloecke \"\"\"...\"\"\", >>>."""
     tokens, i, n = [], 0, len(src)
     line_start = True
+    punct = JAVA_PUNCT if java else PUNCT
     while i < n:
         c = src[i]
         if c == "\n":
@@ -67,7 +72,20 @@ def tokenize(src):
             i += 1
             continue
         start = i
-        if c == "#" and line_start:
+        if java and src.startswith('"""', i):
+            j = i + 3
+            while True:
+                j = src.find('"""', j)
+                if j < 0:
+                    raise ParseError("Text-Block ohne Ende (Position %d)" % i)
+                if src[j - 1] != "\\" or src[j - 2:j] == "\\\\":
+                    break
+                j += 1
+            i = j + 3
+            tokens.append(Token("str", src[start:i], start, i))
+            line_start = False
+            continue
+        if c == "#" and line_start and not java:
             j = i
             while j < n and src[j] != "\n":
                 if src.startswith("\\\n", j):
@@ -101,7 +119,7 @@ def tokenize(src):
             tokens.append(Token("comment", src[i:j + 2], i, j + 2))
             i = j + 2
             continue
-        raw = RAW_RE.match(src, i)
+        raw = None if java else RAW_RE.match(src, i)
         if raw:
             end = src.find(")" + raw.group(1) + '"', raw.end())
             if end < 0:
@@ -109,7 +127,7 @@ def tokenize(src):
             i = end + len(raw.group(1)) + 2
             tokens.append(Token("str", src[start:i], start, i))
             continue
-        prefix = PREFIX_RE.match(src, i)
+        prefix = None if java else PREFIX_RE.match(src, i)
         if prefix:
             i = prefix.end()
             c = src[i]
@@ -132,7 +150,7 @@ def tokenize(src):
             i += 2
             continue
         else:
-            for p in PUNCT:
+            for p in punct:
                 if src.startswith(p, i):
                     break
             else:
@@ -162,10 +180,10 @@ def normal_tokens(tokens, keep_comments=False):
 
 
 class Source(object):
-    def __init__(self, lines):
+    def __init__(self, lines, java=False):
         self.lines = lines
         self.text = "\n".join(lines) + "\n"
-        self.tokens = tokenize(self.text)
+        self.tokens = tokenize(self.text, java)
         starts, pos = [], 0
         for line in lines:
             starts.append(pos)
@@ -216,13 +234,17 @@ class CLikeAdapter(Adapter):
     gap_nested = 1
     dup_re = re.compile(r"#\d+$")
     cpp = False
+    java = False
+    sep = "::"                  # Trenner in Einheiten-Adressen
+    containers = ("namespace", "class", "struct", "union")
 
     # -- Normalform ------------------------------------------------------
 
     def normalize(self, doc, prof):
         if prof["whitespace"] == "keep":
             return doc.text()
-        return normal_tokens(tokenize("\n".join(doc.lines) + "\n"), prof["comments"] == "keep")
+        return normal_tokens(tokenize("\n".join(doc.lines) + "\n", self.java),
+                             prof["comments"] == "keep")
 
     def normalize_unit(self, doc, info, unit, prof):
         if prof["whitespace"] == "keep":
@@ -231,7 +253,7 @@ class CLikeAdapter(Adapter):
         return normal_tokens(toks, prof["comments"] == "keep")
 
     def validate(self, doc):
-        Source(doc.lines)
+        Source(doc.lines, self.java)
 
     def opens_block(self, line):
         return line.rstrip().endswith("{")
@@ -242,7 +264,7 @@ class CLikeAdapter(Adapter):
             bool(re.match(r"^\s*(public|private|protected)\b[^:]*:\s*$", line))
 
     def can_contain(self, unit):
-        return unit.kind in ("namespace", "class", "struct", "union")
+        return unit.kind in self.containers
 
     def rename(self, rel_lines, name):
         if not re.match(r"^[A-Za-z_]\w*$", name or ""):
@@ -279,7 +301,7 @@ class CLikeAdapter(Adapter):
     # -- Einheiten -------------------------------------------------------
 
     def analyze(self, doc):
-        src = Source(doc.lines)
+        src = Source(doc.lines, self.java)
         units = []
         self._scope(src, 0, len(src.sig), None, "", units)
         return Info(doc.lines, units, src=src, start_line=self._start_line(src))
@@ -338,13 +360,13 @@ class CLikeAdapter(Adapter):
             floor = src.sig[parent.node[1]].line + 1 if parent is not None else 0
             while start - 1 >= floor and start - 1 in src.comment_lines:
                 start -= 1
-            path = prefix + "::" + label if prefix else label
+            path = prefix + self.sep + label if prefix else label
             if kind == "function" and parent is not None and parent.kind != "namespace":
                 kind = "method"
             unit = Unit(path, kind, (first, body, last), start, src.sig[last].line + 1,
                         leading_ws(src.lines[src.sig[first].line]), parent)
             units.append(unit)
-            if kind in ("namespace", "class", "struct", "union"):
+            if kind in self.containers:
                 self._scope(src, body + 1, src.pair[body], unit, path, units)
 
     def _classify(self, src, first, brace):
@@ -466,3 +488,67 @@ class CppAdapter(CLikeAdapter):
     mode = "cpp"
     label = "C++"
     cpp = True
+
+
+class JavaAdapter(CLikeAdapter):
+    """Java (R032): Klassen, Interfaces, Enums, Records, Annotationstypen,
+    Methoden und Konstruktoren; Adressen mit "." (Klasse.Innen.methode),
+    Ueberladungen name#1, name#2. Annotationen und Javadoc gehoeren zur
+    Einheit."""
+    mode = "java"
+    label = "Java"
+    java = True
+    sep = "."
+    containers = JAVA_CONTAINERS
+
+    def closes_block(self, line):
+        return line.lstrip().startswith("}")
+
+    def _classify(self, src, first, brace):
+        k = first
+        while src.text_of(k) == "@" and src.text_of(k + 1) != "interface":
+            k += 2                                   # @Name, @a.b.Name, @Name(...)
+            while src.text_of(k) == "." and k + 1 < brace:
+                k += 2
+            if src.text_of(k) == "(" and k in src.pair:
+                k = src.pair[k] + 1
+        words = [src.text_of(m) for m in range(k, brace)]
+        if not words or "=" in words:
+            return None
+        if "@" in words and words[words.index("@") + 1:][:1] == ["interface"]:
+            pos = words.index("@") + 2
+            return (words[pos], "annotation") if pos < len(words) else None
+        for word in JAVA_TYPES:
+            if word in words:
+                pos = words.index(word)
+                if pos + 1 < len(words) and re.match(r"^[A-Za-z_$][\w$]*$", words[pos + 1]) and \
+                        all(w not in ("(", "new") for w in words[:pos]):
+                    return words[pos + 1], word
+        for m in range(k, brace):
+            if src.text_of(m) == "(" and m in src.pair:
+                tok = src.sig[m - 1] if m - 1 >= k else None
+                if tok is None or tok.kind != "name" or tok.text in (
+                        "if", "for", "while", "switch", "catch", "synchronized", "try", "return",
+                        "new", "super", "this"):
+                    return None
+                tail = [src.text_of(t) for t in range(src.pair[m] + 1, brace)]
+                if tail and tail[0] not in ("throws",):
+                    return None
+                return tok.text, "function"
+        return None
+
+    def rename(self, rel_lines, name):
+        if not re.match(r"^[A-Za-z_$][\w$]*$", name or ""):
+            raise PatchInvalid("as=%r ist kein gueltiger Name" % name)
+        for i, line in enumerate(rel_lines):
+            stripped = line.strip()
+            if not stripped or stripped.startswith(("//", "/*", "*", "@")) and \
+                    not stripped.startswith("@interface"):
+                continue
+            match = re.search(r"\b(class|interface|enum|record)\s+([A-Za-z_$][\w$]*)", line) or \
+                re.search(r"()([A-Za-z_$][\w$]*)\s*\(", line)
+            if match:
+                return rel_lines[:i] + [line[:match.start(2)] + name + line[match.end(2):]] + \
+                    rel_lines[i + 1:]
+            break
+        raise PatchInvalid("keine Kopfzeile zum Umbenennen gefunden")

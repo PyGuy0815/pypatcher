@@ -29,7 +29,8 @@ B64_WIDTH = 76
 
 MODE_SHORT = {"python": "py", "text": "txt", "raw": "raw", "js": "js", "css": "css",
               "scss": "scss", "html": "html", "xml": "xml", "c": "c", "cpp": "cpp",
-              "json": "json", "ts": "ts", "tsx": "tsx", "jsx": "jsx"}
+              "json": "json", "ts": "ts", "tsx": "tsx", "jsx": "jsx",
+              "java": "java"}
 MODE_LONG = dict((v, k) for k, v in MODE_SHORT.items())
 
 FILE_CMDS = {"ADD": "add", "DEL": "delete", "REP": "replace", "MOVE": "move",

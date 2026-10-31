@@ -434,6 +434,11 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
     Einheit (dann Textbefehle).
   Gleiche Grundlage spaeter fuer Java, C#, Go, PHP, Rust (R023).
 
+5.6.4a mode "java" - Normalform java/1 (0.0.3)
+  *.java. Tokenizer der C-Familie ohne Praeprozessor, dazu "@"
+  (Annotationen), Text-Bloecke """...""" (bleiben exakt) und >>>.
+  Kommentare und Leerraum zaehlen nicht.
+
 5.6.5 mode "json" - Normalform json/1 (umgesetzt)
   *.json, *.geojson, *.webmanifest. Normalform = die Daten selbst:
   - Formatierung zaehlt nicht; Reihenfolge der Schluessel standardmaessig
@@ -446,7 +451,7 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
     entfernt (repair) - nur dort, wo die Datei sonst ungueltig waere.
 
 5.6.6 Spaeter (nach Bedarf, request.txt)
-  cs, go, php, rust  auf Basis des C-Tokenizers
+  cs, go, php, rust  auf Basis des C-Tokenizers (Java: 5.6.4a)
   shell             Kommentare entfernt, Leerraum zwischen Woertern
                     vereinheitlicht, Zeilenumbrueche bleiben
   yaml              parsen (Einrueckung funktional)
@@ -833,6 +838,16 @@ Beispiel (Pruefstufe std):
     operator==, ~Box     Operatoren, Destruktoren
     Kommentarzeilen direkt darueber gehoeren dazu; Felder, Deklarationen
     ohne Rumpf und Initialisierungen sind keine Einheiten.
+  Java (0.0.3):
+    NoteStore            Klasse, interface, enum, record, @interface
+    NoteStore.add        Methode; Konstruktoren heissen wie die Klasse
+                         (NoteStore.NoteStore), Ueberladungen name#1,
+                         name#2 in der Reihenfolge der Datei
+    NoteStore.Entry.size innere Klassen/Enums mit "." verschachtelt
+    Annotationen (@Override ...) und Javadoc/Kommentare direkt darueber
+    gehoeren zur Einheit. Keine Einheiten: Felder, static-/Instanz-
+    Initialisierer, anonyme Klassen und Lambdas (liegen in Methoden),
+    Methoden ohne Rumpf (abstract, interface).
   JSON:
     server/port          Eintrag ueber den Pfad (Schluessel, Listen-Index)
     plugins/0/name       "/" und "~" in Schluesseln als ~1 bzw. ~0
@@ -1240,7 +1255,7 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.3-pre1):
       js.py               mode js/ts/tsx/jsx: Tokenizer (inkl. JSX),
                           Einheiten, Normalform js/1
       css.py              mode css/scss: Tokenizer, Parser, Normalform css/1
-      clike.py            mode c/cpp: Tokenizer, Einheiten, Normalform c/1
+      clike.py            mode c/cpp/java: Tokenizer, Einheiten, Normalform
       jsondata.py         mode json: Parser mit Positionen, Pfade,
                           Normalform json/1, Kommakorrektur (repair)
       markup.py           mode html/xml: Elementbaum mit Positionen,

@@ -15,6 +15,12 @@ Versionen: siehe manifest.txt Abschnitt 16.
   - Einheiten zusaetzlich: interface, enum, type-Alias, namespace/module;
     Methoden mit Modifikatoren, Generics, Rueckgabetypen, Dekoratoren.
 
+  Java (R032):
+  - mode java (*.java), Normalform java/1 (Tokens; Text-Bloecke exakt).
+  - Einheiten: Klassen, Interfaces, Enums, Records, Annotationstypen,
+    Methoden, Konstruktoren, innere Klassen ("Store.Entry.size");
+    Ueberladungen name#1, name#2; Annotationen und Javadoc gehoeren dazu.
+
 0.0.2 (2026-10-31) - Freigabe
 -----------------------------
   Umfang 0.0.2 (Ergebnis von vier Praxistests mit einer anderen KI an
