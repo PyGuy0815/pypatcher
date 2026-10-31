@@ -17,27 +17,44 @@ from .errors import Conflict, PatchInvalid, PatcherError, TestsFailed, UsageErro
 from .hashing import state_hash
 
 QUIET = False
+REPORT = None           # --json: Ergebnis als ein JSON-Objekt statt Textausgabe
+JSON_FORMAT = "pypatcher-result/1"
+RESULT_CODES = {0: "OK", 1: "USAGE", 2: "PATCH_INVALID", 3: "CONFLICT", 4: "JOURNAL",
+                5: "INTERNAL", 6: "TESTS_FAILED"}
+
+
+def report(**fields):
+    if REPORT is not None:
+        REPORT.update(fields)
 
 
 def out(msg="", kind=None):
-    """Normale Ausgabe (entfaellt mit -q); kind faerbt die ganze Zeile
+    """Normale Ausgabe (entfaellt mit -q und --json); kind faerbt die ganze Zeile
     (ok/warn/info), sonst nur ein Kennwort am Anfang (Hinweis, FEHLER ...)."""
-    if not QUIET:
+    if not QUIET and REPORT is None:
         print(console.paint(msg, kind) if kind else console.label(msg))
 
 
 def say(msg, stream=None):
-    """Ausgabe auch mit -q (Fehler, Ergebniszeile)."""
+    """Ausgabe auch mit -q (Fehler, Ergebniszeile); mit --json gesammelt."""
+    if REPORT is not None:
+        REPORT.setdefault("messages", []).append(msg)
+        return
     stream = stream or sys.stdout
     print(console.label(msg, stream), file=stream)
 
 
 def show_hints(hints):
+    if REPORT is not None:
+        REPORT.setdefault("hints", []).extend(hints)
+        return
     for hint in hints:
         out("Hinweis: " + hint)
 
 
 def confirm(args, question):
+    if REPORT is not None and not args.yes:
+        raise UsageError("--json verlangt -y (oder -n fuer einen Probelauf) - keine Rueckfragen")
     if args.yes or not sys.stdin.isatty():
         return True
     answer = input(question + " [j/N] ").strip().lower()
@@ -88,7 +105,7 @@ def _preset(args):
 def _ask(args):
     def ask(item):
         choices, default = item["choices"], item["default"]
-        if args.yes or not sys.stdin.isatty():
+        if args.yes or not sys.stdin.isatty() or REPORT is not None:
             if default is not None:
                 return default
             raise UsageError("Antwort fuer %s fehlt - mit --set %s=WERT angeben"
@@ -110,7 +127,13 @@ def _ask(args):
 
 def _plan(patch, args):
     """Ablauf bestimmen: Fragen beantworten, Zweige waehlen (vor jeder Pruefung)."""
-    entries, answers = flow.plan(patch, _ask(args), say=lambda text: print("| " + text),
+    def say_flow(text):
+        if REPORT is not None:
+            REPORT.setdefault("print", []).append(text)
+        else:
+            print("| " + text)
+
+    entries, answers = flow.plan(patch, _ask(args), say=say_flow,
                                  preset=_preset(args))
     if patch.get("flow"):
         out("Ablauf: %d Dateibefehle%s" % (len(entries), "" if not answers else
@@ -170,16 +193,25 @@ def _ignored_hint(ctx, journal):
 
 
 def _summary(ctx):
-    lines = []
+    lines, files = [], []
     for rel in sorted(ctx.touched()):
         before, after = ctx.originals[rel], ctx.docs[rel]
         mark = "A" if before is None else ("D" if after is None else "M")
         lines.append("  %s %s" % (mark, rel))
+        files.append({"path": rel, "change": {"A": "add", "D": "delete", "M": "modify"}[mark]})
+    report(files=files)
     return lines
 
 
+def _report_patch(patch, applied, answers=None):
+    report(patch={"id": patch["id"], "title": patch.get("title", ""),
+                  "sealed": "patch_hash" in patch}, applied=applied,
+           answers=answers or {})
+
+
 def cmd_check(args):
-    patch, ctx, _, _ = _prepare(args)
+    patch, ctx, _, answers = _prepare(args)
+    _report_patch(patch, False, answers)
     out("Patch %s (%s): Pruefung erfolgreich - wuerde aendern:" % (patch["id"], patch["title"]), "ok")
     for line in _summary(ctx):
         out(line)
@@ -189,6 +221,7 @@ def cmd_check(args):
 
 def cmd_apply(args):
     patch, ctx, journal, answers = _prepare(args)
+    _report_patch(patch, False, answers)
     out("Patch %s (%s): Pruefung erfolgreich." % (patch["id"], patch["title"]), "ok")
     for line in _summary(ctx):
         out(line)
@@ -197,6 +230,7 @@ def cmd_apply(args):
         out("Abgebrochen - nichts geaendert.", "warn")
         return 1
     journal.commit_apply(patch, ctx, answers)
+    report(applied=True)
     out("Patch %s angewendet." % patch["id"], "ok")
     return _after_apply(args, journal, patch, ctx)
 
@@ -216,6 +250,8 @@ def cmd_run(args):
                      source_dir=os.path.dirname(os.path.abspath(args.patch)))
     engine.process(patch, ctx, entries)
     _ignored_hint(ctx, journal)
+    _report_patch(patch, False, answers)
+    report(dry_run=bool(args.dry_run))
     out("Patch %s (%s): %s erfolgreich - %s:"
         % (patch["id"], patch["title"], "Hash-Pruefung" if sealed else "Inhaltspruefung",
            "wuerde aendern" if args.dry_run else "aendert"), "ok")
@@ -229,6 +265,7 @@ def cmd_run(args):
         out("Abgebrochen - nichts geaendert.", "warn")
         return 1
     journal.commit_apply(patch, ctx, answers)
+    report(applied=True)
     out("Patch %s angewendet (zuruecknehmen: patcher.py rollback)." % patch["id"], "ok")
     return _after_apply(args, journal, patch, ctx)
 
@@ -247,14 +284,19 @@ def _run_tests(command, root):
     Fehlern gezeigt. -> True bei Erfolg."""
     out("Tests: %s" % command)
     sys.stdout.flush()
+    capture = QUIET or REPORT is not None
     try:
         result = subprocess.run(command, shell=True, cwd=root, stdin=subprocess.DEVNULL,
-                                stdout=subprocess.PIPE if QUIET else None,
-                                stderr=subprocess.STDOUT if QUIET else None)
+                                stdout=subprocess.PIPE if capture else None,
+                                stderr=subprocess.STDOUT if capture else None)
     except OSError as exc:
         raise UsageError("Testbefehl nicht ausfuehrbar: %s" % exc)
-    if result.returncode and QUIET and result.stdout:
-        sys.stderr.write(result.stdout.decode("utf-8", "replace"))
+    text = (result.stdout or b"").decode("utf-8", "replace")
+    report(tests={"command": command, "ok": result.returncode == 0,
+                  "exit_code": result.returncode,
+                  "output": text[-4000:] if result.returncode else ""})
+    if result.returncode and QUIET and REPORT is None and text:
+        sys.stderr.write(text)
     return result.returncode == 0
 
 
@@ -265,6 +307,7 @@ def _after_apply(args, journal, patch, ctx):
     count = len(ctx.touched())
     parts = ["%d Datei%s" % (count, "" if count == 1 else "en")]
     errors, notes = journal.verify()
+    _report_journal(journal, errors, notes)
     for note in notes:
         out("Hinweis: " + note)
     for err in errors:
@@ -286,12 +329,18 @@ def _after_apply(args, journal, patch, ctx):
         if rollback:
             journal.rollback_one(journal.history()["applied"][-1])
             parts.append("zurueckgenommen")
+            report(applied=False, rolled_back=True)
         say("FEHLER %s | %s" % (patch["id"], " | ".join(parts)))
         raise TestsFailed("Tests fehlgeschlagen - Patch %s %s" % (
             patch["id"], "zurueckgenommen" if rollback else
             "bleibt angewendet (zuruecknehmen: patcher.py rollback)"))
     say("%s %s | %s" % ("OK" if not errors else "FEHLER", patch["id"], " | ".join(parts)))
     return Conflict.exit_code if errors else 0
+
+
+def _report_journal(journal, errors, notes):
+    report(journal={"ok": not errors, "deviations": errors, "notes": notes,
+                    "unmanaged": list(journal.unmanaged)})
 
 
 def cmd_rollback(args):
@@ -320,6 +369,7 @@ def cmd_rollback(args):
     for entry in targets:
         journal.rollback_one(entry)
         out("Patch %s zurueckgenommen." % entry["id"], "ok")
+    report(rolled_back=[e["id"] for e in targets])
     return 0
 
 
@@ -327,6 +377,7 @@ def cmd_recover(args):
     journal = jr.Journal(args.project)
     journal.require()
     msg = journal.recover()
+    report(recovered=msg)
     out(msg or "Keine unterbrochene Transaktion - nichts zu tun.")
     return 0
 
@@ -337,6 +388,7 @@ def cmd_init(args):
     journal = jr.Journal(args.project)
     renew = args.force and journal.exists
     files, hints = journal.init(args.force)
+    report(managed=len(files))
     out("Journal %s in %s (%d Dateien verwaltet)."
         % ("neu angelegt" if renew else "angelegt", journal.dir, len(files)), "ok")
     show_hints(hints)
@@ -348,6 +400,11 @@ def cmd_status(args):
     journal.require()
     state = journal.state()
     applied = journal.history()["applied"]
+    report(status={"project": journal.root, "managed": len(state["files"]),
+                   "state_hash": state.get("state_hash"),
+                   "applied": [{"id": e["id"], "title": e["title"], "applied_at": e["applied_at"]}
+                               for e in applied],
+                   "interrupted": bool(journal.txn())})
     out("Projekt      : %s" % journal.root)
     out("Dateien      : %d verwaltet" % len(state["files"]))
     out("Zustand      : %s" % state.get("state_hash"))
@@ -364,6 +421,7 @@ def cmd_verify(args):
     journal = jr.Journal(args.project)
     journal.require()
     errors, notes = journal.verify()
+    _report_journal(journal, errors, notes)
     for note in notes:
         out("Hinweis: " + note)
     for err in errors:
@@ -378,6 +436,9 @@ def cmd_log(args):
     journal = jr.Journal(args.project)
     journal.require()
     history = journal.history()
+    report(history={"applied": [{"id": e["id"], "title": e["title"],
+                                 "applied_at": e["applied_at"]} for e in history["applied"]],
+                    "log": history["log"]})
     out("Angewendet (Stapel, aelteste zuerst):")
     for e in history["applied"]:
         out("  %-24s %s  %s" % (e["id"], e["applied_at"], e["title"]))
@@ -690,6 +751,9 @@ def build_parser():
                         help="Farben: auto (nur am Terminal, nicht bei NO_COLOR), always, never")
     project = argparse.ArgumentParser(add_help=False)
     project.add_argument("-p", "--project", default=".", help="Projektwurzel (Standard: .)")
+    project.add_argument("--json", action="store_true",
+                         help="Ergebnis als ein JSON-Objekt (fuer KIs/Werkzeuge; Format "
+                         "%s)" % JSON_FORMAT)
 
     parser = argparse.ArgumentParser(
         prog="patcher.py", description="Hash-gepruefter Patcher (pypatcher %s)" % __version__)
@@ -810,16 +874,37 @@ def _help(parser, sub, topic):
 
 
 def main(argv=None):
-    global QUIET
+    global REPORT
     args = build_parser().parse_args(argv)
+    if not getattr(args, "json", False):
+        REPORT = None
+        return _main(args)
+    REPORT = {"format": JSON_FORMAT, "version": __version__, "command": args.command}
+    try:
+        code = _main(args)
+        REPORT["exit_code"] = code
+        REPORT["ok"] = code == 0
+        REPORT["result"] = RESULT_CODES.get(code, "ERROR")
+        sys.stdout.write(json.dumps(REPORT, ensure_ascii=False, sort_keys=True) + "\n")
+        return code
+    finally:
+        REPORT = None
+
+
+def _main(args):
+    global QUIET
     QUIET = args.quiet
     console.MODE = args.color
     try:
         return args.func(args)
     except flow.FlowExit as exc:
+        report(error={"code": "EXIT", "message": str(exc), "path": None})
         say("ABBRUCH: %s - nichts geaendert." % exc, sys.stderr)
         return 1
     except PatcherError as exc:
+        report(error={"code": RESULT_CODES.get(exc.exit_code, "ERROR"), "message": str(exc),
+                      "path": getattr(exc, "path", None), "change": getattr(exc, "change", None),
+                      "detail": getattr(exc, "detail", None)})
         say("FEHLER: %s" % exc, sys.stderr)
         return exc.exit_code
     except KeyboardInterrupt:
@@ -834,5 +919,7 @@ def main(argv=None):
     except Exception as exc:  # interner Fehler
         if args.verbose:
             raise
+        report(error={"code": "INTERNAL", "message": "%s: %s" % (type(exc).__name__, exc),
+                      "path": None})
         say("INTERNER FEHLER: %s: %s (Details mit -v)" % (type(exc).__name__, exc), sys.stderr)
         return 5

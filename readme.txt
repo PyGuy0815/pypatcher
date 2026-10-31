@@ -111,6 +111,9 @@ Beides geht auch direkt bei seal und create.
 Weitere Befehle: log, units, recover - siehe "python3 patcher.py -h" und
 manifest.txt Abschnitt 13. Spaeter: doctor, canon, invert.
 
+Fuer Skripte und KIs: --json gibt bei init/status/verify/log/check/
+apply/run/rollback/recover genau ein JSON-Objekt aus (manifest.txt 13).
+
 Farben: am Terminal gruen = Erfolg, rot = Fehler, gelb = Warnung,
 cyan = Hinweis; --color never oder NO_COLOR=1 schaltet sie ab.
 

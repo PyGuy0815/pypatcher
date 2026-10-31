@@ -63,6 +63,13 @@ Versionen: siehe manifest.txt Abschnitt 16.
     werden abgelehnt; Rollback entfernt keine Links mehr als Verzeichnis.
   - Neuer Befehl help [BEFEHL] (KIs und Nutzer versuchten "help").
 
+  JSON-Ausgabe (R038):
+  - --json bei init, status, verify, log, check, apply, run, rollback,
+    recover: genau ein JSON-Objekt (Format pypatcher-result/1) mit
+    Ergebnis-Code, betroffenen Dateien, Journal, Tests, Hinweisen.
+  - Konflikte strukturiert: welche Aenderung, aehnlichste Stelle mit
+    Zeilen und Text, aehnliche/vorhandene Einheiten.
+
 0.0.2 (2026-10-31) - Freigabe
 -----------------------------
   Umfang 0.0.2 (Ergebnis von vier Praxistests mit einer anderen KI an

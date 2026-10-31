@@ -1296,6 +1296,29 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
                im Journal. Mit -q erscheint die Ausgabe der Tests nur,
                wenn sie fehlschlagen.
 
+--json (init, status, verify, log, check, apply, run, rollback, recover;
+  0.0.3): statt Text genau ein JSON-Objekt (eine Zeile) auf stdout, fuer
+  KIs und Werkzeuge - unabhaengig von Sprache und Farben der Meldungen.
+  Rueckfragen gibt es nicht: INPUT nimmt --set/--answers/default,
+  apply/run verlangen -y (oder -n). Felder (fehlen, wenn nicht zutreffend):
+    format      "pypatcher-result/1" (aendert sich nur bei inkompatiblen
+                Aenderungen), version, command
+    ok, exit_code, result   result: OK, USAGE, PATCH_INVALID, CONFLICT,
+                JOURNAL, INTERNAL, TESTS_FAILED (wie Exit-Codes 0-6), EXIT
+    patch       {id, title, sealed}; answers {var: wert}; print [PRINT-Texte]
+    files       [{path, change: add|modify|delete}]
+    applied, dry_run, rolled_back (bool bzw. Liste bei rollback)
+    journal     {ok, deviations [..], notes [..], unmanaged [pfade]}
+    tests       {command, ok, exit_code, output (letzte 4000 Zeichen bei
+                Fehlschlag)}
+    hints, messages   Hinweise bzw. Meldungen als Text
+    status, history, managed, recovered   je nach Befehl
+    error       {code, message, path, change {index, op}, detail}
+      detail.kind block_not_found: {block, closest {line_from, line_to,
+                similarity, indent_only, file_lines} oder null}
+                block_ambiguous: {block, lines}; unit_not_found: {unit,
+                similar, available}; unit_ambiguous: {unit, candidates}
+
 Exit-Codes:
   0 OK | 1 Bedienfehler | 2 Patch ungueltig/beschaedigt
   3 Konflikt (Hash stimmt nicht) | 4 Journal-/Transaktionsfehler
@@ -1382,6 +1405,7 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.3-pre1):
     test_jsonc_answers.py JSONC, --answers
     test_field5.py        Einrueckung in Suchbloecken, Pfade mit Leerzeichen
     test_safety.py        geschuetzte Pfade, symbolische Links, help
+    test_json_output.py   --json
   ki-prompt.txt           Anleitung fuer KI-Assistenten
   ki-beispiele.txt        Beispiel-Auftraege mit Antworten fuer KIs
   examples/               demo/ + entwurf-beispiel.ppatch (readme.txt),

@@ -158,7 +158,9 @@ def _find(ua, info, path, what):
     try:
         return ua.find(info, path)
     except Conflict as exc:
-        raise Conflict("%s: %s" % (what, exc))
+        new = Conflict("%s: %s" % (what, exc))
+        new.detail = getattr(exc, "detail", None)
+        raise new
 
 
 def _position(ua, info, ch, what):
@@ -461,11 +463,17 @@ def _match(doc, ch, key, lo, hi, prof, fs, what):
         if [norm(l) for l in rel] == want:
             hits.append((i, base))
     if not hits:
-        raise Conflict("%s: %s-Block nicht gefunden%s"
-                       % (what, key, _closest(doc.lines, pattern, lo, hi)))
+        detail = {"kind": "block_not_found", "block": key}
+        exc = Conflict("%s: %s-Block nicht gefunden%s"
+                       % (what, key, _closest(doc.lines, pattern, lo, hi, detail)))
+        exc.detail = detail
+        raise exc
     if len(hits) > 1:
-        raise Conflict("%s: %s-Block nicht eindeutig (%d Treffer, Zeilen %s)"
+        exc = Conflict("%s: %s-Block nicht eindeutig (%d Treffer, Zeilen %s)"
                        % (what, key, len(hits), ", ".join(str(h[0] + 1) for h in hits)))
+        exc.detail = {"kind": "block_ambiguous", "block": key,
+                      "lines": [h[0] + 1 for h in hits]}
+        raise exc
     return hits[0][0], hits[0][1], lit
 
 
@@ -473,9 +481,11 @@ CLOSEST_MIN = 0.5      # ab dieser Aehnlichkeit wird die naechste Stelle gezeigt
 CLOSEST_LINES = 16     # hoechstens so viele Diff-Zeilen
 
 
-def _closest(lines, pattern, lo, hi):
+def _closest(lines, pattern, lo, hi, info=None):
     """Konfliktanzeige (R006): die aehnlichste Stelle im Suchbereich als Diff
-    (ohne Einrueckung verglichen) - Hilfe fuer Mensch und KI."""
+    (ohne Einrueckung verglichen) - Hilfe fuer Mensch und KI. info (dict)
+    erhaelt die Angaben fuer --json."""
+    info = {} if info is None else info
     want = [l.strip() for l in pattern]
     size = len(want)
     best, at = 0.0, None
@@ -489,8 +499,12 @@ def _closest(lines, pattern, lo, hi):
         if ratio > best:
             best, at = ratio, i
     if at is None or best < CLOSEST_MIN:
+        info["closest"] = None
         return " (keine aehnliche Stelle)"
     found = lines[at:at + size]
+    info["closest"] = {"line_from": at + 1, "line_to": at + len(found),
+                       "similarity": round(best, 3), "indent_only": best == 1.0,
+                       "file_lines": list(found)}
     head = "\n    aehnlichste Stelle: Zeile %d-%d (%d%% gleich)" % (
         at + 1, at + len(found), int(best * 100))
     if best == 1.0:
@@ -710,7 +724,11 @@ def act_modify(ctx, entry, path, prof, what):
     for i, ch in enumerate(entry["changes"], 1):
         cwhat = "%s, Aenderung %d (%s)" % (what, i, ch.get("op"))
         ctx.expect(ch, "file_hash_before", _chain_hash(doc, prof), cwhat)
-        doc = OPS[ch["op"]](ctx, path, doc, ch, prof, fs, cwhat)
+        try:
+            doc = OPS[ch["op"]](ctx, path, doc, ch, prof, fs, cwhat)
+        except (Conflict, PatchInvalid) as exc:
+            exc.change = {"index": i, "op": ch.get("op")}
+            raise
         ctx.expect(ch, "file_hash_after", _chain_hash(doc, prof), cwhat)
         ctx.set(path, doc, prof)
     # Syntax erst am Ende der Datei: Zwischenstaende von Textaenderungen duerfen

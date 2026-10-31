@@ -158,8 +158,10 @@ sichert vorher und kann alles zuruecknehmen.
         (findet Funktionen/Regeln/Elemente selbst und erzeugt den
         kleinsten exakten Patch)
    c) Selbst pruefen, bevor der Nutzer etwas sieht:
-        python3 patcher.pyz run -n entwurf.ppatch -p projekt
-      Fehler selbst beheben.
+        python3 patcher.pyz run -n --json entwurf.ppatch -p projekt
+      --json liefert ein JSON-Objekt; bei Fehlern nennt error.detail die
+      aehnlichste Stelle (closest.file_lines) bzw. aehnliche Einheiten
+      (similar). Fehler selbst beheben.
    d) Versiegeln (mit Hashes - sicherer als ein Entwurf):
         python3 patcher.pyz seal entwurf.ppatch --base projekt -o p.ppatch
    e) Ausliefern - Reihenfolge der Wahl:

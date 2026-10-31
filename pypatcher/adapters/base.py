@@ -74,8 +74,15 @@ class Adapter(object):
         dups = [u.path for u in info.units if u.path.startswith(path)
                 and self.dup_re.match(u.path[len(path):])]
         if dups:
-            raise Conflict("Einheit %r ist nicht eindeutig: %s" % (path, ", ".join(dups)))
-        raise Conflict("Einheit %r nicht gefunden%s" % (path, self.suggest(info, path)))
+            exc = Conflict("Einheit %r ist nicht eindeutig: %s" % (path, ", ".join(dups)))
+            exc.detail = {"kind": "unit_ambiguous", "unit": path, "candidates": dups}
+            raise exc
+        exc = Conflict("Einheit %r nicht gefunden%s" % (path, self.suggest(info, path)))
+        names = [u.path for u in info.units if u.kind != "header"]
+        exc.detail = {"kind": "unit_not_found", "unit": path,
+                      "similar": difflib.get_close_matches(path, names, n=3, cutoff=0.6),
+                      "available": names[:50]}
+        raise exc
 
     def suggest(self, info, path):
         """Konfliktanzeige (R006): aehnliche bzw. vorhandene Einheiten."""
