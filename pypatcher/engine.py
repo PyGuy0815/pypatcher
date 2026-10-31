@@ -699,6 +699,29 @@ def _peek_binary(ctx, entry, path):
     return False
 
 
+def _parsable_profile(ctx, entry, path, prof, what):
+    """seal: Ist die vorhandene Datei im Format ihrer Endung ungueltig (z.B. .py
+    mit Syntaxfehler), wird sie als text behandelt - wie bei init. So laesst sie
+    sich reparieren (REP/TEXT), statt dass schon der Hash des Ausgangsstands
+    scheitert. Einheiten-Befehle brauchen weiterhin eine gueltige Datei."""
+    if prof["mode"] in ("text", "raw") or entry.get("action") == "add":
+        return prof
+    doc = ctx.get(path, prof) if os.path.isfile(ctx.abspath(path)) else None
+    if doc is None or doc.is_raw:
+        return prof
+    try:
+        adapters.get(prof["mode"]).validate(doc)
+        return prof
+    except (ParseError, Conflict) as exc:
+        ctx.hint("%s: Ausgangsdatei ist kein gueltiges %s (%s) - als text behandelt"
+                 % (what, _syntax(prof), exc))
+    text = pf.complete({"mode": "text"})
+    ctx.docs.pop(path, None)
+    ctx.originals.pop(path, None)
+    ctx.profiles.pop(path, None)
+    return text
+
+
 def process(patch, ctx, entries=None):
     """Dateieintraege der Reihe nach im Speicher ausfuehren (entries: Ergebnis der
     Ablaufsteuerung; ohne Angabe alle Eintraege)."""
@@ -714,6 +737,8 @@ def process(patch, ctx, entries=None):
                 _peek_binary(ctx, entry, path):
             layer = dict(layer or {}, mode="raw")
         prof = pf.resolve(path, layer, defaults, project_default)
+        if ctx.seal and not pf.has_mode(layer, defaults, project_default):
+            prof = _parsable_profile(ctx, entry, path, prof, what)
         if ctx.seal:
             entry["compare"] = prof
         if required:

@@ -347,6 +347,8 @@ class Creator(object):
         draft = dict(meta)
         draft.update({"format": FORMAT, "generator": "pypatcher " + __version__,
                       "files": entries + modifies + deletes})
+        if self.compare:            # --compare gilt fuer alle Dateien (DEFAULT im Patch)
+            draft["defaults"] = {"compare": dict(self.compare)}
         if not draft["files"]:
             raise PatchInvalid("create: keine Unterschiede gefunden")
         return draft

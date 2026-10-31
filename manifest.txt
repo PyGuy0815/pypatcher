@@ -190,6 +190,11 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
   Profil je Datei fuer den Zustands-Hash: vom Patch beruehrte Dateien
   mit dem Profil aus dem Patch, alle anderen automatisch (Binaerdatei ->
   raw, *.py und parsebar -> python, sonst text).
+  Dieselbe Regel gilt beim Versiegeln (seal, create, run mit Entwurf;
+  0.0.2): ist die vorhandene Datei im Format ihrer Endung ungueltig (z.B.
+  .py mit Syntaxfehler) und gibt der Patch kein Profil vor, wird sie als
+  text behandelt (Hinweis). So laesst sie sich mit REP/TEXT reparieren;
+  Einheiten-Befehle brauchen weiterhin eine gueltige Datei.
 
 4.5 Pruefkette innerhalb einer Datei
   Welche Hashes ein Patch enthaelt, bestimmt die Pruefstufe (6.6).

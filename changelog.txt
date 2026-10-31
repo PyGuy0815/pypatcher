@@ -53,6 +53,16 @@ Versionen: siehe manifest.txt Abschnitt 16.
   - Kommas zwischen Objekt-Eintraegen werden beim Einfuegen, Ersetzen und
     Kopieren gerichtet; UCOPY as= benennt auch "name: function" um.
 
+  Behoben (Fehlerbericht aus dem zweiten Praxistest):
+  - Eine Python-Datei mit Syntaxfehler (ips.py) liess sich nicht
+    ersetzen: create, seal und run scheiterten schon am Hash des
+    Ausgangsstands, auch mit --level file und --compare text. Jetzt wird
+    eine ungueltige Ausgangsdatei ohne vorgegebenes Profil als text
+    behandelt (wie bei init) - mit Hinweis; der Ausgangsstand bleibt
+    per Hash gesichert.
+  - create --compare veraenderte nur die Art des Vergleichs, nicht das
+    Profil im Patch; jetzt steht es als DEFAULT im Patch.
+
   KI-Prompt und Beispiele:
   - Startablauf fuer KIs mit Code-Ausfuehrung: Projekt und patcher.pyz
     einmal anfordern, Hilfe selbst mit -h nachsehen (im Praxistest fragte
