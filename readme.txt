@@ -23,7 +23,8 @@ Geprueft wird die Funktion, nicht die Schreibweise: Kommentare und
 unwichtige Leerzeichen/Tabs/Umbrueche zaehlen je nach Format nicht; bei
 Python zaehlt die Einrueckung immer exakt. Formate mit Einheiten:
 Python, JavaScript/TypeScript (auch JSX/TSX), C/C++ (Funktionen,
-Klassen, Methoden, z.B. "app::Box::get"), Java (z.B. "Store.add#2"), Lua (z.B. "M:greet"), CSS/SCSS/LESS (Regeln), HTML/XML (Elemente, z.B. "#nav"
+Klassen, Methoden, z.B. "app::Box::get"), Java (z.B. "Store.add#2"), Lua (z.B. "M:greet"),
+Visual Basic - VB.NET und VBA/VB6 (z.B. "Konto.Einzahlen"), CSS/SCSS/LESS (Regeln), HTML/XML (Elemente, z.B. "#nav"
 oder "html/body/main/div.card[2]"), JSON (Eintraege, z.B. "server/port");
 jede andere Textdatei ueber Textbefehle. Jeder angewendete Patch laesst
 sich exakt zuruecknehmen (Sicherung im Ziel). Windows-Zeilenenden (CRLF)

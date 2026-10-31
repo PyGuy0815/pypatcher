@@ -445,6 +445,23 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
   Syntaxpruefung: Tokens, Klammern und Bloecke (function/if/do/while/
   for ... end, repeat ... until) muessen aufgehen.
 
+5.6.4c mode "vb" und "vba" - Normalform vb/1, vba/1 (0.0.3)
+  *.vb (vb, VB.NET); *.bas, *.cls, *.frm, *.vbs (vba: VBA, VB6,
+  VBScript). Eigener Tokenizer; Normalform aus logischen Zeilen:
+  - Zeilenfortsetzung " _" und ":" zwischen Anweisungen aufgeloest,
+    Leerraum und Kommentare (' und REM) zaehlen nicht.
+  - Schluesselwoerter, Namen und Zahlen ohne Gross-/Kleinschreibung (VB
+    unterscheidet sie nicht); Zeichenketten und Datumsliterale (#..#)
+    exakt; #If/#Region-Zeilen mit vereinheitlichtem Leerraum.
+  - Syntaxpruefung: Tokens und Einheiten-Bloecke (Sub ... End Sub,
+    Class ... End Class ...) muessen aufgehen.
+  - Kodierung: VBA-Exporte aus Office sind meist Windows-1252. Dann im
+    Projekt einmal in .patcher/config.json eintragen:
+      "compare": {"*.bas": "vba,encoding=cp1252",
+                  "*.cls": "vba,encoding=cp1252",
+                  "*.frm": "vba,encoding=cp1252"}
+    (ohne Eintrag gelten solche Dateien mit Umlauten als Binaerdatei).
+
 5.6.5 mode "json" - Normalform json/1 (umgesetzt)
   *.json, *.geojson, *.webmanifest. Normalform = die Daten selbst:
   - Formatierung zaehlt nicht; Reihenfolge der Schluessel standardmaessig
@@ -864,6 +881,20 @@ Beispiel (Pruefstufe std):
                          setzt das Programm. start-of:/end-of: bei Tabellen.
     M.add.helper         innere Funktion
     Kommentarzeilen (-- ...) direkt darueber gehoeren zur Einheit.
+  Visual Basic - VB.NET (vb) und VBA/VB6/VBScript (vba) (0.0.3):
+    App.Notes.NoteStore  Namespace/Class/Module/Structure/Interface mit "."
+    NoteStore.Find#2     Sub, Function, Property, Operator, Custom Event -
+                         jeweils mit End ...; Konstruktor "New";
+                         Ueberladungen bzw. Property Get/Let/Set gleichen
+                         Namens: name#1, name#2 (Reihenfolge der Datei)
+    Kind, Eintrag        Enum, Type (Mitglieder sind keine Einheiten)
+    @header              VBA-/VB6-Export: VERSION, BEGIN ... END,
+                         Attribute-/Object-Zeilen am Dateianfang
+    Gross-/Kleinschreibung: Adresse wie im Code; passt sie nicht, wird
+    ohne Gross-/Kleinschreibung gesucht (wenn eindeutig). Keine Einheiten:
+    Declare, Delegate, MustOverride, automatische Properties, Interface-
+    Mitglieder. Kommentarzeilen (') und <Attribute>-Zeilen direkt darueber
+    gehoeren zur Einheit.
   JSON:
     server/port          Eintrag ueber den Pfad (Schluessel, Listen-Index)
     plugins/0/name       "/" und "~" in Schluesseln als ~1 bzw. ~0
@@ -1275,6 +1306,7 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.3-pre1):
       jsondata.py         mode json: Parser mit Positionen, Pfade,
                           Normalform json/1, Kommakorrektur (repair)
       lua.py              mode lua: Tokenizer, Bloecke, Einheiten
+      vb.py               mode vb/vba: Tokenizer, logische Zeilen, Einheiten
       markup.py           mode html/xml: Elementbaum mit Positionen,
                           Adressen, Normalform html/1, xml/1
     engine.py             alle Patch-Befehle im Speicher (seal + apply)

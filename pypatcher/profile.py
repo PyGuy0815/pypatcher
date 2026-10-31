@@ -53,6 +53,18 @@ MODES = {
         "eol": ("normalize", "keep"),
         "encoding": None,
     }),
+    "vb": (1, {
+        "comments": ("ignore", "keep"),
+        "whitespace": ("ignore", "keep"),
+        "eol": ("normalize", "keep"),
+        "encoding": None,
+    }),
+    "vba": (1, {
+        "comments": ("ignore", "keep"),
+        "whitespace": ("ignore", "keep"),
+        "eol": ("normalize", "keep"),
+        "encoding": None,
+    }),
     "jsx": (1, {
         "comments": ("ignore", "keep"),
         "whitespace": ("ignore", "keep"),
@@ -111,6 +123,8 @@ EXTENSIONS = {
     "jsx": (".jsx",),
     "java": (".java",),
     "lua": (".lua",),
+    "vb": (".vb",),
+    "vba": (".bas", ".cls", ".frm", ".vbs"),
     "css": (".css",),
     "scss": (".scss", ".less"),
     "html": (".html", ".htm", ".xhtml"),

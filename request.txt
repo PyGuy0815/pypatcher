@@ -93,7 +93,7 @@ R032  ERLEDIGT (0.0.3-pre1) Java (*.java): Klassen, Interfaces, Enums, Records, 
                 "Aussen.Innen.methode", Ueberladungen name#1, name#2);
                 Annotationen und Javadoc gehoeren zur Einheit. Basis
                 clike.py.
-R033  OFFEN     Visual Basic: VB.NET (*.vb) sowie VBA/VB6 (*.bas, *.cls,
+R033  ERLEDIGT (0.0.3-pre1) Visual Basic: VB.NET (*.vb) sowie VBA/VB6 (*.bas, *.cls,
                 *.frm): Sub, Function, Property, Class, Module, Structure
                 als Einheiten ("Modul.Prozedur"); Bloecke ueber End Sub /
                 End Function ..., Gross-/Kleinschreibung der Schluessel-

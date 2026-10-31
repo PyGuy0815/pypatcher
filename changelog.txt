@@ -28,6 +28,15 @@ Versionen: siehe manifest.txt Abschnitt 16.
     function, Tabellen mit Funktionsfeldern ("handlers.click"), innere
     Funktionen; Trennzeichen zwischen Tabellenfeldern werden gerichtet.
 
+  Visual Basic (R033):
+  - mode vb (*.vb, VB.NET) und vba (*.bas, *.cls, *.frm, *.vbs: VBA,
+    VB6, VBScript); Normalform aus logischen Zeilen (" _" und ":"
+    aufgeloest), ohne Gross-/Kleinschreibung, Kommentare ' und REM egal.
+  - Einheiten: Sub, Function, Property, Operator, Custom Event, Class,
+    Module, Structure, Interface, Namespace, Enum, Type; Kopf von
+    VBA-/VB6-Exporten als @header; Suche notfalls ohne Gross-/Klein-
+    schreibung. Declare/Delegate/Auto-Properties sind keine Einheiten.
+
 0.0.2 (2026-10-31) - Freigabe
 -----------------------------
   Umfang 0.0.2 (Ergebnis von vier Praxistests mit einer anderen KI an

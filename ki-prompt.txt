@@ -63,6 +63,9 @@ sichert vorher und kann alles zuruecknehmen.
    Lua:    M.name, M:methode, name (local function), Tabelle.feld bei
            local T = { feld = function ... end } (Kommas richtet das
            Programm), aussen.innen
+   VB.NET/VBA: Klasse.Methode, Namespace.Klasse.Methode, Modul-Prozedur
+           direkt mit Namen; Property Get/Let gleichen Namens bzw.
+           Ueberladungen: name#1, name#2; immer mit End Sub/End Function
    JSON:   Pfad aus Schluesseln/Indizes, z.B. server/port, plugins/0
            (Kommas beim Einfuegen/Loeschen richtet das Programm)
    Andere Dateien (Shell, YAML, Markdown ...): nur TEXT/TINS/TDEL/ADD/REP.
