@@ -63,6 +63,16 @@ Versionen: siehe manifest.txt Abschnitt 16.
   - create --compare veraenderte nur die Art des Vergleichs, nicht das
     Profil im Patch; jetzt steht es als DEFAULT im Patch.
 
+  Aus dem dritten Praxistest:
+  - Neue, nicht verwaltete Dateien (z.B. heruntergeladene ZIPs im
+    Projektordner) sind bei verify und nach run/apply nur ein Hinweis:
+    "OK <id> | ... | Journal OK (2 unverwaltete Dateien)". Vorher meldete
+    run FEHLER mit Exit-Code 3, obwohl der Patch korrekt war.
+  - create mit Dateien statt Verzeichnissen erklaert, was zu tun ist.
+  - README.md verweist KIs, die das Repository lesen, auf ki-prompt.txt
+    (im Test lieferte eine KI ganze Dateien plus Erzeugungsskript statt
+    eines Patches, weil sie den Prompt nicht kannte).
+
   KI-Prompt und Beispiele:
   - Startablauf fuer KIs mit Code-Ausfuehrung: Projekt und patcher.pyz
     einmal anfordern, Hilfe selbst mit -h nachsehen (im Praxistest fragte

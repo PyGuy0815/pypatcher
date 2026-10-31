@@ -74,3 +74,12 @@ R028  ERLEDIGT (0.0.2-pre1) Fehlerbericht aus dem Praxistest: eine .py-Datei mit
                 REP-Entwurf ersetzen ("Datei ist kein gueltiges Python").
                 Ausgangsdatei ungueltig -> Profil text. Dazu: create
                 --compare wirkte nicht auf den Patch (jetzt DEFAULT).
+R029  ERLEDIGT (0.0.2-pre1) Dritter Praxistest: heruntergeladene Hilfsdateien
+                (ZIP) im Projekt machten das Ergebnis von run "FEHLER"
+                (Exit 3), obwohl der Patch korrekt war -> neue, nicht
+                verwaltete Dateien sind ein Hinweis. create mit Dateien
+                statt Verzeichnissen: verstaendliche Meldung. README.md
+                verweist KIs, die das Repository lesen, auf ki-prompt.txt.
+R030  OFFEN     Farbige Ausgabe (Vorschlag aus dem Praxistest): gruen = Erfolg,
+                rot = Fehler/Abbruch, gelb = Warnung, cyan = Hinweis; nur
+                am Terminal, abschaltbar (NO_COLOR, --color never).

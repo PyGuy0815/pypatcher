@@ -219,8 +219,13 @@ def _after_apply(args, journal, patch, ctx):
         out("Hinweis: " + note)
     for err in errors:
         print("FEHLER: " + err)
-    parts.append("Journal OK" if not errors else "Journal: %d Abweichung%s"
-                 % (len(errors), "" if len(errors) == 1 else "en"))
+    unmanaged = len(journal.unmanaged)
+    if errors:
+        parts.append("Journal: %d Abweichung%s" % (len(errors), "" if len(errors) == 1 else "en"))
+    else:
+        parts.append("Journal OK" + (" (%d unverwaltete Datei%s)"
+                                     % (unmanaged, "" if unmanaged == 1 else "en")
+                                     if unmanaged else ""))
     command = _test_command(args, journal)
     tests_ok = True
     if command:
@@ -473,7 +478,10 @@ def cmd_create(args):
     old, new = os.path.abspath(args.old), os.path.abspath(args.new)
     for path in (old, new):
         if not os.path.isdir(path):
-            raise UsageError("%s ist kein Verzeichnis" % path)
+            raise UsageError("%s ist kein Verzeichnis - create vergleicht zwei Verzeichnisse "
+                             "(ALT, NEU). Fuer einzelne Dateien beide Staende in eigene "
+                             "Verzeichnisse legen (alt/ips.py, neu/ips.py) oder einen "
+                             "Entwurf mit REP schreiben" % path)
     journal = jr.Journal(old)
     meta = {"id": args.id, "title": args.title, "created": jr.now(),
             "requires": args.requires or [], "match": "file"}

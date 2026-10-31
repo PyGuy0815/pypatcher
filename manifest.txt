@@ -184,9 +184,9 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
   zur jeweiligen Umgebung und werden nicht per Patch uebertragen.
   Ignore-Regeln gelten immer in ihrer aktuellen Fassung: eine verwaltete
   Datei, die neu ignoriert wird, faellt aus der Verwaltung (verify:
-  Hinweis); eine nicht mehr ignorierte Datei ist "neu ausserhalb von
-  Patches" und wird per Patch (REP) oder - ohne angewendete Patches -
-  mit "init --force" aufgenommen.
+  Hinweis); eine nicht mehr ignorierte Datei ist "neu, nicht verwaltet"
+  und wird per Patch (REP) oder - ohne angewendete Patches - mit
+  "init --force" aufgenommen.
   Profil je Datei fuer den Zustands-Hash: vom Patch beruehrte Dateien
   mit dem Profil aus dem Patch, alle anderen automatisch (Binaerdatei ->
   raw, *.py und parsebar -> python, sonst text).
@@ -1100,7 +1100,9 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
                      Angewendete Patches, Zustand
   verify    0.0.1    patcher.py verify [-p PROJEKT]
                      Ist-Stand gegen state.json; funktionale
-                     Abweichungen (Fehler) und kosmetische (Hinweis)
+                     Abweichungen (Fehler) und kosmetische (Hinweis);
+                     neue, nicht verwaltete Dateien sind ab 0.0.2 nur
+                     ein Hinweis (z.B. heruntergeladene Hilfsdateien)
   log       0.0.1    patcher.py log [-p PROJEKT]
   units     0.0.1    patcher.py units DATEI [--compare P]
                      Einheiten einer Datei + Hashes

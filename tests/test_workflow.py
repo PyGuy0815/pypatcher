@@ -51,8 +51,8 @@ class IgnoreRules(ProjectCase):
         self.write(".patcherignore", "notes.txt\n")
         self.make_target()
         os.remove(os.path.join(self.target, ".patcherignore"))
-        self.assertEqual(self.run_cli("verify", "-p", self.target), 3)
-        self.assertIn("notes.txt: neue Datei", self.last_out)
+        self.assertEqual(self.run_cli("verify", "-p", self.target), 0)
+        self.assertIn("notes.txt: neue Datei, nicht verwaltet", self.last_out)
 
     def test_adopt_with_rep(self):
         self.write(".patcherignore", "notes.txt\n")
@@ -132,6 +132,21 @@ class RunWithTests(ProjectCase):
         self.assertEqual(self.run_cli("seal", self.good, "--base", self.base, "-o", sealed), 0,
                          self.last_err)
         return sealed
+
+    def test_unmanaged_download_is_no_error(self):
+        """Praxistest: heruntergeladene ZIP-Dateien im Projekt."""
+        self.write("patch-kit.zip", "PK", root=self.target)
+        self.assertEqual(self.run_cli("run", "-y", "-q", "--test", self.PASS, self.good,
+                                      "-p", self.target), 0, self.last_err)
+        self.assertEqual(self.last_out.strip(),
+                         "OK gut | 1 Datei | Journal OK (1 unverwaltete Datei) | Tests OK")
+
+    def test_changed_managed_file_is_error(self):
+        self.write("app.py", "x = 1\n# lokal\nz = 5\n", root=self.target)
+        draft = self.write("o.ppatch", "#PPATCH 1 neu 1/1\nTITLE t\nADD neu.txt @1\n"
+                           "@1 .\nx\n@.\n", root=self.tmp)
+        self.assertEqual(self.run_cli("run", "-y", "-q", draft, "-p", self.target), 3)
+        self.assertIn("Journal: 1 Abweichung", self.last_out)
 
     def test_tests_may_create_files(self):
         command = 'python3 -c "open(\'ausgabe.log\', \'w\').write(\'x\')"'

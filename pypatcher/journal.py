@@ -126,6 +126,7 @@ def project_hashes(root, patterns, overlay=None, overlay_profiles=None):
 class Journal(object):
     def __init__(self, root):
         self.root = os.path.abspath(root)
+        self.unmanaged = []     # neue, nicht verwaltete Dateien (letztes verify)
         self.dir = os.path.join(self.root, JOURNAL_DIR)
 
     def path(self, *parts):
@@ -403,8 +404,11 @@ class Journal(object):
                 notes.append("%s: nur kosmetisch veraendert (Kommentare/Leerraum/Zeilenenden)" % rel)
             else:
                 errors.append("%s: funktional veraendert" % rel)
-        for rel in sorted(present - set(files)):
-            errors.append("%s: neue Datei ausserhalb von Patches (ignorieren: .patcherignore; "
-                          "aufnehmen: per Patch REP oder - ohne angewendete Patches - "
-                          "init --force)" % rel)
+        # Neue, nicht verwaltete Dateien widersprechen dem Journal nicht (z.B.
+        # heruntergeladene Hilfsdateien) - Hinweis statt Fehler
+        new = self.unmanaged = sorted(present - set(files))
+        for rel in new:
+            notes.append("%s: neue Datei, nicht verwaltet (ignorieren: .patcherignore; "
+                         "aufnehmen: per Patch REP oder - ohne angewendete Patches - "
+                         "init --force)" % rel)
         return errors, notes
