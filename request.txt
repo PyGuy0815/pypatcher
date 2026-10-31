@@ -106,3 +106,7 @@ R034  ERLEDIGT (0.0.3-pre1) Lua (*.lua): function name / local function / M.name
                 --[[ ]], lange Zeichenketten [[ ]] bzw. [==[ ]==].
 R035  OFFEN     JSON5 (Schluessel ohne Anfuehrungszeichen, einfache
                 Anfuehrungszeichen, Hex-Zahlen ...).
+R036  ERLEDIGT (0.0.3-pre1) Fuenfter Praxistest: Leerzeichen-Einrueckung in
+                Suchbloecken (TEXT/TINS/TDEL) wie in Einfuegebloecken;
+                Hinweis bei Pfaden mit Leerzeichen; Hinweis bei Patches auf
+                ignorierte Dateien.

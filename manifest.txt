@@ -997,6 +997,12 @@ Beispiel (Pruefstufe std):
                             (relativ dazu: "\t" = eine Ebene tiefer)
   Fuer old/anchor gilt dieselbe Darstellung; gesucht wird ueber die
   Normalform, dabei muessen die relativen Ebenen uebereinstimmen.
+  Fuehrende Leerzeichen im Patch, die ein Vielfaches der Ebenen-Einheit
+  der Datei sind (z.B. 4 Leerzeichen), zaehlen wie Tabs - in old/anchor
+  ebenso wie in new (0.0.3; vorher nur in new). Damit passen auch Bloecke,
+  die eine KI mit der Einrueckung der Datei kopiert hat ("    x" ist dann
+  eine Ebene tiefer als die Grundtiefe; old und new muessen gleich
+  geschrieben sein).
 
 
 --------------------------------------------------------------------------------
@@ -1364,6 +1370,7 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.3-pre1):
     test_lua.py           Lua
     test_vb.py            VB.NET und VBA
     test_jsonc_answers.py JSONC, --answers
+    test_field5.py        Einrueckung in Suchbloecken, Pfade mit Leerzeichen
   ki-prompt.txt           Anleitung fuer KI-Assistenten
   ki-beispiele.txt        Beispiel-Auftraege mit Antworten fuer KIs
   examples/               demo/ + entwurf-beispiel.ppatch (readme.txt),

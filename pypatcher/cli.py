@@ -151,11 +151,22 @@ def _prepare(args):
             raise Conflict("Projektzustand stimmt nicht (state_before)\n    erwartet: %s\n"
                            "    gefunden: %s" % (patch["state_before"], current))
     engine.process(patch, ctx, entries)
+    _ignored_hint(ctx, journal)
     if match == "state" and patch.get("state_after") and not patch.get("flow"):
         after = state_hash(jr.project_hashes(journal.root, patterns, ctx.docs, ctx.profiles))
         if not patchfile.hash_match(patch["state_after"], after):
             raise Conflict("Projektzustand nach dem Patch stimmt nicht (state_after)")
     return patch, ctx, journal, answers
+
+
+def _ignored_hint(ctx, journal):
+    """Patch aendert Dateien, die pypatcher ignoriert (z.B. .DS_Store)."""
+    patterns = journal.patterns()
+    ignored = sorted(rel for rel in ctx.touched() if jr.is_ignored(rel, patterns))
+    if ignored:
+        ctx.hint("%d Datei(en) werden von pypatcher ignoriert (Vorgaben/.patcherignore) - "
+                 "dafuer ist kein Patch noetig: %s%s" % (
+                     len(ignored), ", ".join(ignored[:5]), " ..." if len(ignored) > 5 else ""))
 
 
 def _summary(ctx):
@@ -204,6 +215,7 @@ def cmd_run(args):
                      config=journal.config(),
                      source_dir=os.path.dirname(os.path.abspath(args.patch)))
     engine.process(patch, ctx, entries)
+    _ignored_hint(ctx, journal)
     out("Patch %s (%s): %s erfolgreich - %s:"
         % (patch["id"], patch["title"], "Hash-Pruefung" if sealed else "Inhaltspruefung",
            "wuerde aendern" if args.dry_run else "aendert"), "ok")

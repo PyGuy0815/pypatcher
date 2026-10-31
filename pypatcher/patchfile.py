@@ -720,7 +720,8 @@ class _Reader(object):
             entry["compare"] = profile_long(pos.pop())
         need = 2 if cmd in ("MOVE", "COPY") else 1
         if len(pos) != need:
-            raise PatchInvalid("%s: %d Pfad(e) erwartet" % (what, need))
+            raise PatchInvalid("%s: %d Pfad(e) erwartet%s" % (
+                what, need, " - Pfade mit Leerzeichen in \"...\" setzen" if len(pos) > need else ""))
         entry["path"] = pos[0]
         if need == 2:
             entry["to"] = pos[1]

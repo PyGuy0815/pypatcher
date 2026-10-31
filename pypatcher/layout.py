@@ -72,6 +72,20 @@ def to_rel(abs_lines, base, unit):
     return out
 
 
+def canon_rel(line, unit):
+    """Zeile aus dem Patch in die Tab-Form: fuehrende Leerzeichen, die ein
+    Vielfaches der Ebenen-Einheit der Datei sind, zaehlen wie Tabs (so wie
+    rel_line es fuer die Datei macht) - "    x" == "\tx" bei 4 Leerzeichen."""
+    if not unit or unit == "\t" or not line.strip():
+        return line
+    n = levels(line)
+    rest = line[n:]
+    while rest.startswith(unit):
+        rest = rest[len(unit):]
+        n += 1
+    return "\t" * n + rest
+
+
 def rel_line(line, base, unit, blank_as_empty=False):
     if line == "" or (blank_as_empty and not line.strip()):
         return ""

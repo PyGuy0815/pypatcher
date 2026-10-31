@@ -69,7 +69,8 @@ sichert vorher und kann alles zuruecknehmen.
    JSON:   Pfad aus Schluesseln/Indizes, z.B. server/port, plugins/0
            (Kommas beim Einfuegen/Loeschen richtet das Programm)
    Andere Dateien (Shell, YAML, Markdown ...): nur TEXT/TINS/TDEL/ADD/REP.
-   Adressen mit Leerzeichen in "..." setzen.
+   Adressen und Pfade mit Leerzeichen in "..." setzen
+   (MOVE "alt/Mein Patch.ips" "neu/Mein Patch.ips").
    Zum Ersetzen einer Einheit gehoert alles dazu: Kommentare direkt
    darueber, Decorators, Kopfzeile und Rumpf.
 

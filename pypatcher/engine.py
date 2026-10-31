@@ -172,7 +172,8 @@ def _abs(ch, key, base, fs, what, lit):
     lines = _lines(ch, key, what)
     if lit:
         return list(lines)
-    return lay.to_abs(lines, base, fs.need(lines, what))
+    unit = fs.need(lines, what)
+    return lay.to_abs([lay.canon_rel(l, unit) for l in lines], base, unit)
 
 
 def _blank_run(lines):
@@ -426,6 +427,8 @@ def _match(doc, ch, key, lo, hi, prof, fs, what):
         raise PatchInvalid("%s: %s ist leer" % (what, key))
     lit = fs.literal(ch)
     unit = None if lit else fs.need(pattern, what)
+    if not lit:
+        pattern = [lay.canon_rel(l, unit) for l in pattern]
     lvl = 0 if lit else lay.levels(pattern[ref])
     ignore_ws = prof.get("whitespace") == "ignore"
     norm = (lambda s: s.rstrip(" \t")) if ignore_ws else (lambda s: s)
