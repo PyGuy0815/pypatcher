@@ -54,6 +54,15 @@ Versionen: siehe manifest.txt Abschnitt 16.
   - Hinweis, wenn ein Patch Dateien aendert, die pypatcher ohnehin
     ignoriert (im Test: ein Patch, der 19 .DS_Store-Dateien loescht).
 
+  Sicherheit (Hinweis aus dem sechsten Praxistest, im Test bestaetigt):
+  - Behoben: Ein Patch konnte in .git/ schreiben (z.B. .git/hooks/
+    pre-commit - wird von Git ausgefuehrt). .git/, .hg/, .svn/ sind jetzt
+    wie .patcher/ gesperrt.
+  - Behoben: Ueber einen symbolischen Link auf ein Verzeichnis konnte ein
+    Patch ausserhalb des Projekts schreiben. Pfade ueber symbolische Links
+    werden abgelehnt; Rollback entfernt keine Links mehr als Verzeichnis.
+  - Neuer Befehl help [BEFEHL] (KIs und Nutzer versuchten "help").
+
 0.0.2 (2026-10-31) - Freigabe
 -----------------------------
   Umfang 0.0.2 (Ergebnis von vier Praxistests mit einer anderen KI an

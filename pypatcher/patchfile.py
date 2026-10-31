@@ -63,8 +63,12 @@ PART_RE = re.compile(r"^(.*)\.(\d+)" + re.escape(EXT) + "$")
 
 # -- Hilfen ------------------------------------------------------------------
 
+PROTECTED_DIRS = (".git", ".hg", ".svn")     # Versionsverwaltung (z.B. .git/hooks)
+
+
 def norm_path(path, what="Pfad"):
-    """Relativer Projektpfad mit "/"; keine absoluten Pfade, kein "..", nicht .patcher."""
+    """Relativer Projektpfad mit "/"; keine absoluten Pfade, kein "..", nicht
+    .patcher und nichts in .git/.hg/.svn (dort liegen ausfuehrbare Hooks)."""
     if not isinstance(path, str) or not path.strip():
         raise PatchInvalid("%s fehlt" % what)
     p = path.replace("\\", "/")
@@ -74,6 +78,9 @@ def norm_path(path, what="Pfad"):
     if (p.startswith("/") or re.match(r"^[A-Za-z]:", p)
             or any(part in ("", ".", "..") for part in parts) or parts[0] == ".patcher"):
         raise PatchInvalid("%s ungueltig: %r" % (what, path))
+    if any(part.lower() in PROTECTED_DIRS for part in parts):
+        raise PatchInvalid("%s ungueltig: %r - Verzeichnisse der Versionsverwaltung "
+                           "(%s) sind geschuetzt" % (what, path, ", ".join(PROTECTED_DIRS)))
     return p
 
 

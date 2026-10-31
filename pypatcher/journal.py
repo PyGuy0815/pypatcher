@@ -295,7 +295,7 @@ class Journal(object):
         """Durch den Patch entstandene, jetzt leere Verzeichnisse entfernen."""
         while os.path.normcase(directory) != os.path.normcase(self.root) and \
                 directory.startswith(self.root) and os.path.isdir(directory) and \
-                not os.listdir(directory):
+                not os.path.islink(directory) and not os.listdir(directory):
             os.rmdir(directory)
             directory = os.path.dirname(directory)
 

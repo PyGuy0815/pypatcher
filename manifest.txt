@@ -1162,6 +1162,15 @@ Rollback:
 --------------------------------------------------------------------------------
 12. ATOMARITAET / FEHLERSICHERHEIT
 --------------------------------------------------------------------------------
+Pfade (Sicherheit): Ein Patch darf nur relative Pfade innerhalb des
+Projekts nennen - keine absoluten Pfade, kein "..", nichts in .patcher/
+und (ab 0.0.3) nichts in .git/, .hg/, .svn/ (dort liegen ausfuehrbare
+Hooks; auch nicht in Unterverzeichnissen). Fuehrt ein Pfad ueber einen
+symbolischen Link (Verzeichnis oder Datei), wird abgebrochen - sonst
+koennte ein Patch ausserhalb des Projekts lesen oder schreiben.
+Ignorierte Dateien (.DS_Store, .patcherignore ...) darf ein Patch
+aendern; das Programm weist darauf hin.
+
 apply laeuft in drei Phasen:
   1. PRUEFEN    Patch-/Paket-Hashes, Vollstaendigkeit, REQ, doppelte ID,
                 Gueltigkeit der Vergleichsprofile, Mindestprofile,
@@ -1196,6 +1205,7 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
 
   Befehl    Ab       Aufruf / Zweck
   --------  -------  ---------------------------------------------------
+  help      0.0.3    patcher.py help [BEFEHL]   (wie -h bzw. BEFEHL -h)
   init      0.0.1    patcher.py init [-p PROJEKT] [--force]
                      Journal anlegen, Ist-Stand als Ausgangszustand;
                      --force (0.0.2): neu anlegen, nur ohne angewendete
@@ -1371,6 +1381,7 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.3-pre1):
     test_vb.py            VB.NET und VBA
     test_jsonc_answers.py JSONC, --answers
     test_field5.py        Einrueckung in Suchbloecken, Pfade mit Leerzeichen
+    test_safety.py        geschuetzte Pfade, symbolische Links, help
   ki-prompt.txt           Anleitung fuer KI-Assistenten
   ki-beispiele.txt        Beispiel-Auftraege mit Antworten fuer KIs
   examples/               demo/ + entwurf-beispiel.ppatch (readme.txt),

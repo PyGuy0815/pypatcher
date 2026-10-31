@@ -110,3 +110,10 @@ R036  ERLEDIGT (0.0.3-pre1) Fuenfter Praxistest: Leerzeichen-Einrueckung in
                 Suchbloecken (TEXT/TINS/TDEL) wie in Einfuegebloecken;
                 Hinweis bei Pfaden mit Leerzeichen; Hinweis bei Patches auf
                 ignorierte Dateien.
+R037  ERLEDIGT (0.0.3-pre1) Sechster Praxistest: .git/.hg/.svn gesperrt, keine
+                Pfade ueber symbolische Links, help-Befehl.
+R038  OFFEN     Vorschlaege aus dem sechsten Praxistest: --json-Ausgabe fuer
+                check/run (stabile Fehlercodes fuer KIs/Werkzeuge), doctor
+                (siehe R010), "ignore explain PFAD", Verzeichnis-Befehle
+                (DIRMOVE/DIRDEL mit versiegelter Dateiliste), Fehler-
+                Injektionstests fuer Abbrueche beim Schreiben.

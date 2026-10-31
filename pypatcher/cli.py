@@ -793,7 +793,20 @@ def build_parser():
     p = add("rollback", cmd_rollback, "Patches zuruecknehmen", (common, project))
     p.add_argument("--to", metavar="ID", help="alle Patches nach ID zuruecknehmen")
     add("recover", cmd_recover, "Unterbrochene Transaktion bereinigen", (common, project))
+    p = add("help", None, "Hilfe anzeigen (help BEFEHL: Hilfe zu einem Befehl)")
+    p.add_argument("topic", nargs="?", metavar="BEFEHL")
+    p.set_defaults(func=lambda args: _help(parser, sub, args.topic))
     return parser
+
+
+def _help(parser, sub, topic):
+    if topic is None:
+        parser.print_help()
+    elif topic in sub.choices:
+        sub.choices[topic].print_help()
+    else:
+        raise UsageError("unbekannter Befehl %r - Befehle: %s" % (topic, ", ".join(sub.choices)))
+    return 0
 
 
 def main(argv=None):

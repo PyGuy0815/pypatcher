@@ -42,8 +42,18 @@ class Ctx(object):
     def hint(self, msg):
         self.hints.append(msg)
 
+    def check_path(self, rel):
+        """Kein Weg ueber symbolische Links - sonst koennte ein Patch ausserhalb
+        des Projekts lesen oder schreiben."""
+        parts = rel.split("/")
+        for i in range(1, len(parts) + 1):
+            if os.path.islink(os.path.join(self.root, *parts[:i])):
+                raise Conflict("%s: Pfad fuehrt ueber einen symbolischen Link (%s) - "
+                               "nicht erlaubt" % (rel, "/".join(parts[:i])))
+
     def get(self, rel, prof):
         if rel not in self.docs:
+            self.check_path(rel)
             path = self.abspath(rel)
             doc = fileio.load(path, rel, prof, self.allow_mixed) if os.path.isfile(path) else None
             self.docs[rel] = self.originals[rel] = doc
