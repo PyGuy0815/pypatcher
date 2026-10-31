@@ -3,6 +3,11 @@ PYPATCHER - CHANGELOG
 Format: Version (Datum) - Aenderungen. Neueste oben.
 Versionen: siehe manifest.txt Abschnitt 16.
 
+0.0.3-pre1 (in Arbeit)
+----------------------
+  - Beginn der Vorabversion 0.0.3. Umfang wird in request.txt
+    festgelegt (Kandidaten u.a. Java, Visual Basic, Lua).
+
 0.0.2 (2026-10-31) - Freigabe
 -----------------------------
   Umfang 0.0.2 (Ergebnis von vier Praxistests mit einer anderen KI an

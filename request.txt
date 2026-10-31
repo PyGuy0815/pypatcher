@@ -55,7 +55,7 @@ R022  OFFEN     Token-sparende Entwurfsbefehle fuer KIs (z.B. Ersetzen
                 einzelner Zeilen per eindeutigem Muster), wenn sich in der
                 Praxis Bedarf zeigt.
 R023  OFFEN     Weitere Sprachen der C-Familie auf Basis von clike.py:
-                Java, C#, Go, PHP, Rust (je nach Bedarf).
+                C#, Go, PHP, Rust (je nach Bedarf); Java: R032.
 R024  OFFEN     JSON mit Kommentaren (JSONC, z.B. tsconfig/VS-Code-
                 Einstellungen) und JSON5.
 R025  ERLEDIGT (0.0.2) Aus dem Praxistest mit einer anderen KI:
@@ -88,3 +88,19 @@ R031  ERLEDIGT (0.0.2) Vierter Praxistest (KI mit Prompt, Chat-Entwuerfe
                 Block; Meldung "nur innerhalb eines FILE-Befehls" mit Zeile
                 und Korrektur; "rollback_on_failure" in config.json;
                 Prompt: FILE-Pflicht, mehrere Einheiten, REQ, Rollback.
+R032  OFFEN     Java (*.java): Klassen, Interfaces, Enums, Records, Methoden,
+                Konstruktoren, innere Klassen ("Klasse.methode",
+                "Aussen.Innen.methode", Ueberladungen name#1, name#2);
+                Annotationen und Javadoc gehoeren zur Einheit. Basis
+                clike.py.
+R033  OFFEN     Visual Basic: VB.NET (*.vb) sowie VBA/VB6 (*.bas, *.cls,
+                *.frm): Sub, Function, Property, Class, Module, Structure
+                als Einheiten ("Modul.Prozedur"); Bloecke ueber End Sub /
+                End Function ..., Gross-/Kleinschreibung der Schluessel-
+                woerter egal, Kommentare mit ' bzw. REM, Zeilenfortsetzung
+                " _". VBA-Exporte: Kopfzeilen (VERSION, Attribute ...)
+                als @header.
+R034  OFFEN     Lua (*.lua): function name / local function / M.name =
+                function / function M:methode als Einheiten ("M.name",
+                "M:methode"), Bloecke ueber end, Kommentare -- und
+                --[[ ]], lange Zeichenketten [[ ]] bzw. [==[ ]==].
