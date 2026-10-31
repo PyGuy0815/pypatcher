@@ -47,6 +47,12 @@ MODES = {
         "eol": ("normalize", "keep"),
         "encoding": None,
     }),
+    "lua": (1, {
+        "comments": ("ignore", "keep"),
+        "whitespace": ("ignore", "keep"),
+        "eol": ("normalize", "keep"),
+        "encoding": None,
+    }),
     "jsx": (1, {
         "comments": ("ignore", "keep"),
         "whitespace": ("ignore", "keep"),
@@ -104,6 +110,7 @@ EXTENSIONS = {
     "tsx": (".tsx",),
     "jsx": (".jsx",),
     "java": (".java",),
+    "lua": (".lua",),
     "css": (".css",),
     "scss": (".scss", ".less"),
     "html": (".html", ".htm", ".xhtml"),

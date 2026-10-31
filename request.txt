@@ -100,7 +100,7 @@ R033  OFFEN     Visual Basic: VB.NET (*.vb) sowie VBA/VB6 (*.bas, *.cls,
                 woerter egal, Kommentare mit ' bzw. REM, Zeilenfortsetzung
                 " _". VBA-Exporte: Kopfzeilen (VERSION, Attribute ...)
                 als @header.
-R034  OFFEN     Lua (*.lua): function name / local function / M.name =
+R034  ERLEDIGT (0.0.3-pre1) Lua (*.lua): function name / local function / M.name =
                 function / function M:methode als Einheiten ("M.name",
                 "M:methode"), Bloecke ueber end, Kommentare -- und
                 --[[ ]], lange Zeichenketten [[ ]] bzw. [==[ ]==].

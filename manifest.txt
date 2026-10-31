@@ -439,6 +439,12 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
   (Annotationen), Text-Bloecke """...""" (bleiben exakt) und >>>.
   Kommentare und Leerraum zaehlen nicht.
 
+5.6.4b mode "lua" - Normalform lua/1 (0.0.3)
+  *.lua. Eigener Tokenizer: Kommentare -- und --[[ ]] (auch --[==[ ]==])
+  zaehlen nicht, Zeichenketten inkl. langer [[ ]] / [==[ ]==] exakt.
+  Syntaxpruefung: Tokens, Klammern und Bloecke (function/if/do/while/
+  for ... end, repeat ... until) muessen aufgehen.
+
 5.6.5 mode "json" - Normalform json/1 (umgesetzt)
   *.json, *.geojson, *.webmanifest. Normalform = die Daten selbst:
   - Formatierung zaehlt nicht; Reihenfolge der Schluessel standardmaessig
@@ -848,6 +854,16 @@ Beispiel (Pruefstufe std):
     gehoeren zur Einheit. Keine Einheiten: Felder, static-/Instanz-
     Initialisierer, anonyme Klassen und Lambdas (liegen in Methoden),
     Methoden ohne Rumpf (abstract, interface).
+  Lua (0.0.3):
+    M.add, M:greet       function M.add(..) / function M:greet(..) - Name
+                         wie im Code; local function name; name = function
+    M, handlers.click    Tabelle in einer Zuweisung (local M = {..}) und
+                         ihre Felder mit Funktion bzw. Tabelle (auch
+                         ["key-down"] = function); einfache Werte sind
+                         keine Einheiten. Trennzeichen zwischen Feldern
+                         setzt das Programm. start-of:/end-of: bei Tabellen.
+    M.add.helper         innere Funktion
+    Kommentarzeilen (-- ...) direkt darueber gehoeren zur Einheit.
   JSON:
     server/port          Eintrag ueber den Pfad (Schluessel, Listen-Index)
     plugins/0/name       "/" und "~" in Schluesseln als ~1 bzw. ~0
@@ -1258,6 +1274,7 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.3-pre1):
       clike.py            mode c/cpp/java: Tokenizer, Einheiten, Normalform
       jsondata.py         mode json: Parser mit Positionen, Pfade,
                           Normalform json/1, Kommakorrektur (repair)
+      lua.py              mode lua: Tokenizer, Bloecke, Einheiten
       markup.py           mode html/xml: Elementbaum mit Positionen,
                           Adressen, Normalform html/1, xml/1
     engine.py             alle Patch-Befehle im Speicher (seal + apply)

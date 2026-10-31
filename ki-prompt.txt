@@ -60,6 +60,9 @@ sichert vorher und kann alles zuruecknehmen.
    Java:   Klasse, Klasse.methode, Klasse.Innen.methode; Ueberladungen
            name#1, name#2 (Reihenfolge in der Datei); Annotationen gehoeren
            zur Methode
+   Lua:    M.name, M:methode, name (local function), Tabelle.feld bei
+           local T = { feld = function ... end } (Kommas richtet das
+           Programm), aussen.innen
    JSON:   Pfad aus Schluesseln/Indizes, z.B. server/port, plugins/0
            (Kommas beim Einfuegen/Loeschen richtet das Programm)
    Andere Dateien (Shell, YAML, Markdown ...): nur TEXT/TINS/TDEL/ADD/REP.

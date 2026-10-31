@@ -21,6 +21,13 @@ Versionen: siehe manifest.txt Abschnitt 16.
     Methoden, Konstruktoren, innere Klassen ("Store.Entry.size");
     Ueberladungen name#1, name#2; Annotationen und Javadoc gehoeren dazu.
 
+  Lua (R034):
+  - mode lua (*.lua), Normalform lua/1; lange Zeichenketten/Kommentare
+    ([[ ]], [==[ ]==]); Syntaxpruefung ueber Klammern und Bloecke.
+  - Einheiten: function M.name / M:methode, local function, name =
+    function, Tabellen mit Funktionsfeldern ("handlers.click"), innere
+    Funktionen; Trennzeichen zwischen Tabellenfeldern werden gerichtet.
+
 0.0.2 (2026-10-31) - Freigabe
 -----------------------------
   Umfang 0.0.2 (Ergebnis von vier Praxistests mit einer anderen KI an

@@ -7,6 +7,7 @@ from .clike import CAdapter, CppAdapter, JavaAdapter
 from .css import CssAdapter, ScssAdapter
 from .js import JsAdapter, JsxAdapter, TsAdapter, TsxAdapter
 from .jsondata import JsonAdapter
+from .lua import LuaAdapter
 from .markup import HtmlAdapter, XmlAdapter
 from .python import PythonAdapter
 from .text import TextAdapter
@@ -14,7 +15,8 @@ from .text import TextAdapter
 ADAPTERS = {"text": TextAdapter(), "python": PythonAdapter(), "js": JsAdapter(),
             "css": CssAdapter(), "scss": ScssAdapter(), "html": HtmlAdapter(),
             "xml": XmlAdapter(), "c": CAdapter(), "cpp": CppAdapter(), "json": JsonAdapter(),
-            "ts": TsAdapter(), "tsx": TsxAdapter(), "jsx": JsxAdapter(), "java": JavaAdapter()}
+            "ts": TsAdapter(), "tsx": TsxAdapter(), "jsx": JsxAdapter(), "java": JavaAdapter(),
+            "lua": LuaAdapter()}
 PY = ADAPTERS["python"]
 
 __all__ = ["ADAPTERS", "PY", "ParseError", "get", "file_hash", "unit_hash", "text_hash"]
