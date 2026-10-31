@@ -25,7 +25,7 @@ R008  ERLEDIGT (0.0.1) Weitergabe als Einzeldatei: patcher.py bundle
                 -> patcher.pyz.
 R009  ERLEDIGT (0.0.1) Profil-Option "docstrings": "ignore" (nur
                 ausdruecklich; Standard ist keep, da programmrelevant).
-R010  IN ARBEIT  Befehle create (ERLEDIGT 0.0.1), doctor, canon,
+R010  IN ARBEIT  Befehle create (ERLEDIGT 0.0.1), doctor (ERLEDIGT 0.0.3-pre1), canon,
                 invert (folgen; invert nutzt die Sicherung im Journal,
                 da der Patch keinen alten Code enthaelt).
 R011  OFFEN     copy/move auch fuer Textbloecke (copy_text/move_text).
@@ -112,10 +112,11 @@ R036  ERLEDIGT (0.0.3-pre1) Fuenfter Praxistest: Leerzeichen-Einrueckung in
                 ignorierte Dateien.
 R037  ERLEDIGT (0.0.3-pre1) Sechster Praxistest: .git/.hg/.svn gesperrt, keine
                 Pfade ueber symbolische Links, help-Befehl.
-R038  IN ARBEIT  Vorschlaege aus dem sechsten Praxistest: --json-Ausgabe fuer
+R038  ERLEDIGT (0.0.3-pre1) Vorschlaege aus dem sechsten Praxistest: --json-Ausgabe fuer
                 check/run (stabile Fehlercodes fuer KIs/Werkzeuge; ERLEDIGT
                 0.0.3-pre1), doctor
                 (siehe R010), "ignore explain PFAD", Verzeichnis-Befehle
                 (DMOVE/DCOPY/DDEL mit versiegelter Dateiliste; ERLEDIGT
                 0.0.3-pre1), Fehler-
-                Injektionstests fuer Abbrueche beim Schreiben.
+                Injektionstests fuer Abbrueche beim Schreiben (alle
+                ERLEDIGT 0.0.3-pre1).

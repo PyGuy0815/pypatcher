@@ -77,6 +77,19 @@ Versionen: siehe manifest.txt Abschnitt 16.
     werden abgelehnt; Rollback exakt.
   - Leer gewordene Verzeichnisse werden entfernt (Rollback legt sie an).
 
+  doctor, ignore, Abbruchsicherheit (R038, R010):
+  - doctor: prueft Python, Schreibrechte, Journal, unterbrochene
+    Transaktion, Sicherungen aller Patches, config.json, Ignore-Regeln,
+    Dateien (Syntax, Kodierung, Zeilenenden) und symbolische Links;
+    Exit-Code 7 bei Fehlern.
+  - ignore [PFAD ...]: Regeln mit Herkunft und Zustand bzw. warum ein
+    Pfad ignoriert wird; Muster "name/" passen wie in .gitignore auf
+    Verzeichnisse (vorher wirkungslos).
+  - Abbruch-Tests: Prozess wird bei jedem Schreibvorgang von apply und
+    rollback hart beendet, danach muss recover einen konsistenten Stand
+    herstellen. Behoben: Abbruch zwischen history.json und state.json
+    hinterliess einen veralteten Zustand (apply und rollback).
+
 0.0.2 (2026-10-31) - Freigabe
 -----------------------------
   Umfang 0.0.2 (Ergebnis von vier Praxistests mit einer anderen KI an

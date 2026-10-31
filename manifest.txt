@@ -178,7 +178,8 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
   verwalteten Dateien. Ignoriert werden ".patcher/", die Vorgaben
   .git, __pycache__, *.pyc, .DS_Store, Thumbs.db, desktop.ini, *.ppatch,
   Muster aus config.json ("ignore") und aus ".patcherignore" (eine
-  fnmatch-Maske je Zeile, # = Kommentar). "!muster" nimmt eine Vorgabe
+  fnmatch-Maske je Zeile, # = Kommentar; "name/" passt wie in
+  .gitignore auf Verzeichnisse - ab 0.0.3). "!muster" nimmt eine Vorgabe
   zurueck (z.B. "!*.ppatch", wenn Patchdateien zum Projekt gehoeren).
   .patcherignore selbst wird nie verwaltet: die Ignore-Regeln gehoeren
   zur jeweiligen Umgebung und werden nicht per Patch uebertragen.
@@ -1189,6 +1190,15 @@ koennte ein Patch ausserhalb des Projekts lesen oder schreiben.
 Ignorierte Dateien (.DS_Store, .patcherignore ...) darf ein Patch
 aendern; das Programm weist darauf hin.
 
+Abbruchsicherheit (0.0.3 systematisch getestet): Die Tests beenden den
+Prozess hart bei jedem einzelnen Schreibvorgang von apply und rollback
+(vor und nach dem Schreiben). Danach stellt recover immer einen
+konsistenten Stand her - entweder vollstaendig ohne oder vollstaendig mit
+dem Patch - und verify passt. Dabei gefunden und behoben: ein Abbruch
+zwischen history.json und state.json hinterliess einen veralteten Zustand
+(recover richtet state.json jetzt aus dem Historien-Eintrag; der Eintrag
+eines laufenden Rollbacks steht dafuer in txn.json).
+
 apply laeuft in drei Phasen:
   1. PRUEFEN    Patch-/Paket-Hashes, Vollstaendigkeit, REQ, doppelte ID,
                 Gueltigkeit der Vergleichsprofile, Mindestprofile,
@@ -1264,9 +1274,18 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
                      [--include-cosmetic] [--no-layout] [AUSGABE]
                      Patch aus zwei Staenden (Abschnitt 10); erkennt
                      verschobene/kopierte Einheiten und Dateien.
-  doctor    spaeter  patcher.py doctor [-p PROJEKT]
-                     Python-Version, Betriebssystem, Schreibrechte,
-                     Encoding, Zeilenenden, Einrueckungsart, parsebar
+  doctor    0.0.3    patcher.py doctor [-p PROJEKT] [--json]
+                     Python/Betriebssystem, Schreibrechte, Journal (Ist-
+                     Stand, unterbrochene Transaktion, Sicherungen fuer
+                     jeden Patch), config.json (compare, test), Ignore-
+                     Regeln (ueberfluessige), Dateien (Arten, Syntax,
+                     nicht UTF-8, gemischte Zeilenenden), symbolische
+                     Links. Exit-Code 7 bei Fehlern.
+  ignore    0.0.3    patcher.py ignore [PFAD ...] [-p PROJEKT] [--json]
+                     ohne PFAD: alle Regeln mit Herkunft und Zustand
+                     (aktiv, zurueckgenommen, ueberfluessig, trifft keine
+                     Datei); mit PFAD: ignoriert? durch welche Regel(n)
+                     aus welcher Quelle, verwaltet oder neu
   canon     spaeter  patcher.py canon DATEI [--unit U] [--compare P]
                      Normalform anzeigen (Diagnose)
   invert    spaeter  patcher.py invert PATCH -o DATEI
@@ -1342,7 +1361,7 @@ Exit-Codes:
   0 OK | 1 Bedienfehler | 2 Patch ungueltig/beschaedigt
   3 Konflikt (Hash stimmt nicht) | 4 Journal-/Transaktionsfehler
   5 interner Fehler | 6 Tests fehlgeschlagen (apply/run --test)
-  7 Umgebung ungeeignet (doctor, spaeter)
+  7 Umgebung ungeeignet (doctor findet Fehler)
 
 
 --------------------------------------------------------------------------------
@@ -1426,6 +1445,8 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.3-pre1):
     test_safety.py        geschuetzte Pfade, symbolische Links, help
     test_json_output.py   --json
     test_dirs.py          DMOVE, DCOPY, DDEL
+    test_crash.py         Abbruch bei jedem Schreibvorgang (killer.py)
+    test_doctor.py        doctor, ignore, Verzeichnis-Muster
   ki-prompt.txt           Anleitung fuer KI-Assistenten
   ki-beispiele.txt        Beispiel-Auftraege mit Antworten fuer KIs
   examples/               demo/ + entwurf-beispiel.ppatch (readme.txt),

@@ -20,7 +20,7 @@ QUIET = False
 REPORT = None           # --json: Ergebnis als ein JSON-Objekt statt Textausgabe
 JSON_FORMAT = "pypatcher-result/1"
 RESULT_CODES = {0: "OK", 1: "USAGE", 2: "PATCH_INVALID", 3: "CONFLICT", 4: "JOURNAL",
-                5: "INTERNAL", 6: "TESTS_FAILED"}
+                5: "INTERNAL", 6: "TESTS_FAILED", 7: "ENVIRONMENT"}
 
 
 def report(**fields):
@@ -432,6 +432,221 @@ def cmd_verify(args):
     return 0
 
 
+def _rel_arg(path, root):
+    """Pfad von der Kommandozeile -> Projektpfad mit "/"."""
+    full = os.path.abspath(path) if os.path.isabs(path) or os.path.exists(path) and \
+        not os.path.exists(os.path.join(root, path)) else os.path.join(root, path)
+    rel = os.path.relpath(full, root).replace(os.sep, "/")
+    if rel.startswith("../") or rel == "..":
+        raise UsageError("%s liegt nicht im Projekt %s" % (path, root))
+    return rel
+
+
+def _all_files(root):
+    out = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in (jr.JOURNAL_DIR, ".git")]
+        rel_dir = os.path.relpath(dirpath, root).replace(os.sep, "/")
+        rel_dir = "" if rel_dir == "." else rel_dir + "/"
+        out.extend(rel_dir + f for f in filenames)
+    return out
+
+
+def cmd_ignore(args):
+    """Ignore-Regeln anzeigen bzw. erklaeren, warum Pfade ignoriert werden."""
+    journal = jr.Journal(args.project)
+    config = journal.config()
+    root = journal.root
+    if args.paths:
+        managed = set(journal.state()["files"]) if journal.exists else set()
+        results = []
+        for path in args.paths:
+            rel = _rel_arg(path, root)
+            hits, revoked = jr.explain_ignore(rel, root, config)
+            exists = os.path.exists(os.path.join(root, *rel.split("/")))
+            results.append({"path": rel, "ignored": bool(hits), "exists": exists,
+                            "managed": rel in managed,
+                            "rules": [{"pattern": p, "source": s} for p, s in hits],
+                            "revoked": [{"pattern": p, "source": s} for p, s in revoked]})
+            if hits:
+                out("%s: ignoriert durch %s" % (rel, ", ".join("'%s' (%s)" % h for h in hits)))
+            else:
+                state = "verwaltet" if rel in managed else (
+                    "nicht ignoriert, existiert nicht" if not exists else
+                    "nicht ignoriert, aber noch nicht verwaltet (neue Datei)")
+                out("%s: %s" % (rel, state))
+            for p, s in revoked:
+                out("  Vorgabe '%s' zurueckgenommen durch '%s' (%s)" % (p[1:], p, s))
+        report(paths=results)
+        return 0
+    files = _all_files(root)
+    rules = []
+    active = set(jr.ignore_patterns(root, config))
+    for pattern in jr.DEFAULT_IGNORE:
+        state = "aktiv" if pattern in active else "zurueckgenommen"
+        rules.append({"pattern": pattern, "source": "Vorgabe", "state": state})
+    for pattern, source in jr.ignore_rules(root, config):
+        if pattern.startswith("!"):
+            state = "nimmt Vorgabe zurueck" if pattern[1:] in jr.DEFAULT_IGNORE else \
+                "wirkungslos (keine solche Vorgabe)"
+        elif pattern in jr.DEFAULT_IGNORE:
+            state = "ueberfluessig (schon Vorgabe)"
+        elif not any(jr.matches(rel, pattern) for rel in files):
+            state = "trifft derzeit keine Datei"
+        else:
+            state = "aktiv"
+        rules.append({"pattern": pattern, "source": source, "state": state})
+    report(rules=rules)
+    for rule in rules:
+        out("%-28s %-26s %s" % (rule["pattern"], rule["source"], rule["state"]))
+    return 0
+
+
+def cmd_doctor(args):
+    """Umgebung und Projekt pruefen: Python, Schreibrechte, Journal, Sicherungen,
+    Konfiguration, Ignore-Regeln, Dateien (Kodierung, Zeilenenden, Syntax),
+    symbolische Links. Exit-Code 7 bei Fehlern."""
+    import platform
+    checks = []
+
+    def add(status, name, message):
+        checks.append({"status": status, "name": name, "message": message})
+
+    version = sys.version_info
+    add("ok" if version >= (3, 8) else "error", "Python",
+        "%d.%d.%d auf %s (pypatcher %s)" % (version[0], version[1], version[2],
+                                           platform.platform(), __version__))
+    journal = jr.Journal(args.project)
+    root = journal.root
+    if not os.path.isdir(root):
+        add("error", "Projekt", "%s ist kein Verzeichnis" % root)
+        return _doctor_report(checks)
+    for where in (root, journal.dir if journal.exists else None):
+        if where is None:
+            continue
+        try:
+            fd, tmp = tempfile.mkstemp(prefix=".pptmp-", dir=where)
+            os.close(fd)
+            os.remove(tmp)
+        except OSError as exc:
+            add("error", "Schreibrechte", "%s: %s" % (where, exc))
+            break
+    else:
+        add("ok", "Schreibrechte", "Projekt%s beschreibbar" % (" und Journal" if journal.exists
+                                                                 else ""))
+    config = {}
+    if not journal.exists:
+        add("warn", "Journal", "kein Journal - zuerst: patcher.py init -p %s" % args.project)
+    else:
+        try:
+            config = journal.config()
+            history = journal.history()
+            if journal.txn():
+                add("error", "Transaktion", "unterbrochen - patcher.py recover -p %s"
+                    % args.project)
+            errors, notes = journal.verify()
+            if errors:
+                add("error", "Journal", "%d Abweichung(en), z.B. %s (patcher.py verify)"
+                    % (len(errors), errors[0]))
+            else:
+                add("ok", "Journal", "%d Dateien verwaltet, %d Patches angewendet, Ist-Stand "
+                    "passt" % (len(journal.state()["files"]), len(history["applied"])))
+            if journal.unmanaged:
+                add("info", "Unverwaltet", "%d neue Datei(en) ausserhalb von Patches, z.B. %s"
+                    % (len(journal.unmanaged), ", ".join(journal.unmanaged[:3])))
+            missing = []
+            for entry in history["applied"]:
+                meta = jr.read_json(journal.path("backups", entry["id"], "meta.json"))
+                if meta is None:
+                    missing.append(entry["id"])
+                    continue
+                for rel, existed in meta["files"].items():
+                    if existed and not os.path.isfile(journal.path(
+                            "backups", entry["id"], "files", *rel.split("/"))):
+                        missing.append("%s (%s)" % (entry["id"], rel))
+            if missing:
+                add("error", "Sicherungen", "fehlen - Rollback nicht moeglich: %s"
+                    % ", ".join(missing[:5]))
+            elif history["applied"]:
+                add("ok", "Sicherungen", "fuer alle %d Patches vorhanden"
+                    % len(history["applied"]))
+        except PatcherError as exc:
+            add("error", "Journal", str(exc))
+    problems = []
+    for pattern, value in sorted((config.get("compare") or {}).items()):
+        try:
+            pf.complete(pf.parse_short(value) if isinstance(value, str) else dict(value))
+        except PatcherError as exc:
+            problems.append("%s: %s" % (pattern, exc))
+    if problems:
+        add("error", "Konfiguration", "compare ungueltig: " + "; ".join(problems))
+    if config.get("test"):
+        add("info", "Tests", "%s%s" % (config["test"], " (rollback_on_failure)"
+                                       if config.get("rollback_on_failure") else ""))
+    redundant = [p for p, _ in jr.ignore_rules(root, config) if p in jr.DEFAULT_IGNORE]
+    if redundant:
+        add("info", "Ignore-Regeln", "ueberfluessig (schon Vorgabe): %s" % ", ".join(redundant))
+    patterns = jr.ignore_patterns(root, config)
+    modes, syntax, mixed, binary_code, links = {}, [], [], [], []
+    for rel in _all_files(root):
+        full = os.path.join(root, *rel.split("/"))
+        if os.path.islink(full):
+            links.append(rel)
+            continue
+        if jr.is_ignored(rel, patterns):
+            continue
+        data = fileio.read_bytes(full)
+        hints = []
+        prof = jr.auto_profile(rel, data, hints)
+        override = pf.lookup(config.get("compare"), rel)
+        if override:
+            try:
+                prof = pf.resolve(rel, override)
+            except PatcherError:
+                pass
+        modes[prof["mode"]] = modes.get(prof["mode"], 0) + 1
+        syntax.extend(hints)
+        if prof["mode"] == "raw" and pf.default_mode(rel) != "text" and b"\0" not in data:
+            binary_code.append(rel)
+        elif prof["mode"] != "raw":
+            try:
+                fileio.decode(data, prof["encoding"], rel)
+            except Conflict as exc:
+                if "Zeilenenden" in str(exc):
+                    mixed.append(rel)
+    for root_dir, dirnames, _ in os.walk(root):
+        for d in dirnames:
+            if os.path.islink(os.path.join(root_dir, d)):
+                links.append(os.path.relpath(os.path.join(root_dir, d), root).replace(os.sep, "/"))
+    add("info", "Dateien", ", ".join("%d %s" % (n, m) for m, n in sorted(modes.items())) or
+        "keine")
+    if syntax:
+        add("warn", "Syntax", "%d Datei(en) als text verwaltet (keine Einheiten): %s"
+            % (len(syntax), "; ".join(syntax[:3])))
+    if binary_code:
+        add("warn", "Kodierung", "%d Quelltext-Datei(en) nicht als UTF-8 lesbar - als "
+            "Binaerdatei verwaltet: %s (encoding in config.json \"compare\", z.B. "
+            "\"vba,encoding=cp1252\")" % (len(binary_code), ", ".join(binary_code[:3])))
+    if mixed:
+        add("warn", "Zeilenenden", "gemischt in %s (--allow-mixed-eol)" % ", ".join(mixed[:3]))
+    if links:
+        add("warn", "Links", "symbolische Links - Patches koennen diese Pfade nicht aendern: %s"
+            % ", ".join(sorted(links)[:5]))
+    return _doctor_report(checks)
+
+
+def _doctor_report(checks):
+    label = {"ok": "OK", "info": "Hinweis", "warn": "ACHTUNG", "error": "FEHLER"}
+    for check in checks:
+        out("%s: %s - %s" % (label[check["status"]], check["name"], check["message"]))
+    report(checks=checks)
+    errors = sum(1 for c in checks if c["status"] == "error")
+    out("doctor: %d Fehler, %d Warnungen" % (errors, sum(1 for c in checks
+                                                         if c["status"] == "warn")),
+        "warn" if errors else "ok")
+    return 7 if errors else 0
+
+
 def cmd_log(args):
     journal = jr.Journal(args.project)
     journal.require()
@@ -780,6 +995,11 @@ def build_parser():
     p.add_argument("--force", action="store_true",
                    help="bestehendes Journal neu anlegen (nur ohne angewendete Patches)")
     add("status", cmd_status, "Ueberblick ueber Zustand und Patches", (common, project))
+    add("doctor", cmd_doctor, "Umgebung und Projekt pruefen (Exit-Code 7 bei Fehlern)",
+        (common, project))
+    p = add("ignore", cmd_ignore, "Ignore-Regeln anzeigen bzw. erklaeren (ignore PFAD ...)",
+            (common, project))
+    p.add_argument("paths", nargs="*", metavar="PFAD", help="erklaeren, ob/warum ignoriert")
     add("verify", cmd_verify, "Ist-Stand gegen das Journal pruefen", (common, project))
     add("log", cmd_log, "Historie anzeigen", (common, project))
     p = add("units", cmd_units, "Einheiten einer Datei mit Hashes")

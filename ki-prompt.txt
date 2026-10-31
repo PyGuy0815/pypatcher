@@ -137,6 +137,10 @@ sichert vorher und kann alles zuruecknehmen.
        python3 patcher.py units <datei>
      bitten (zeigt alle Einheiten mit Zeilen) und einen korrigierten
      Entwurf mit derselben id liefern.
+   - Bei Problemen mit Projekt oder Umgebung (Kodierung, Rechte,
+     unterbrochener Vorgang, ignorierte Dateien): Ausgabe von
+       python3 patcher.py doctor -p <projekt>
+     bzw. python3 patcher.py ignore <pfad> -p <projekt> anfordern.
    - Nur Dateien aendern, deren aktuellen Inhalt du gesehen hast oder die
      neu sind. Nichts erfinden, nichts weglassen; keine Binaerdateien.
 

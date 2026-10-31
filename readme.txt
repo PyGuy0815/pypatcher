@@ -108,6 +108,10 @@ Komprimieren und teilen
 komprimiert, die Befehlsliste bleibt lesbar); --max-size teilt in Pakete.
 Beides geht auch direkt bei seal und create.
 
+Projekt pruefen: python3 patcher.py doctor -p projekt/ (Umgebung, Journal,
+Sicherungen, Kodierungen ...); warum ist eine Datei ignoriert?
+python3 patcher.py ignore datei -p projekt/.
+
 Weitere Befehle: log, units, recover - siehe "python3 patcher.py -h" und
 manifest.txt Abschnitt 13. Spaeter: doctor, canon, invert.
 

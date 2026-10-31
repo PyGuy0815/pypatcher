@@ -38,26 +38,60 @@ def write_json(path, data):
     fileio.atomic_write(path, (json.dumps(data, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
 
 
+def ignore_rules(root, config=None):
+    """Alle Regeln mit Herkunft: [(muster, herkunft)], "!muster" eingeschlossen."""
+    rules = [(p, "config.json") for p in (config or {}).get("ignore", [])]
+    try:
+        with open(os.path.join(root, ".patcherignore"), encoding="utf-8") as handle:
+            for n, line in enumerate(handle, 1):
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    rules.append((line, ".patcherignore Zeile %d" % n))
+    except FileNotFoundError:
+        pass
+    return rules
+
+
 def ignore_patterns(root, config=None):
     """Muster aus Vorgaben, config.json ("ignore") und .patcherignore.
     "!muster" nimmt ein Vorgabe-Muster zurueck (z.B. "!*.ppatch")."""
-    own = list((config or {}).get("ignore", []))
-    try:
-        with open(os.path.join(root, ".patcherignore"), encoding="utf-8") as handle:
-            own += [l.strip() for l in handle if l.strip() and not l.strip().startswith("#")]
-    except FileNotFoundError:
-        pass
+    own = [p for p, _ in ignore_rules(root, config)]
     dropped = set(p[1:] for p in own if p.startswith("!")) - set(FIXED_IGNORE)
     return [p for p in DEFAULT_IGNORE if p not in dropped] + \
         [p for p in own if not p.startswith("!")]
 
 
-def is_ignored(rel, patterns):
+def matches(rel, pattern):
+    """Muster passt auf den ganzen Pfad oder einen Pfadteil; "name/" (wie in
+    .gitignore) passt auf Verzeichnisse dieses Namens bzw. Pfads."""
     parts = rel.split("/")
-    if parts[0] == JOURNAL_DIR:
+    if pattern.endswith("/"):
+        pattern = pattern.rstrip("/")
+        return any(fnmatch.fnmatch("/".join(parts[:i]), pattern) or
+                   fnmatch.fnmatch(parts[i - 1], pattern) for i in range(1, len(parts)))
+    return fnmatch.fnmatch(rel, pattern) or any(fnmatch.fnmatch(part, pattern) for part in parts)
+
+
+def explain_ignore(rel, root, config=None):
+    """Warum wird rel ignoriert? -> (treffer, zurueckgenommen): je eine Liste
+    [(muster, herkunft)] - treffer leer = nicht ignoriert; zurueckgenommen
+    sind "!muster", die eine passende Vorgabe aufheben."""
+    if rel.split("/")[0] == JOURNAL_DIR:
+        return [(JOURNAL_DIR, "fest (Journal)")], []
+    active = set(ignore_patterns(root, config))
+    rules = ignore_rules(root, config)
+    hits = [(p, "fest (Vorgabe)" if p in FIXED_IGNORE else "Vorgabe")
+            for p in DEFAULT_IGNORE if p in active and matches(rel, p)]
+    hits += [(p, src) for p, src in rules if not p.startswith("!") and matches(rel, p)]
+    revoked = [(p, src) for p, src in rules if p.startswith("!") and p[1:] in DEFAULT_IGNORE
+               and p[1:] not in FIXED_IGNORE and matches(rel, p[1:])]
+    return hits, revoked
+
+
+def is_ignored(rel, patterns):
+    if rel.split("/")[0] == JOURNAL_DIR:
         return True
-    return any(fnmatch.fnmatch(rel, p) or any(fnmatch.fnmatch(part, p) for part in parts)
-               for p in patterns)
+    return any(matches(rel, p) for p in patterns)
 
 
 def _managed(files, patterns):
@@ -263,10 +297,6 @@ class Journal(object):
                     before = fingerprint(rel, data, ctx.profiles[rel])
             after = fingerprint(rel, written[rel], ctx.profiles[rel]) if rel in written else None
             files_info[rel] = {"before": before, "after": after}
-            if after is None:
-                state["files"].pop(rel, None)
-            else:
-                state["files"][rel] = after
         history = self.history()
         history["applied"].append({"id": pid, "title": patch.get("title", ""),
                                    "patch_hash": patch.get("patch_hash"),
@@ -274,9 +304,20 @@ class Journal(object):
                                    "answers": answers or {}})
         history["log"].append({"time": now(), "action": "apply", "id": pid})
         write_json(self.path("history.json"), history)
-        self._save_state(state["files"])
+        self._sync_state(files_info, "after")
         os.remove(self.path("txn.json"))
         return files_info
+
+    def _sync_state(self, files_info, side):
+        """state.json nach einem Historien-Eintrag richten (wiederholbar - auch
+        nach einem Abbruch zwischen history.json und state.json)."""
+        state = self.state()
+        for rel, fps in files_info.items():
+            if fps[side] is None:
+                state["files"].pop(rel, None)
+            else:
+                state["files"][rel] = fps[side]
+        self._save_state(state["files"])
 
     # -- rollback / recover ------------------------------------------------
 
@@ -334,24 +375,21 @@ class Journal(object):
         meta = self._backup_meta(pid)
         self.check_after(entry)
         write_json(self.path("txn.json"), {"kind": "rollback", "id": pid, "phase": "write",
-                                           "files": meta, "time": now()})
+                                           "files": meta, "time": now(),
+                                           "entry_files": entry["files"]})
         self.restore(pid, meta)
-        self._finish_rollback(pid)
+        self._finish_rollback(pid, entry["files"])
 
-    def _finish_rollback(self, pid):
+    def _finish_rollback(self, pid, files_info=None):
         history = self.history()
         entry = next((e for e in history["applied"] if e["id"] == pid), None)
         if entry is not None:
+            files_info = entry["files"]
             history["applied"].remove(entry)
             history["log"].append({"time": now(), "action": "rollback", "id": pid})
             write_json(self.path("history.json"), history)
-            state = self.state()
-            for rel, fps in entry["files"].items():
-                if fps["before"] is None:
-                    state["files"].pop(rel, None)
-                else:
-                    state["files"][rel] = fps["before"]
-            self._save_state(state["files"])
+        if files_info is not None:
+            self._sync_state(files_info, "before")
         for path in (self.path("patches", pid + patchfile.EXT),):
             if os.path.isfile(path):
                 os.remove(path)
@@ -365,7 +403,9 @@ class Journal(object):
             return None
         pid = txn["id"]
         if txn["kind"] == "apply":
-            if pid in self.applied_ids():
+            entry = next((e for e in self.history()["applied"] if e["id"] == pid), None)
+            if entry is not None:
+                self._sync_state(entry["files"], "after")
                 os.remove(self.path("txn.json"))
                 return "Patch %s war vollstaendig angewendet - Transaktion abgeschlossen" % pid
             self.restore(pid, txn["files"])
@@ -376,7 +416,7 @@ class Journal(object):
             os.remove(self.path("txn.json"))
             return "Patch %s war unvollstaendig - Ausgangsstand wiederhergestellt" % pid
         self.restore(pid, txn["files"])
-        self._finish_rollback(pid)
+        self._finish_rollback(pid, txn.get("entry_files"))
         return "Rollback von %s abgeschlossen" % pid
 
     # -- verify ------------------------------------------------------------
