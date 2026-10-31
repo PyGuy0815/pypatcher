@@ -473,6 +473,15 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
     Grenzen fehlende Kommas ergaenzt und ueberzaehlige (vor } bzw. ])
     entfernt (repair) - nur dort, wo die Datei sonst ungueltig waere.
 
+5.6.5a mode "jsonc" - Normalform json/1 auf den Daten (0.0.3)
+  *.jsonc, *.code-workspace sowie tsconfig*.json, jsconfig*.json,
+  .vscode/*.json, devcontainer.json. Kommentare (// und /* */) und ein
+  Komma vor } bzw. ] sind erlaubt und zaehlen nicht; sonst wie json
+  (Einheiten ueber Pfade, keyorder). Kommentarzeilen direkt ueber einem
+  Eintrag gehoeren zur Einheit; fehlende Kommas setzt das Programm (vor
+  einem Kommentar am Zeilenende). Andere *.json mit Kommentaren: im
+  Projekt "compare": {"muster": "jsonc"} in .patcher/config.json.
+
 5.6.6 Spaeter (nach Bedarf, request.txt)
   cs, go, php, rust  auf Basis des C-Tokenizers (Java: 5.6.4a)
   shell             Kommentare entfernt, Leerraum zwischen Woertern
@@ -1250,6 +1259,10 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
   PATCH (show, check, apply, run): Patchdatei oder ein beliebiges Paket;
                Teile duerfen in einer Datei stehen.
   --set V=W (check, apply, run): Antwort auf INPUT vorgeben (6.8).
+  --answers DATEI (check, apply, run; 0.0.3): Antworten aus einer Datei -
+               NAME=WERT je Zeile (# = Kommentar) oder ein JSON-Objekt;
+               --set geht vor. Fuer wiederholte Anwendung in mehreren
+               Umgebungen ohne Rueckfragen.
   TESTS (apply, run; 0.0.2): ein Befehl je Patch. Nach dem Anwenden
                wird das Journal geprueft (vor den Tests, die Dateien
                anlegen duerfen), dann der Testbefehl im Projekt
@@ -1345,6 +1358,12 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.3-pre1):
     test_js_nested.py     innere Funktionen, Objekt-Methoden
     test_invalid_source.py  Ausgangsdateien mit Syntaxfehler
     test_console.py       Farben
+    test_multi_units.py   mehrere Einheiten je Block, Praxistest-Meldungen
+    test_typescript.py    TypeScript, TSX, JSX
+    test_java.py          Java
+    test_lua.py           Lua
+    test_vb.py            VB.NET und VBA
+    test_jsonc_answers.py JSONC, --answers
   ki-prompt.txt           Anleitung fuer KI-Assistenten
   ki-beispiele.txt        Beispiel-Auftraege mit Antworten fuer KIs
   examples/               demo/ + entwurf-beispiel.ppatch (readme.txt),

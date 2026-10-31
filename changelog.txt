@@ -37,6 +37,14 @@ Versionen: siehe manifest.txt Abschnitt 16.
     VBA-/VB6-Exporten als @header; Suche notfalls ohne Gross-/Klein-
     schreibung. Declare/Delegate/Auto-Properties sind keine Einheiten.
 
+  JSON mit Kommentaren (R024):
+  - mode jsonc (*.jsonc, tsconfig*.json, .vscode/*.json ...): Kommentare
+    und Komma am Ende erlaubt; Kommentare ueber einem Eintrag gehoeren
+    zur Einheit. JSON5 bleibt offen.
+
+  Antworten aus einer Datei (R020):
+  - check/apply/run --answers DATEI (NAME=WERT je Zeile oder JSON).
+
 0.0.2 (2026-10-31) - Freigabe
 -----------------------------
   Umfang 0.0.2 (Ergebnis von vier Praxistests mit einer anderen KI an

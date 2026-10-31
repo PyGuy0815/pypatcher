@@ -2,6 +2,7 @@
 
 import argparse
 import copy
+import json
 import os
 import shutil
 import subprocess
@@ -45,8 +46,37 @@ def confirm(args, question):
 
 # -- Ablauf (PRINT/INPUT/IF ...) ---------------------------------------------
 
+def _answers_file(path):
+    """--answers: NAME=WERT je Zeile (# = Kommentar) oder ein JSON-Objekt."""
+    try:
+        with open(path, encoding="utf-8") as handle:
+            text = handle.read()
+    except (OSError, UnicodeDecodeError) as exc:
+        raise UsageError("--answers %s: nicht lesbar (%s)" % (path, exc))
+    if text.lstrip().startswith("{"):
+        try:
+            data = json.loads(text)
+        except ValueError as exc:
+            raise UsageError("--answers %s: kein gueltiges JSON (%s)" % (path, exc))
+        if not isinstance(data, dict):
+            raise UsageError("--answers %s: JSON-Objekt erwartet" % path)
+        return dict((str(k), v if isinstance(v, str) else json.dumps(v)) for k, v in data.items())
+    values = {}
+    for n, line in enumerate(text.splitlines(), 1):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        var, sep, value = line.partition("=")
+        if not sep or not var.strip():
+            raise UsageError("--answers %s, Zeile %d: NAME=WERT erwartet" % (path, n))
+        values[var.strip()] = value.strip()
+    return values
+
+
 def _preset(args):
     values = {}
+    if getattr(args, "answers", None):
+        values.update(_answers_file(args.answers))
     for item in getattr(args, "set", None) or []:
         var, sep, value = item.partition("=")
         if not sep or not var:
@@ -690,6 +720,8 @@ def build_parser():
     p.add_argument("-n", "--dry-run", action="store_true", help="nur pruefen, nichts aendern")
     p.add_argument("--set", action="append", metavar="NAME=WERT",
                    help="Antwort auf eine INPUT-Frage vorgeben (mehrfach moeglich)")
+    p.add_argument("--answers", metavar="DATEI",
+                   help="Antworten aus Datei (NAME=WERT je Zeile oder JSON-Objekt)")
     test_options(p)
     p = add("show", cmd_show, "Patch lesbar anzeigen und Hashes pruefen")
     p.add_argument("patch", help="Patchdatei (bei Paketen: eine beliebige davon)")
@@ -742,6 +774,8 @@ def build_parser():
                        help="zusaetzlich Text-Hashes pruefen (Kommentare/Leerraum exakt)")
         p.add_argument("--set", action="append", metavar="NAME=WERT",
                        help="Antwort auf eine INPUT-Frage vorgeben (mehrfach moeglich)")
+        p.add_argument("--answers", metavar="DATEI",
+                       help="Antworten aus Datei (NAME=WERT je Zeile oder JSON-Objekt)")
         if name == "apply":
             test_options(p)
     p = add("rollback", cmd_rollback, "Patches zuruecknehmen", (common, project))

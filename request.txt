@@ -47,7 +47,7 @@ R018  ERLEDIGT (0.0.1) Ablaufsteuerung im Patch (PRINT, INPUT,
                 IF/ELIF/ELSE/END, LABEL/GOTO, SET, EXIT).
 R019  ERLEDIGT (0.0.1) KI-Nutzung: Befehl run, Entwurfsteile ohne
                 Hash, Prompt ki-prompt.txt.
-R020  OFFEN     run: Antworten aus einer Datei lesen (--answers), z.B. fuer
+R020  ERLEDIGT (0.0.3-pre1) run/apply/check: Antworten aus einer Datei lesen (--answers), z.B. fuer
                 wiederholte Anwendung in mehreren Umgebungen.
 R021  OFFEN     Weitere Kodierungen bei Bedarf (z.B. z85, lzma) - als neue
                 Block-Kennung und USES-Funktion, ohne Formatbruch.
@@ -56,8 +56,8 @@ R022  OFFEN     Token-sparende Entwurfsbefehle fuer KIs (z.B. Ersetzen
                 Praxis Bedarf zeigt.
 R023  OFFEN     Weitere Sprachen der C-Familie auf Basis von clike.py:
                 C#, Go, PHP, Rust (je nach Bedarf); Java: R032.
-R024  OFFEN     JSON mit Kommentaren (JSONC, z.B. tsconfig/VS-Code-
-                Einstellungen) und JSON5.
+R024  ERLEDIGT (0.0.3-pre1) JSON mit Kommentaren (JSONC, z.B. tsconfig/VS-Code-
+                Einstellungen); JSON5 offen als R035.
 R025  ERLEDIGT (0.0.2) Aus dem Praxistest mit einer anderen KI:
                 Standard-Ignores (.patcherignore wird nie verwaltet,
                 .DS_Store, Thumbs.db, desktop.ini, *.ppatch; "!muster"
@@ -104,3 +104,5 @@ R034  ERLEDIGT (0.0.3-pre1) Lua (*.lua): function name / local function / M.name
                 function / function M:methode als Einheiten ("M.name",
                 "M:methode"), Bloecke ueber end, Kommentare -- und
                 --[[ ]], lange Zeichenketten [[ ]] bzw. [==[ ]==].
+R035  OFFEN     JSON5 (Schluessel ohne Anfuehrungszeichen, einfache
+                Anfuehrungszeichen, Hex-Zahlen ...).

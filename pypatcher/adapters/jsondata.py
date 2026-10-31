@@ -308,3 +308,82 @@ class JsonAdapter(Adapter):
             return (body[0] if pos == "start" else body[1]), body[2], True
         return self.simple_position(info, pos, lambda u: self._body(
             u.node.value, info, u.indent + (self.detect_unit(None, info) or self.default_indent)))
+
+
+def strip_jsonc(text):
+    """JSONC -> JSON gleicher Laenge: Kommentare (// und /* */) und Kommas vor
+    } bzw. ] werden zu Leerzeichen (Zeilenumbrueche bleiben), damit alle
+    Positionen und Zeilen erhalten bleiben."""
+    out, i, n, comma = list(text), 0, len(text), None
+    while i < n:
+        ch = text[i]
+        if ch == '"':
+            i += 1
+            while i < n and text[i] != '"':
+                i += 2 if text[i] == "\\" else 1
+            i += 1
+            comma = None
+            continue
+        if text.startswith("//", i):
+            j = text.find("\n", i)
+            j = n if j < 0 else j
+            out[i:j] = " " * (j - i)
+            i = j
+            continue
+        if text.startswith("/*", i):
+            j = text.find("*/", i + 2)
+            if j < 0:
+                raise ParseError("Kommentar ohne Ende")
+            for k in range(i, j + 2):
+                if out[k] != "\n":
+                    out[k] = " "
+            i = j + 2
+            continue
+        if ch == ",":
+            comma = i
+        elif ch in "}]":
+            if comma is not None:
+                out[comma] = " "                 # Komma am Ende ist in JSONC erlaubt
+            comma = None
+        elif ch not in WS:
+            comma = None
+        i += 1
+    return "".join(out)
+
+
+class JsoncAdapter(JsonAdapter):
+    """JSON mit Kommentaren und Komma am Ende (R024: tsconfig, VS-Code-
+    Einstellungen ...). Kommentarzeilen direkt ueber einem Eintrag gehoeren
+    zur Einheit; Kommentare zaehlen im Hash nicht."""
+    mode = "jsonc"
+    label = "JSONC"
+
+    def _text(self, lines):
+        return strip_jsonc("\n".join(lines) + "\n")
+
+    def analyze(self, doc):
+        info = JsonAdapter.analyze(self, doc)
+        clean = info.text.split("\n")
+        for unit in info.units:
+            floor = unit.parent.start + 1 if unit.parent is not None else 0
+            while unit.start - 1 >= floor and not clean[unit.start - 1].strip() and \
+                    doc.lines[unit.start - 1].strip():
+                unit.start -= 1
+        return info
+
+    def repair(self, doc):
+        """Fehlende Kommas ergaenzen - vor einem Kommentar am Zeilenende."""
+        try:
+            parse(self._text(doc.lines))
+            return doc
+        except ParseError:
+            pass
+        lines = list(doc.lines)
+        clean = self._text(lines).split("\n")
+        rows = [i for i, l in enumerate(clean[:len(lines)]) if l.strip()]
+        for a, b in zip(rows, rows[1:]):
+            code = clean[a].rstrip()
+            nxt = clean[b].lstrip()
+            if code and code[-1] not in ",{[:" and nxt[:1] in VALUE_START:
+                lines[a] = lines[a][:len(code)] + "," + lines[a][len(code):]
+        return doc.with_lines(lines)

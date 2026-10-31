@@ -6,7 +6,7 @@ from .base import ParseError
 from .clike import CAdapter, CppAdapter, JavaAdapter
 from .css import CssAdapter, ScssAdapter
 from .js import JsAdapter, JsxAdapter, TsAdapter, TsxAdapter
-from .jsondata import JsonAdapter
+from .jsondata import JsonAdapter, JsoncAdapter
 from .lua import LuaAdapter
 from .vb import VbAdapter, VbaAdapter
 from .markup import HtmlAdapter, XmlAdapter
@@ -17,7 +17,8 @@ ADAPTERS = {"text": TextAdapter(), "python": PythonAdapter(), "js": JsAdapter(),
             "css": CssAdapter(), "scss": ScssAdapter(), "html": HtmlAdapter(),
             "xml": XmlAdapter(), "c": CAdapter(), "cpp": CppAdapter(), "json": JsonAdapter(),
             "ts": TsAdapter(), "tsx": TsxAdapter(), "jsx": JsxAdapter(), "java": JavaAdapter(),
-            "lua": LuaAdapter(), "vb": VbAdapter(), "vba": VbaAdapter()}
+            "lua": LuaAdapter(), "vb": VbAdapter(), "vba": VbaAdapter(),
+            "jsonc": JsoncAdapter()}
 PY = ADAPTERS["python"]
 
 __all__ = ["ADAPTERS", "PY", "ParseError", "get", "file_hash", "unit_hash", "text_hash"]

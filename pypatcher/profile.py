@@ -101,6 +101,12 @@ MODES = {
         "eol": ("normalize", "keep"),
         "encoding": None,
     }),
+    "jsonc": (1, {
+        "keyorder": ("ignore", "keep"),
+        "whitespace": ("ignore", "keep"),
+        "eol": ("normalize", "keep"),
+        "encoding": None,
+    }),
     "html": (1, {
         "comments": ("ignore", "keep"),
         "whitespace": ("keep", "ignore"),
@@ -125,6 +131,7 @@ EXTENSIONS = {
     "lua": (".lua",),
     "vb": (".vb",),
     "vba": (".bas", ".cls", ".frm", ".vbs"),
+    "jsonc": (".jsonc", ".code-workspace"),
     "css": (".css",),
     "scss": (".scss", ".less"),
     "html": (".html", ".htm", ".xhtml"),
@@ -135,8 +142,18 @@ EXTENSIONS = {
 }
 
 
+# JSON-Dateien, die ueblicherweise Kommentare enthalten duerfen (JSONC)
+JSONC_NAMES = ("tsconfig*.json", "jsconfig*.json", ".vscode/*.json", "*/.vscode/*.json",
+               "devcontainer.json", "*/devcontainer.json", ".devcontainer/*.json",
+               "*/.devcontainer/*.json")
+
+
 def default_mode(path):
     lower = path.lower()
+    base = lower.rsplit("/", 1)[-1]
+    if lower.endswith(".json") and any(fnmatch.fnmatch(lower, p) or fnmatch.fnmatch(base, p)
+                                       for p in JSONC_NAMES):
+        return "jsonc"
     for mode, extensions in EXTENSIONS.items():
         if lower.endswith(extensions):
             return mode
