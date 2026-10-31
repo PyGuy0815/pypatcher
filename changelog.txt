@@ -90,6 +90,22 @@ Versionen: siehe manifest.txt Abschnitt 16.
     herstellen. Behoben: Abbruch zwischen history.json und state.json
     hinterliess einen veralteten Zustand (apply und rollback).
 
+  Aus dem siebten Praxistest (Grossputz mit MOVE/DMOVE, R039):
+  - Behoben: MOVE einer .py samt ihrem __pycache__ verlor den Bytecode
+    (das Schreiben der .py entfernte ihn als veraltet), ebenso beim
+    Rollback. Bytecode, den der Patch selbst schreibt, bleibt erhalten.
+  - Ignorierte Dateien im Patch (z.B. .DS_Store in einem DMOVE) werden
+    geschrieben, aber nicht mehr in state.json eingetragen - kein
+    Dauerhinweis "wird jetzt ignoriert" mehr; der Hinweis beim Pruefen
+    sagt jetzt, was passiert, statt "dafuer ist kein Patch noetig".
+  - Mehr als 3 unverwaltete Dateien: eine Hinweiszeile statt einer je
+    Datei; vollstaendige Liste mit verify -v.
+  - ignore PFAD: relative Pfade gelten immer relativ zum Projekt (vorher
+    entschied, ob die Datei zufaellig im aktuellen Verzeichnis lag).
+  - Rueckfragen ohne Terminal: Abbruch mit Hinweis auf -y statt
+    stillschweigender Zustimmung. Die Testsuite isoliert die Eingabe -
+    sie hing bisher, wenn sie am Terminal gestartet wurde.
+
 0.0.2 (2026-10-31) - Freigabe
 -----------------------------
   Umfang 0.0.2 (Ergebnis von vier Praxistests mit einer anderen KI an

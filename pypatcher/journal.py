@@ -14,6 +14,7 @@ from .hashing import sha256_bytes, state_hash
 JOURNAL_DIR = ".patcher"
 # .patcherignore gehoert zur Umgebung und wird nie verwaltet; Systemdateien von
 # macOS/Windows und Patchdateien im Projekt ebenso (abschaltbar mit "!muster")
+UNMANAGED_LIST = 3
 DEFAULT_IGNORE = [".git", "__pycache__", "*.pyc", ".pptmp-*", ".patcherignore",
                   ".DS_Store", "Thumbs.db", "desktop.ini", "*.ppatch"]
 FIXED_IGNORE = (".patcherignore",)
@@ -265,6 +266,7 @@ class Journal(object):
         write_json(self.path("txn.json"), {"kind": "apply", "id": pid, "phase": "write",
                                            "files": meta, "time": now()})
         written = {}
+        keep = self._own_paths(touched)
         try:
             for rel in touched:
                 doc = ctx.docs[rel]
@@ -272,11 +274,11 @@ class Journal(object):
                 if doc is None:
                     if os.path.isfile(target):
                         os.remove(target)
-                        fileio.drop_bytecode(target)
+                        fileio.drop_bytecode(target, keep)
                         self._prune_dirs(os.path.dirname(target))
                     continue
                 data = fileio.encode(doc)
-                fileio.atomic_write(target, data, doc.st_mode)
+                fileio.atomic_write(target, data, doc.st_mode, keep)
                 written[rel] = data
         except BaseException as exc:
             self.restore(pid, meta)
@@ -308,12 +310,20 @@ class Journal(object):
         os.remove(self.path("txn.json"))
         return files_info
 
+    def _own_paths(self, rels):
+        """Vom Patch selbst geschriebene Pfade: deren Bytecode (z.B. ein
+        mitverschobenes __pycache__) darf nicht als veraltet geloescht werden."""
+        return set(os.path.normcase(self.file(rel)) for rel in rels)
+
     def _sync_state(self, files_info, side):
         """state.json nach einem Historien-Eintrag richten (wiederholbar - auch
-        nach einem Abbruch zwischen history.json und state.json)."""
+        nach einem Abbruch zwischen history.json und state.json). Ignorierte
+        Dateien (z.B. per DMOVE mitverschobene .DS_Store) schreibt der Patch
+        zwar, verwaltet werden sie aber nicht."""
         state = self.state()
+        patterns = self.patterns()
         for rel, fps in files_info.items():
-            if fps[side] is None:
+            if fps[side] is None or is_ignored(rel, patterns):
                 state["files"].pop(rel, None)
             else:
                 state["files"][rel] = fps[side]
@@ -323,14 +333,15 @@ class Journal(object):
 
     def restore(self, pid, meta):
         bdir = self.path("backups", pid, "files")
+        keep = self._own_paths(meta)
         for rel, existed in meta.items():
             target = self.file(rel)
             if existed:
                 src = os.path.join(bdir, *rel.split("/"))
-                fileio.atomic_write(target, fileio.read_bytes(src), os.stat(src).st_mode)
+                fileio.atomic_write(target, fileio.read_bytes(src), os.stat(src).st_mode, keep)
             elif os.path.isfile(target):
                 os.remove(target)
-                fileio.drop_bytecode(target)
+                fileio.drop_bytecode(target, keep)
                 self._prune_dirs(os.path.dirname(target))
 
     def _prune_dirs(self, directory):
@@ -448,8 +459,12 @@ class Journal(object):
         # Neue, nicht verwaltete Dateien widersprechen dem Journal nicht (z.B.
         # heruntergeladene Hilfsdateien) - Hinweis statt Fehler
         new = self.unmanaged = sorted(present - set(files))
-        for rel in new:
-            notes.append("%s: neue Datei, nicht verwaltet (ignorieren: .patcherignore; "
-                         "aufnehmen: per Patch REP oder - ohne angewendete Patches - "
-                         "init --force)" % rel)
+        advice = ("ignorieren: .patcherignore; aufnehmen: per Patch REP oder - ohne "
+                  "angewendete Patches - init --force")
+        if len(new) > UNMANAGED_LIST:
+            # viele Dateien: eine Zeile statt einer je Datei (Liste: verify -v, --json)
+            notes.append("%d neue Dateien, nicht verwaltet: %s ... (alle: verify -v; %s)"
+                         % (len(new), ", ".join(new[:UNMANAGED_LIST]), advice))
+        else:
+            notes.extend("%s: neue Datei, nicht verwaltet (%s)" % (rel, advice) for rel in new)
         return errors, notes

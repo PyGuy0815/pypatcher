@@ -50,7 +50,7 @@ class KiBeispiele(ProjectCase):
                 for piece in expected:
                     self.assertIn(piece, content)
                 self.assertNotIn(b"```", content)
-                self.assertEqual(self.run_cli("rollback", "-q", "-p", self.target), 0,
+                self.assertEqual(self.run_cli("rollback", "-y", "-q", "-p", self.target), 0,
                                  self.last_err)
                 self.assertEqual(self.run_cli("verify", "-p", self.target), 0, self.last_err)
 
@@ -70,7 +70,7 @@ class KiBeispiele(ProjectCase):
             with open(os.path.join(self.tmp, name), encoding="utf-8") as handle:
                 chat.append("Teil %d:\n```\n%s```\nweiter?\n" % (i + 1, handle.read()))
         pasted = self.write("chat.ppatch", "\n".join(chat), root=self.tmp)
-        self.assertEqual(self.run_cli("apply", pasted, "-p", self.target), 0, self.last_err)
+        self.assertEqual(self.run_cli("apply", "-y", pasted, "-p", self.target), 0, self.last_err)
         self.assertIn(b"def remove(self, index):", self.read("app.py"))
 
     def test_patch_containing_patches(self):
@@ -90,6 +90,6 @@ class KiBeispiele(ProjectCase):
             self.assertEqual(self.run_cli("check", out if not extra else
                                           out[:-7] + ".1.ppatch", "-p", self.target), 0,
                              self.last_err)
-        self.assertEqual(self.run_cli("apply", out[:-7] + ".2.ppatch", "-p", self.target), 0,
+        self.assertEqual(self.run_cli("apply", "-y", out[:-7] + ".2.ppatch", "-p", self.target), 0,
                          self.last_err)
         self.assertEqual(self.read("ki-beispiele.txt"), content)

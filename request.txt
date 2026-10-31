@@ -120,3 +120,9 @@ R038  ERLEDIGT (0.0.3-pre1) Vorschlaege aus dem sechsten Praxistest: --json-Ausg
                 0.0.3-pre1), Fehler-
                 Injektionstests fuer Abbrueche beim Schreiben (alle
                 ERLEDIGT 0.0.3-pre1).
+R039  ERLEDIGT (0.0.3-pre1) Siebter Praxistest (Grossputz mit MOVE/DMOVE): mitverschobener
+                Bytecode (__pycache__) ging verloren; ignorierte Dateien
+                im Patch erzeugten Dauerhinweise; Hinweise zu
+                unverwalteten Dateien gebuendelt; Pfade bei "ignore"
+                relativ zum Projekt; keine stille Zustimmung ohne
+                Terminal (Tests hingen am Terminal).

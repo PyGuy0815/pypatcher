@@ -101,12 +101,14 @@ def load(path, where, prof, allow_mixed=False):
     return doc
 
 
-def drop_bytecode(path):
+def drop_bytecode(path, keep=()):
     """Zwischengespeicherten Python-Bytecode einer Quelldatei entfernen.
 
     Python erkennt veralteten Bytecode nur an Aenderungszeit (Sekunden) und
     Groesse der Quelle - wird eine .py-Datei innerhalb einer Sekunde mit
     gleich langem Inhalt ersetzt (Patch, Rollback), liefe sonst alter Code.
+    keep: Pfade (normcase), die der Patch selbst schreibt - z.B. ein per
+    MOVE mitverschobenes __pycache__ - bleiben erhalten.
     """
     if not path.endswith((".py", ".pyw")):
         return
@@ -115,14 +117,16 @@ def drop_bytecode(path):
     cache = os.path.join(directory, "__pycache__")
     if os.path.isdir(cache):
         for entry in os.listdir(cache):
-            if entry.startswith(stem + ".") and entry.endswith((".pyc", ".pyo")):
+            full = os.path.join(cache, entry)
+            if entry.startswith(stem + ".") and entry.endswith((".pyc", ".pyo")) and \
+                    os.path.normcase(full) not in keep:
                 try:
-                    os.remove(os.path.join(cache, entry))
+                    os.remove(full)
                 except OSError:
                     pass
 
 
-def atomic_write(path, data, st_mode=None):
+def atomic_write(path, data, st_mode=None, keep=()):
     """Temp-Datei im selben Verzeichnis, dann os.replace (atomar je Datei).
 
     Ohne st_mode erhaelt eine neue Datei die ueblichen Rechte (0666 minus
@@ -143,7 +147,7 @@ def atomic_write(path, data, st_mode=None):
         if st_mode is not None:
             os.chmod(tmp, st_mode & 0o7777)
         os.replace(tmp, path)
-        drop_bytecode(path)
+        drop_bytecode(path, keep)
     except BaseException:
         if os.path.exists(tmp):
             os.remove(tmp)

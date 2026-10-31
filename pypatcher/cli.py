@@ -52,11 +52,22 @@ def show_hints(hints):
         out("Hinweis: " + hint)
 
 
+def _interactive():
+    try:
+        return sys.stdin.isatty()
+    except (AttributeError, ValueError):
+        return False
+
+
 def confirm(args, question):
     if REPORT is not None and not args.yes:
         raise UsageError("--json verlangt -y (oder -n fuer einen Probelauf) - keine Rueckfragen")
-    if args.yes or not sys.stdin.isatty():
+    if args.yes:
         return True
+    if not _interactive():
+        # Ohne Terminal nicht stillschweigend zustimmen (Skripte, Tests, KI-Werkzeuge)
+        raise UsageError("%s - Rueckfrage ohne Terminal nicht moeglich: mit -y bestaetigen "
+                         "(oder -n fuer einen Probelauf)" % question.rstrip("?"))
     answer = input(question + " [j/N] ").strip().lower()
     return answer in ("j", "ja", "y", "yes")
 
@@ -105,7 +116,7 @@ def _preset(args):
 def _ask(args):
     def ask(item):
         choices, default = item["choices"], item["default"]
-        if args.yes or not sys.stdin.isatty() or REPORT is not None:
+        if args.yes or not _interactive() or REPORT is not None:
             if default is not None:
                 return default
             raise UsageError("Antwort fuer %s fehlt - mit --set %s=WERT angeben"
@@ -187,8 +198,9 @@ def _ignored_hint(ctx, journal):
     patterns = journal.patterns()
     ignored = sorted(rel for rel in ctx.touched() if jr.is_ignored(rel, patterns))
     if ignored:
-        ctx.hint("%d Datei(en) werden von pypatcher ignoriert (Vorgaben/.patcherignore) - "
-                 "dafuer ist kein Patch noetig: %s%s" % (
+        ctx.hint("%d Datei(en) im Patch werden von pypatcher ignoriert (Vorgaben/.patcherignore)"
+                 " - sie werden geschrieben/verschoben, aber nicht verwaltet (verify prueft sie"
+                 " nicht; erklaeren: patcher.py ignore PFAD): %s%s" % (
                      len(ignored), ", ".join(ignored[:5]), " ..." if len(ignored) > 5 else ""))
 
 
@@ -424,6 +436,9 @@ def cmd_verify(args):
     _report_journal(journal, errors, notes)
     for note in notes:
         out("Hinweis: " + note)
+    if args.verbose and len(journal.unmanaged) > jr.UNMANAGED_LIST:
+        for rel in journal.unmanaged:
+            out("  ? " + rel)
     for err in errors:
         say("FEHLER: " + err)
     if errors:
@@ -433,10 +448,11 @@ def cmd_verify(args):
 
 
 def _rel_arg(path, root):
-    """Pfad von der Kommandozeile -> Projektpfad mit "/"."""
-    full = os.path.abspath(path) if os.path.isabs(path) or os.path.exists(path) and \
-        not os.path.exists(os.path.join(root, path)) else os.path.join(root, path)
-    rel = os.path.relpath(full, root).replace(os.sep, "/")
+    """Pfad von der Kommandozeile -> Projektpfad mit "/". Relative Pfade gelten
+    immer relativ zum Projekt (-p), nie zum aktuellen Verzeichnis - sonst haenge
+    das Ergebnis davon ab, welche Dateien zufaellig im Arbeitsverzeichnis liegen."""
+    full = os.path.abspath(path) if os.path.isabs(path) else os.path.join(root, path)
+    rel = os.path.relpath(os.path.normpath(full), root).replace(os.sep, "/")
     if rel.startswith("../") or rel == "..":
         raise UsageError("%s liegt nicht im Projekt %s" % (path, root))
     return rel

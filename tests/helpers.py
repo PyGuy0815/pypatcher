@@ -5,6 +5,7 @@ import shutil
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -38,10 +39,13 @@ class ProjectCase(unittest.TestCase):
         with open(os.path.join(root or self.target, *rel.split("/")), "rb") as handle:
             return handle.read()
 
-    def run_cli(self, *argv):
+    def run_cli(self, *argv, stdin=""):
+        """CLI im Prozess; stdin ist nie das echte Terminal - eine vergessene
+        Rueckfrage (fehlendes -y) schlaegt sofort fehl statt den Lauf anzuhalten."""
         err = io.StringIO()
         out = io.StringIO()
-        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err), \
+                mock.patch.object(sys, "stdin", io.StringIO(stdin)):
             code = cli.main(list(argv))
         self.last_out = out.getvalue()
         self.last_err = err.getvalue()

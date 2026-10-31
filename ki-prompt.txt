@@ -127,6 +127,9 @@ sichert vorher und kann alles zuruecknehmen.
    Mit --rollback-on-failure wird bei fehlgeschlagenen Tests automatisch
    zurueckgenommen. Dauerhaft in <projekt>/.patcher/config.json:
      {"test": "<testbefehl>", "rollback_on_failure": true}
+   In Skripten (z.B. Python mit subprocess) immer -y angeben: ohne
+   Terminal fragt pypatcher nicht, sondern bricht ab. Lange Listen
+   (verify -v) nur bei Bedarf - die Ergebniszeile genuegt meist.
 
 9. WENN ETWAS NICHT PASST
    - Meldet das Programm einen Konflikt (Einheit/Block nicht gefunden,

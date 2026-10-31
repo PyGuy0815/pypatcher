@@ -188,6 +188,9 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
   Hinweis); eine nicht mehr ignorierte Datei ist "neu, nicht verwaltet"
   und wird per Patch (REP) oder - ohne angewendete Patches - mit
   "init --force" aufgenommen.
+  Ignorierte Dateien, die ein Patch schreibt oder verschiebt (z.B.
+  .DS_Store in einem DMOVE, __pycache__ bei MOVE), werden geschrieben
+  und beim Rollback wiederhergestellt, aber nicht verwaltet (0.0.3).
   Profil je Datei fuer den Zustands-Hash: vom Patch beruehrte Dateien
   mit dem Profil aus dem Patch, alle anderen automatisch (Binaerdatei ->
   raw, *.py und parsebar -> python, sonst text).
@@ -1221,7 +1224,9 @@ wiederhergestellt. Findet ein Programmstart eine vorhandene txn.json
 Dateirechte bleiben erhalten; neue Dateien erhalten 0666 minus umask.
 Wird eine .py-Datei geschrieben, wiederhergestellt oder geloescht, wird
 ihr Bytecode in __pycache__ entfernt (Python erkennt veralteten Bytecode
-nur an Aenderungszeit in Sekunden und Groesse der Quelle).
+nur an Aenderungszeit in Sekunden und Groesse der Quelle) - ausser der
+Patch schreibt diesen Bytecode selbst (z.B. MOVE samt __pycache__; vor
+0.0.3 ging er dabei verloren).
 Die Syntax einer Python-Datei wird nach ihrer letzten Aenderung geprueft;
 Zwischenstaende von Textaenderungen duerfen ungueltig sein.
 
@@ -1244,7 +1249,9 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
                      Ist-Stand gegen state.json; funktionale
                      Abweichungen (Fehler) und kosmetische (Hinweis);
                      neue, nicht verwaltete Dateien sind ab 0.0.2 nur
-                     ein Hinweis (z.B. heruntergeladene Hilfsdateien)
+                     ein Hinweis (z.B. heruntergeladene Hilfsdateien);
+                     ab 0.0.3 bei mehr als 3 Dateien eine Zeile,
+                     vollstaendige Liste mit -v (--json: "unmanaged")
   log       0.0.1    patcher.py log [-p PROJEKT]
   units     0.0.1    patcher.py units DATEI [--compare P]
                      Einheiten einer Datei + Hashes
@@ -1294,8 +1301,11 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
   Alle Patch-Befehle aus Abschnitt 7.1 (inkl. copy/move, delete_text,
   scope) sind ab 0.0.1 enthalten.
   Allgemein: -v (ausfuehrlich, bei internen Fehlern mit Details),
-             -q (still), -y (keine Rueckfragen; ohne Terminal wird
-             ohnehin nicht gefragt), --allow-mixed-eol, --version,
+             -q (still), -y (keine Rueckfragen; ab 0.0.3 noetig, wenn
+             keine Terminal-Eingabe vorhanden ist - Skripte, Tests,
+             KI-Werkzeuge: ohne -y bricht apply/run/rollback mit einer
+             Meldung ab statt stillschweigend zuzustimmen; INPUT nimmt
+             weiterhin die Vorgabe), --allow-mixed-eol, --version,
              --color auto|always|never (0.0.2): gruen = Erfolg, rot =
              Fehler/Abbruch, gelb = Warnung, cyan = Hinweis; in
              Konfliktmeldungen "- Patch" rot, "+ Datei" gruen. auto =
@@ -1447,6 +1457,7 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.3-pre1):
     test_dirs.py          DMOVE, DCOPY, DDEL
     test_crash.py         Abbruch bei jedem Schreibvorgang (killer.py)
     test_doctor.py        doctor, ignore, Verzeichnis-Muster
+    test_feldtest7.py     Praxistest 7: Bytecode bei MOVE, Rueckfragen, Pfade
   ki-prompt.txt           Anleitung fuer KI-Assistenten
   ki-beispiele.txt        Beispiel-Auftraege mit Antworten fuer KIs
   examples/               demo/ + entwurf-beispiel.ppatch (readme.txt),
