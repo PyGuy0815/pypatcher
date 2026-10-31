@@ -5,8 +5,15 @@ Versionen: siehe manifest.txt Abschnitt 16.
 
 0.0.3-pre1 (in Arbeit)
 ----------------------
-  - Beginn der Vorabversion 0.0.3. Umfang wird in request.txt
-    festgelegt (Kandidaten u.a. Java, Visual Basic, Lua).
+  Umfang 0.0.3: TypeScript/JSX (R016), Java (R032), Visual Basic
+  (VB.NET und VBA/VB6, R033), Lua (R034), JSON mit Kommentaren (R024),
+  Antworten aus einer Datei (--answers, R020).
+
+  TypeScript, TSX, JSX (R016):
+  - mode ts (*.ts, *.mts, *.cts), tsx (*.tsx), jsx (*.jsx) auf Basis des
+    JS-Tokenizers; JSX-Elemente als Token mit exaktem Text.
+  - Einheiten zusaetzlich: interface, enum, type-Alias, namespace/module;
+    Methoden mit Modifikatoren, Generics, Rueckgabetypen, Dekoratoren.
 
 0.0.2 (2026-10-31) - Freigabe
 -----------------------------

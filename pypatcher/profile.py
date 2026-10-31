@@ -29,6 +29,24 @@ MODES = {
         "eol": ("normalize", "keep"),
         "encoding": None,
     }),
+    "ts": (1, {
+        "comments": ("ignore", "keep"),
+        "whitespace": ("ignore", "keep"),
+        "eol": ("normalize", "keep"),
+        "encoding": None,
+    }),
+    "tsx": (1, {
+        "comments": ("ignore", "keep"),
+        "whitespace": ("ignore", "keep"),
+        "eol": ("normalize", "keep"),
+        "encoding": None,
+    }),
+    "jsx": (1, {
+        "comments": ("ignore", "keep"),
+        "whitespace": ("ignore", "keep"),
+        "eol": ("normalize", "keep"),
+        "encoding": None,
+    }),
     "css": (1, {
         "comments": ("ignore", "keep"),
         "whitespace": ("ignore", "keep"),
@@ -76,6 +94,9 @@ FREE_DEFAULTS = {"encoding": "utf-8", "comment_prefix": None}
 EXTENSIONS = {
     "python": (".py", ".pyw"),
     "js": (".js", ".mjs", ".cjs"),
+    "ts": (".ts", ".mts", ".cts"),
+    "tsx": (".tsx",),
+    "jsx": (".jsx",),
     "css": (".css",),
     "scss": (".scss", ".less"),
     "html": (".html", ".htm", ".xhtml"),

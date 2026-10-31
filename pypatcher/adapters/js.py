@@ -40,7 +40,14 @@ RENAME_RES = [re.compile(p) for p in (
     r"^(\t*(?:static\s+)?(?:async\s+)?(?:get\s+|set\s+)?\*?\s*#?)([A-Za-z_$][\w$]*)(?=\s*[(=])",
     r"^(\t*)([A-Za-z_$][\w$]*)(?=\s*:)",
 )]
-CONTAINERS = ("class", "object")
+CONTAINERS = ("class", "object", "namespace")
+# TypeScript: Modifikatoren vor Klassen-Mitgliedern bzw. Deklarationen
+TS_MEMBER_MODS = ("static", "async", "get", "set", "*", "public", "private", "protected",
+                  "readonly", "abstract", "override", "declare", "accessor")
+TS_DECL_MODS = ("declare", "abstract")
+# nach diesen Tokens beginnt in einem Typ ein Objekttyp "{...}" (sonst: Rumpf)
+TYPE_LEAD = (":", "|", "&", "<", ",", "(", "[", "=>", "?", "=", "keyof", "typeof",
+             "extends", "infer", "readonly", "is", "asserts")
 
 
 class Token(object):
@@ -70,7 +77,7 @@ def _scan_string(src, i):
     raise ParseError("Zeichenkette ohne Ende (Position %d)" % i)
 
 
-def _scan_template(src, i):
+def _scan_template(src, i, jsx=False):
     """i zeigt hinter das oeffnende `; liefert die Position hinter dem schliessenden `."""
     j, n = i, len(src)
     while j < n:
@@ -80,7 +87,7 @@ def _scan_template(src, i):
         elif ch == "`":
             return j + 1
         elif src.startswith("${", j):
-            _, j = _tokenize(src, j + 2, in_template=True)
+            _, j = _tokenize(src, j + 2, in_template=True, jsx=jsx)
             j += 1
         else:
             j += 1
@@ -109,6 +116,66 @@ def _scan_regex(src, i):
     raise ParseError("Regulaerer Ausdruck ohne Ende (Position %d)" % i)
 
 
+def _jsx_expr(src, j):
+    """j zeigt auf "{" in JSX; liefert die Position hinter der passenden "}"."""
+    _, k = _tokenize(src, j + 1, in_template=True, jsx=True)
+    return k + 1
+
+
+def _jsx_text(src, j):
+    """Text zwischen JSX-Tags bis zum naechsten "<" (Ausdruecke {..} uebersprungen)."""
+    n = len(src)
+    while j < n and src[j] != "<":
+        j = _jsx_expr(src, j) if src[j] == "{" else j + 1
+    if j >= n:
+        raise ParseError("JSX-Element ohne Ende")
+    return j
+
+
+def _scan_jsx(src, i):
+    """JSX-Element (oder Fragment <>..</>) ab "<" als ein Token (Text exakt)."""
+    n, j, depth = len(src), i, 0
+    while True:
+        if src.startswith("</", j):
+            k = src.find(">", j)
+            if k < 0:
+                raise ParseError("JSX-Endtag ohne > (Position %d)" % j)
+            depth -= 1
+            j = k + 1
+            if depth == 0:
+                return j
+            j = _jsx_text(src, j)
+            continue
+        j += 1
+        while j < n and (src[j].isalnum() or src[j] in "_$.:-"):
+            j += 1
+        closing = None
+        while j < n:
+            ch = src[j]
+            if src.startswith("/>", j):
+                j, closing = j + 2, True
+                break
+            if ch == ">":
+                j, closing = j + 1, False
+                break
+            if ch == "{":
+                j = _jsx_expr(src, j)
+            elif ch in "'\"":
+                k = src.find(ch, j + 1)
+                if k < 0:
+                    raise ParseError("JSX-Attribut ohne Ende (Position %d)" % j)
+                j = k + 1
+            else:
+                j += 1
+        if closing is None:
+            raise ParseError("JSX-Tag ohne > (Position %d)" % i)
+        if not closing:
+            depth += 1
+        if depth == 0:
+            return j
+        j = _jsx_text(src, j)
+
+
 def _regex_allowed(last):
     if last is None:
         return True
@@ -117,7 +184,7 @@ def _regex_allowed(last):
     return last.kind == "name" and last.text in EXPR_KEYWORDS
 
 
-def _tokenize(src, i=0, in_template=False):
+def _tokenize(src, i=0, in_template=False, jsx=False):
     tokens, n, depth, last = [], len(src), 0, None
     if i == 0 and src.startswith("#!"):
         j = src.find("\n")
@@ -152,8 +219,12 @@ def _tokenize(src, i=0, in_template=False):
             i = _scan_string(src, i)
             kind = "str"
         elif c == "`":
-            i = _scan_template(src, i + 1)
+            i = _scan_template(src, i + 1, jsx)
             kind = "tmpl"
+        elif jsx and c == "<" and _regex_allowed(last) and i + 1 < n and \
+                (src[i + 1].isalpha() or src[i + 1] == ">"):
+            i = _scan_jsx(src, i)
+            kind = "jsx"
         elif c == "/" and _regex_allowed(last):
             i = _scan_regex(src, i)
             kind = "regex"
@@ -192,8 +263,8 @@ def _tokenize(src, i=0, in_template=False):
     return tokens, i
 
 
-def tokenize(src):
-    return _tokenize(src)[0]
+def tokenize(src, jsx=False):
+    return _tokenize(src, jsx=jsx)[0]
 
 
 def normal_tokens(tokens, keep_comments=False):
@@ -210,7 +281,7 @@ def normal_tokens(tokens, keep_comments=False):
                 out.append(tok.text)
             continue
         if pending and prev is not None and (prev.text in RESTRICTED or tok.text in NL_STARTERS
-                                             or tok.kind in ("tmpl", "regex")):
+                                             or tok.kind in ("tmpl", "regex", "jsx")):
             out.append("\\n")
         pending = False
         out.append(tok.text)
@@ -236,10 +307,10 @@ def check_balance(tokens):
 class Source(object):
     """Quelltext mit Tokens, Zeilen und Klammerpaaren."""
 
-    def __init__(self, lines):
+    def __init__(self, lines, jsx=False):
         self.lines = lines
         self.text = "\n".join(lines) + "\n"
-        self.tokens = tokenize(self.text)
+        self.tokens = tokenize(self.text, jsx)
         check_balance(self.tokens)
         starts, pos = [], 0
         for line in lines:
@@ -284,6 +355,8 @@ class Source(object):
 class JsAdapter(Adapter):
     mode = "js"
     label = "JavaScript"
+    ts = False              # TypeScript-Syntax (Typen, interface, enum ...)
+    jsx = False             # JSX-Elemente im Code
     has_units = True
     default_indent = "  "
     gap_top = 1
@@ -298,7 +371,8 @@ class JsAdapter(Adapter):
     def normalize(self, doc, prof):
         if self._exact(prof):
             return doc.text()
-        return normal_tokens(tokenize("\n".join(doc.lines) + "\n"), prof["comments"] == "keep")
+        return normal_tokens(tokenize("\n".join(doc.lines) + "\n", self.jsx),
+                             prof["comments"] == "keep")
 
     def normalize_unit(self, doc, info, unit, prof):
         if self._exact(prof):
@@ -307,7 +381,7 @@ class JsAdapter(Adapter):
         return normal_tokens(toks, prof["comments"] == "keep")
 
     def validate(self, doc):
-        Source(doc.lines)
+        Source(doc.lines, self.jsx)
 
     def opens_block(self, line):
         return line.rstrip().endswith(("{", "(", "["))
@@ -378,7 +452,7 @@ class JsAdapter(Adapter):
     # -- Einheiten -------------------------------------------------------
 
     def analyze(self, doc):
-        src = Source(doc.lines)
+        src = Source(doc.lines, self.jsx)
         units = []
         self._scope(src, 0, len(src.sig), None, "", units)
         return Info(doc.lines, units, src=src, start_line=self._start_line(src))
@@ -427,8 +501,10 @@ class JsAdapter(Adapter):
             path = prefix + "." + label if prefix else label
             unit = Unit(path, kind, (first, body, last), start, end, indent, parent)
             units.append(unit)
-            # Klassen und Objekte: Mitglieder; Funktionen: innere Funktionen (R017)
-            self._scope(src, body + 1, src.pair[body], unit, path, units)
+            # Klassen und Objekte: Mitglieder; Funktionen: innere Funktionen (R017);
+            # interface/enum/type: keine Einheiten darin
+            if body is not None and kind not in ("interface", "enum", "type"):
+                self._scope(src, body + 1, src.pair[body], unit, path, units)
 
     def _skip(self, src, k, hi):
         """Naechstes Token auf gleicher Ebene (Klammern werden uebersprungen)."""
@@ -453,17 +529,148 @@ class JsAdapter(Adapter):
             last += 1
         return last if src.line_end(last) else None
 
+    # -- TypeScript-Hilfen (nur bei ts) ---------------------------------
+
+    def _skip_angle(self, src, j, hi):
+        """j zeigt auf "<" (Generics); liefert den Index hinter dem passenden ">"."""
+        depth = 0
+        while j < hi:
+            text = src.text_of(j)
+            if j in src.pair:
+                j = src.pair[j] + 1
+                continue
+            if text == "<":
+                depth += 1
+            elif text in (">", ">>", ">>>"):
+                depth -= len(text)
+                if depth <= 0:
+                    return j + 1
+            elif text in (";", "{", "=>") and depth <= 0:
+                return None
+            j += 1
+        return None
+
+    def _skip_type(self, src, j, hi, stops):
+        """Typ-Annotation ab j ueberspringen bis zu einem Token aus stops auf
+        oberster Ebene; "{" direkt nach ":", "|", "<" ... ist ein Objekttyp."""
+        start = j
+        while j < hi:
+            text = src.text_of(j)
+            if text == "{" and (j == start or src.text_of(j - 1) in TYPE_LEAD) and j in src.pair:
+                j = src.pair[j] + 1
+                continue
+            if text in stops:
+                return j
+            if j in src.pair:
+                j = src.pair[j] + 1
+            elif text == "<":
+                j = self._skip_angle(src, j, hi)
+                if j is None:
+                    return None
+            else:
+                j += 1
+        return None
+
+    def _skip_decorators(self, src, j, hi):
+        """@name, @a.b, @name(...) - auch mehrere hintereinander."""
+        while src.text_of(j) == "@":
+            j += 1
+            if j >= hi or src.sig[j].kind != "name":
+                return j
+            j += 1
+            while src.text_of(j) == "." and j + 1 < hi and src.sig[j + 1].kind == "name":
+                j += 2
+            if src.text_of(j) == "(" and j in src.pair:
+                j = src.pair[j] + 1
+        return j
+
+    def _type_alias(self, src, first, j, hi):
+        """type Name<..> = ...; - Ende an ";" oder am Zeilenende, wenn die
+        naechste Zeile den Typ nicht fortsetzt."""
+        if j >= hi or src.sig[j].kind != "name":
+            return None
+        name = src.sig[j].text
+        j += 1
+        if src.text_of(j) == "<":
+            j = self._skip_angle(src, j, hi)
+            if j is None:
+                return None
+        if src.text_of(j) != "=":
+            return None
+        k = j + 1
+        while k < hi:
+            text = src.text_of(k)
+            if text == ";":
+                return (name, "type", first, None, k) if src.line_end(k) else None
+            nxt = k + 1
+            if k in src.pair:
+                nxt = src.pair[k] + 1
+            if nxt >= hi:
+                return (name, "type", first, None, nxt - 1)
+            if src.sig[nxt].line > src.sig[nxt - 1].line and src.line_start(nxt) and \
+                    src.text_of(nxt - 1) not in TYPE_LEAD + ("&", "|") and \
+                    src.text_of(nxt) not in ("|", "&", ".", "?", "=>", "extends"):
+                return (name, "type", first, None, nxt - 1)
+            k = nxt
+        return None
+
+    def _ts_statement(self, src, first, j, hi, word):
+        """interface, enum, namespace/module, type - nur TypeScript."""
+        if word == "type":
+            return self._type_alias(src, first, j + 1, hi)
+        if word == "const" and src.text_of(j + 1) == "enum":
+            j, word = j + 1, "enum"
+        if word in ("interface", "enum"):
+            j += 1
+            if j >= hi or src.sig[j].kind != "name":
+                return None
+            name = src.sig[j].text
+            j += 1
+            while j < hi and src.text_of(j) != "{":
+                if src.text_of(j) == "<":
+                    j = self._skip_angle(src, j, hi)
+                    if j is None:
+                        return None
+                else:
+                    j = self._skip(src, j, hi)
+            last = self._block_end(src, j, hi) if j < hi else None
+            return None if last is None else (name, word, first, j, last)
+        if word in ("namespace", "module"):
+            j += 1
+            parts = []
+            while j < hi and src.text_of(j) != "{":
+                tok = src.sig[j]
+                if tok.kind not in ("name", "str") and tok.text != ".":
+                    return None
+                parts.append(tok.text[1:-1] if tok.kind == "str" else tok.text)
+                j += 1
+            name = "".join(parts)
+            if not name or "/" in name:
+                return None
+            last = self._block_end(src, j, hi) if j < hi else None
+            return None if last is None else (name, "namespace", first, j, last)
+        return None
+
     def _statement(self, src, k, hi):
         if not src.line_start(k) or (k > 0 and src.sig[k - 1].line == src.sig[k].line):
             return None
         first, j = k, k
+        if src.text_of(j) == "@":
+            j = self._skip_decorators(src, j, hi)
         if src.text_of(j) == "export":
             j += 1
             if src.text_of(j) == "default":
                 j += 1
+        if self.ts:
+            while src.text_of(j) in TS_DECL_MODS:
+                j += 1
         if src.text_of(j) == "@":
             return None
         word = src.text_of(j)
+        if self.ts and word in ("interface", "enum", "namespace", "module", "type", "const"):
+            hit = self._ts_statement(src, first, j, hi, word)
+            if hit is not None or word != "const":
+                return hit
         if word == "async" and src.text_of(j + 1) == "function":
             j += 1
             word = "function"
@@ -474,15 +681,27 @@ class JsAdapter(Adapter):
             if j >= hi or src.sig[j].kind != "name":
                 return None
             name = src.sig[j].text
-            return self._function_rest(src, first, j + 1, hi, name, "function")
+            j += 1
+            if self.ts and src.text_of(j) == "<":
+                j = self._skip_angle(src, j, hi)
+                if j is None:
+                    return None
+            return self._function_rest(src, first, j, hi, name, "function")
         if word == "class":
             return self._class_rest(src, first, j + 1, hi)
         if word in ("const", "let", "var"):
             j += 1
-            if j >= hi or src.sig[j].kind != "name" or src.text_of(j + 1) != "=":
+            if j >= hi or src.sig[j].kind != "name":
                 return None
             name = src.sig[j].text
-            j += 2
+            j += 1
+            if self.ts and src.text_of(j) in ("!", ":"):
+                j = self._skip_type(src, j + (2 if src.text_of(j) == "!" else 1), hi, ("=", ";"))
+                if j is None:
+                    return None
+            if src.text_of(j) != "=":
+                return None
+            j += 1
             if src.text_of(j) == "class":
                 hit = self._class_rest(src, first, j + 1, hi, name)
                 return hit
@@ -497,7 +716,9 @@ class JsAdapter(Adapter):
         if src.text_of(j) != "(" or j not in src.pair:
             return None
         body = src.pair[j] + 1
-        if src.text_of(body) != "{":
+        if self.ts and src.text_of(body) == ":":
+            body = self._skip_type(src, body + 1, hi, ("{", ";", "=>"))
+        if body is None or src.text_of(body) != "{":
             return None
         last = self._block_end(src, body, hi, sep)
         return None if last is None else (name, kind, first, body, last)
@@ -509,7 +730,12 @@ class JsAdapter(Adapter):
             name = src.sig[j].text
             j += 1
         while j < hi and src.text_of(j) != "{":
-            j = self._skip(src, j, hi)
+            if self.ts and src.text_of(j) == "<":
+                j = self._skip_angle(src, j, hi)
+                if j is None:
+                    return None
+            else:
+                j = self._skip(src, j, hi)
         if j >= hi:
             return None
         last = self._block_end(src, j, hi)
@@ -519,6 +745,10 @@ class JsAdapter(Adapter):
         """Wert einer Zuweisung: function ..., (..) => {..}, x => {..}, async ..."""
         if src.text_of(j) == "async":
             j += 1
+        if self.ts and src.text_of(j) == "<":
+            j = self._skip_angle(src, j, hi)
+            if j is None:
+                return None
         if src.text_of(j) == "function":
             j += 1
             if src.text_of(j) == "*":
@@ -528,6 +758,10 @@ class JsAdapter(Adapter):
             return self._function_rest(src, first, j, hi, name, kind, sep)
         if src.text_of(j) == "(" and j in src.pair:
             j = src.pair[j] + 1
+            if self.ts and src.text_of(j) == ":":
+                j = self._skip_type(src, j + 1, hi, ("=>", ";", "{"))
+                if j is None:
+                    return None
         elif j < hi and src.sig[j].kind == "name":
             j += 1
         else:
@@ -565,8 +799,11 @@ class JsAdapter(Adapter):
         if not src.line_start(k) or src.sig[k - 1].line == src.sig[k].line:
             return None
         first, j = k, k
-        while src.text_of(j) in ("static", "async", "get", "set", "*") and \
-                src.text_of(j + 1) not in ("(", "="):
+        if src.text_of(j) == "@":
+            j = self._skip_decorators(src, j, hi)
+        mods = TS_MEMBER_MODS if self.ts else ("static", "async", "get", "set", "*")
+        while src.text_of(j) in mods and \
+                src.text_of(j + 1) not in ("(", "=", ":", "?", "!", "<", ";"):
             j += 1
         private = src.text_of(j) == "#"
         if private:
@@ -574,15 +811,29 @@ class JsAdapter(Adapter):
         if j >= hi or src.sig[j].kind != "name":
             return None
         name = ("#" if private else "") + src.sig[j].text
-        if src.text_of(j + 1) == "(":
-            return self._function_rest(src, first, j + 1, hi, name, "method")
-        if src.text_of(j + 1) == "=":
-            return self._callable(src, first, j + 2, hi, name, "method")
+        j += 1
+        if self.ts:
+            if src.text_of(j) in ("?", "!"):
+                j += 1
+            if src.text_of(j) == "<":
+                j = self._skip_angle(src, j, hi)
+                if j is None:
+                    return None
+            if src.text_of(j) == ":":
+                j = self._skip_type(src, j + 1, hi, ("=", ";"))
+                if j is None or src.text_of(j) != "=":
+                    return None
+        if src.text_of(j) == "(":
+            return self._function_rest(src, first, j, hi, name, "method")
+        if src.text_of(j) == "=":
+            return self._callable(src, first, j + 1, hi, name, "method")
         return None
 
     def _body(self, unit, info):
         src = info.src
         first, body, last = unit.node
+        if body is None:
+            return None
         close = src.pair[body]
         if not src.line_end(body) or not src.line_start(close):
             return None
@@ -595,3 +846,23 @@ class JsAdapter(Adapter):
 
     def position(self, info, pos):
         return self.simple_position(info, pos, lambda unit: self._body(unit, info))
+
+
+class TsAdapter(JsAdapter):
+    """TypeScript (R016): Typ-Annotationen, Generics, Dekoratoren, interface,
+    type, enum, namespace; Normalform wie js/1 (Tokens)."""
+    mode = "ts"
+    label = "TypeScript"
+    ts = True
+
+
+class TsxAdapter(TsAdapter):
+    mode = "tsx"
+    label = "TSX"
+    jsx = True
+
+
+class JsxAdapter(JsAdapter):
+    mode = "jsx"
+    label = "JSX"
+    jsx = True

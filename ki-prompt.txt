@@ -50,6 +50,8 @@ sichert vorher und kann alles zuruecknehmen.
            aussen.innen (Funktion in Funktion), objekt.methode und
            objekt.sub.methode bei const objekt = {...} (Kommas richtet
            das Programm)
+   TS/TSX: wie JS, dazu interface, type, enum, namespace (Name.funktion);
+           Dekoratoren gehoeren zur Methode/Klasse
    CSS:    Selektor wie im Original, z.B. .btn:hover;
            verschachtelt "@media (max-width: 600px)/.btn"
    HTML/XML: #id, sonst Pfad mit Tag, Klassen, Nummer:

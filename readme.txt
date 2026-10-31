@@ -22,8 +22,8 @@ zusaetzlich jede betroffene Funktion (std, Standard) oder alles (full).
 Geprueft wird die Funktion, nicht die Schreibweise: Kommentare und
 unwichtige Leerzeichen/Tabs/Umbrueche zaehlen je nach Format nicht; bei
 Python zaehlt die Einrueckung immer exakt. Formate mit Einheiten:
-Python, JavaScript, C/C++ (Funktionen, Klassen, Methoden, z.B.
-"app::Box::get"), CSS/SCSS/LESS (Regeln), HTML/XML (Elemente, z.B. "#nav"
+Python, JavaScript/TypeScript (auch JSX/TSX), C/C++ (Funktionen,
+Klassen, Methoden, z.B. "app::Box::get"), CSS/SCSS/LESS (Regeln), HTML/XML (Elemente, z.B. "#nav"
 oder "html/body/main/div.card[2]"), JSON (Eintraege, z.B. "server/port");
 jede andere Textdatei ueber Textbefehle. Jeder angewendete Patch laesst
 sich exakt zuruecknehmen (Sicherung im Ziel). Windows-Zeilenenden (CRLF)

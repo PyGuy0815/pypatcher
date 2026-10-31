@@ -8,7 +8,7 @@ uebertragen - bis auf einzelne Funktionen, Klassen, CSS-Regeln,
 HTML-Elemente oder JSON-Eintraege genau. Jede Aenderung wird per SHA-256
 geprueft, atomar angewendet und kann exakt zurueckgenommen werden.
 
-Formate: Python, JavaScript, CSS/SCSS/LESS, HTML/XML, C/C++, JSON, Text,
+Formate: Python, JavaScript/TypeScript (JSX/TSX), CSS/SCSS/LESS, HTML/XML, C/C++, JSON, Text,
 Binaer.
 
 ```

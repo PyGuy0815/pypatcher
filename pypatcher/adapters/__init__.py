@@ -5,7 +5,7 @@ from ..profile import profile_id
 from .base import ParseError
 from .clike import CAdapter, CppAdapter
 from .css import CssAdapter, ScssAdapter
-from .js import JsAdapter
+from .js import JsAdapter, JsxAdapter, TsAdapter, TsxAdapter
 from .jsondata import JsonAdapter
 from .markup import HtmlAdapter, XmlAdapter
 from .python import PythonAdapter
@@ -13,7 +13,8 @@ from .text import TextAdapter
 
 ADAPTERS = {"text": TextAdapter(), "python": PythonAdapter(), "js": JsAdapter(),
             "css": CssAdapter(), "scss": ScssAdapter(), "html": HtmlAdapter(),
-            "xml": XmlAdapter(), "c": CAdapter(), "cpp": CppAdapter(), "json": JsonAdapter()}
+            "xml": XmlAdapter(), "c": CAdapter(), "cpp": CppAdapter(), "json": JsonAdapter(),
+            "ts": TsAdapter(), "tsx": TsxAdapter(), "jsx": JsxAdapter()}
 PY = ADAPTERS["python"]
 
 __all__ = ["ADAPTERS", "PY", "ParseError", "get", "file_hash", "unit_hash", "text_hash"]

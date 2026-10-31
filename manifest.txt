@@ -372,6 +372,19 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
   - Ein "/" gilt als regulaerer Ausdruck nach Operatoren, oeffnenden
     Klammern und Woertern wie return/typeof; nach ) ] } als Division.
 
+5.6.1a mode "ts", "tsx", "jsx" - Normalform js/1 (0.0.3)
+  *.ts, *.mts, *.cts (ts), *.tsx (tsx), *.jsx (jsx). Tokenizer und
+  Normalform wie js; Profil-Kennung ts/1, tsx/1, jsx/1.
+  - JSX (tsx, jsx): ein Element bzw. Fragment (<>..</>) ist ein Token mit
+    exaktem Text (Leerraum im JSX zaehlt); {..} darin wird wie Code
+    gelesen. "<" leitet JSX nur dort ein, wo ein Ausdruck beginnt.
+  - TypeScript-Syntax fuer Einheiten: Typ-Annotationen (auch Rueckgabe-
+    typen mit Objekttyp), Generics <..>, Modifikatoren (public, private,
+    protected, readonly, abstract, override, declare ...), optionale
+    Mitglieder (name?), Dekoratoren (gehoeren zur Einheit).
+  - Was der Tokenizer nicht lesen kann, wird wie bei init als text
+    behandelt (Hinweis).
+
 5.6.2 mode "css" und "scss" - Normalform css/1 (umgesetzt)
   css fuer *.css; scss fuer *.scss und *.less (zusaetzlich //-Kommentare,
   #{...}-Interpolation). Verschachtelte Regeln werden unterstuetzt
@@ -433,8 +446,7 @@ Entwurf        Patch ohne Hashes/Altinhalte, von Hand geschrieben;
     entfernt (repair) - nur dort, wo die Datei sonst ungueltig waere.
 
 5.6.6 Spaeter (nach Bedarf, request.txt)
-  ts / tsx / jsx    TypeScript und JSX auf Basis des JS-Tokenizers
-  java, cs, go, php, rust  auf Basis des C-Tokenizers
+  cs, go, php, rust  auf Basis des C-Tokenizers
   shell             Kommentare entfernt, Leerraum zwischen Woertern
                     vereinheitlicht, Zeilenumbrueche bleiben
   yaml              parsen (Einrueckung funktional)
@@ -782,6 +794,16 @@ Beispiel (Pruefstufe std):
                          Einfuegen/Ersetzen selbst; ein Komma direkt hinter
                          "}" gehoert zur Einheit. start-of:/end-of: gehen
                          bei Klassen und Objekten.
+  TypeScript/TSX/JSX (0.0.3) - zusaetzlich zu JavaScript:
+    User, Color, Id      interface, enum (auch const enum), type-Alias
+                         (Ende an ";" oder wenn die naechste Zeile den Typ
+                         nicht fortsetzt); deren Mitglieder sind keine
+                         Einheiten (Textbefehle mit scope=User)
+    Utils.Strings.upper  namespace/module mit ihren Funktionen/Klassen
+    Klasse.methode       auch mit Modifikatoren, Generics, Rueckgabetyp,
+                         Dekoratoren (@HostListener(..) gehoert dazu);
+                         Methoden ohne Rumpf (abstract, Ueberladungs-
+                         Signaturen) sind keine Einheiten
   CSS/SCSS:
     .btn:hover           Regel ueber ihren Selektor (Leerraum wie in der
                          Normalform: einfach, keiner neben ",")
@@ -1215,7 +1237,8 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.3-pre1):
       python.py           mode python: Einheiten, Positionen,
                           Normalform python/1 (Syntaxbaum +
                           Einrueckungs-Signatur)
-      js.py               mode js: Tokenizer, Einheiten, Normalform js/1
+      js.py               mode js/ts/tsx/jsx: Tokenizer (inkl. JSX),
+                          Einheiten, Normalform js/1
       css.py              mode css/scss: Tokenizer, Parser, Normalform css/1
       clike.py            mode c/cpp: Tokenizer, Einheiten, Normalform c/1
       jsondata.py         mode json: Parser mit Positionen, Pfade,
