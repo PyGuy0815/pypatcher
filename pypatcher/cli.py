@@ -9,7 +9,7 @@ import sys
 import tempfile
 import zipapp
 
-from . import __version__, adapters, diff, engine, fileio, flow, journal as jr, patchfile
+from . import __version__, adapters, console, diff, engine, fileio, flow, journal as jr, patchfile
 from . import profile as pf
 from .adapters import ParseError
 from .errors import Conflict, PatchInvalid, PatcherError, TestsFailed, UsageError
@@ -18,9 +18,17 @@ from .hashing import state_hash
 QUIET = False
 
 
-def out(msg=""):
+def out(msg="", kind=None):
+    """Normale Ausgabe (entfaellt mit -q); kind faerbt die ganze Zeile
+    (ok/warn/info), sonst nur ein Kennwort am Anfang (Hinweis, FEHLER ...)."""
     if not QUIET:
-        print(msg)
+        print(console.paint(msg, kind) if kind else console.label(msg))
+
+
+def say(msg, stream=None):
+    """Ausgabe auch mit -q (Fehler, Ergebniszeile)."""
+    stream = stream or sys.stdout
+    print(console.label(msg, stream), file=stream)
 
 
 def show_hints(hints):
@@ -131,7 +139,7 @@ def _summary(ctx):
 
 def cmd_check(args):
     patch, ctx, _, _ = _prepare(args)
-    out("Patch %s (%s): Pruefung erfolgreich - wuerde aendern:" % (patch["id"], patch["title"]))
+    out("Patch %s (%s): Pruefung erfolgreich - wuerde aendern:" % (patch["id"], patch["title"]), "ok")
     for line in _summary(ctx):
         out(line)
     show_hints(ctx.hints)
@@ -140,15 +148,15 @@ def cmd_check(args):
 
 def cmd_apply(args):
     patch, ctx, journal, answers = _prepare(args)
-    out("Patch %s (%s): Pruefung erfolgreich." % (patch["id"], patch["title"]))
+    out("Patch %s (%s): Pruefung erfolgreich." % (patch["id"], patch["title"]), "ok")
     for line in _summary(ctx):
         out(line)
     show_hints(ctx.hints)
     if not confirm(args, "Patch anwenden?"):
-        out("Abgebrochen - nichts geaendert.")
+        out("Abgebrochen - nichts geaendert.", "warn")
         return 1
     journal.commit_apply(patch, ctx, answers)
-    out("Patch %s angewendet." % patch["id"])
+    out("Patch %s angewendet." % patch["id"], "ok")
     return _after_apply(args, journal, patch, ctx)
 
 
@@ -168,18 +176,18 @@ def cmd_run(args):
     engine.process(patch, ctx, entries)
     out("Patch %s (%s): %s erfolgreich - %s:"
         % (patch["id"], patch["title"], "Hash-Pruefung" if sealed else "Inhaltspruefung",
-           "wuerde aendern" if args.dry_run else "aendert"))
+           "wuerde aendern" if args.dry_run else "aendert"), "ok")
     for line in _summary(ctx):
         out(line)
     show_hints(ctx.hints)
     if args.dry_run:
-        out("Probelauf - nichts geaendert.")
+        out("Probelauf - nichts geaendert.", "info")
         return 0
     if not confirm(args, "Patch anwenden?"):
-        out("Abgebrochen - nichts geaendert.")
+        out("Abgebrochen - nichts geaendert.", "warn")
         return 1
     journal.commit_apply(patch, ctx, answers)
-    out("Patch %s angewendet (zuruecknehmen: patcher.py rollback)." % patch["id"])
+    out("Patch %s angewendet (zuruecknehmen: patcher.py rollback)." % patch["id"], "ok")
     return _after_apply(args, journal, patch, ctx)
 
 
@@ -218,7 +226,7 @@ def _after_apply(args, journal, patch, ctx):
     for note in notes:
         out("Hinweis: " + note)
     for err in errors:
-        print("FEHLER: " + err)
+        say("FEHLER: " + err)
     unmanaged = len(journal.unmanaged)
     if errors:
         parts.append("Journal: %d Abweichung%s" % (len(errors), "" if len(errors) == 1 else "en"))
@@ -235,11 +243,11 @@ def _after_apply(args, journal, patch, ctx):
         if args.rollback_on_failure:
             journal.rollback_one(journal.history()["applied"][-1])
             parts.append("zurueckgenommen")
-        print("FEHLER %s | %s" % (patch["id"], " | ".join(parts)))
+        say("FEHLER %s | %s" % (patch["id"], " | ".join(parts)))
         raise TestsFailed("Tests fehlgeschlagen - Patch %s %s" % (
             patch["id"], "zurueckgenommen" if args.rollback_on_failure else
             "bleibt angewendet (zuruecknehmen: patcher.py rollback)"))
-    print("%s %s | %s" % ("OK" if not errors else "FEHLER", patch["id"], " | ".join(parts)))
+    say("%s %s | %s" % ("OK" if not errors else "FEHLER", patch["id"], " | ".join(parts)))
     return Conflict.exit_code if errors else 0
 
 
@@ -264,11 +272,11 @@ def cmd_rollback(args):
         journal.check_after(entry)
     out("Zuruecknehmen (neuester zuerst): " + ", ".join(e["id"] for e in targets))
     if not confirm(args, "Rollback ausfuehren?"):
-        out("Abgebrochen - nichts geaendert.")
+        out("Abgebrochen - nichts geaendert.", "warn")
         return 1
     for entry in targets:
         journal.rollback_one(entry)
-        out("Patch %s zurueckgenommen." % entry["id"])
+        out("Patch %s zurueckgenommen." % entry["id"], "ok")
     return 0
 
 
@@ -287,7 +295,7 @@ def cmd_init(args):
     renew = args.force and journal.exists
     files, hints = journal.init(args.force)
     out("Journal %s in %s (%d Dateien verwaltet)."
-        % ("neu angelegt" if renew else "angelegt", journal.dir, len(files)))
+        % ("neu angelegt" if renew else "angelegt", journal.dir, len(files)), "ok")
     show_hints(hints)
     return 0
 
@@ -316,10 +324,10 @@ def cmd_verify(args):
     for note in notes:
         out("Hinweis: " + note)
     for err in errors:
-        print("FEHLER: " + err)
+        say("FEHLER: " + err)
     if errors:
         return Conflict.exit_code
-    out("Ist-Stand entspricht dem Journal.")
+    out("Ist-Stand entspricht dem Journal.", "ok")
     return 0
 
 
@@ -537,7 +545,7 @@ def cmd_show(args):
         patch = patchfile.load(args.patch, verify=False)
         ok = False
         if "patch_hash" in patch:
-            print("FEHLER: %s" % exc)
+            say("FEHLER: %s" % exc)
     out("Patch     : %s - %s" % (patch.get("id"), patch.get("title")))
     for key, label in (("generator", "Erzeugt"), ("author", "Autor"), ("created", "Datum"),
                        ("match", "Pruefung")):
@@ -635,6 +643,8 @@ def build_parser():
     common.add_argument("-y", "--yes", action="store_true", help="keine Rueckfragen")
     common.add_argument("--allow-mixed-eol", action="store_true",
                         help="Dateien mit gemischten Zeilenenden zulassen")
+    common.add_argument("--color", choices=console.MODES, default="auto",
+                        help="Farben: auto (nur am Terminal, nicht bei NO_COLOR), always, never")
     project = argparse.ArgumentParser(add_help=False)
     project.add_argument("-p", "--project", default=".", help="Projektwurzel (Standard: .)")
 
@@ -743,16 +753,17 @@ def main(argv=None):
     global QUIET
     args = build_parser().parse_args(argv)
     QUIET = args.quiet
+    console.MODE = args.color
     try:
         return args.func(args)
     except flow.FlowExit as exc:
-        print("ABBRUCH: %s - nichts geaendert." % exc, file=sys.stderr)
+        say("ABBRUCH: %s - nichts geaendert." % exc, sys.stderr)
         return 1
     except PatcherError as exc:
-        print("FEHLER: %s" % exc, file=sys.stderr)
+        say("FEHLER: %s" % exc, sys.stderr)
         return exc.exit_code
     except KeyboardInterrupt:
-        print("Abgebrochen.", file=sys.stderr)
+        print(console.paint("Abgebrochen.", "warn", sys.stderr), file=sys.stderr)
         return 1
     except BrokenPipeError:            # Ausgabe z.B. an "head" weitergeleitet
         try:
@@ -763,6 +774,5 @@ def main(argv=None):
     except Exception as exc:  # interner Fehler
         if args.verbose:
             raise
-        print("INTERNER FEHLER: %s: %s (Details mit -v)" % (type(exc).__name__, exc),
-              file=sys.stderr)
+        say("INTERNER FEHLER: %s: %s (Details mit -v)" % (type(exc).__name__, exc), sys.stderr)
         return 5

@@ -429,9 +429,9 @@ def _closest(lines, pattern, lo, hi):
     size = len(want)
     best, at = 0.0, None
     matcher = difflib.SequenceMatcher(autojunk=False)
-    matcher.set_seq2(want)
+    matcher.set_seq2("\n".join(want))       # zeichenweise: auch kleine Abweichungen
     for i in range(lo, max(lo, hi - size) + 1):
-        matcher.set_seq1([l.strip() for l in lines[i:i + size]])
+        matcher.set_seq1("\n".join(l.strip() for l in lines[i:i + size]))
         if matcher.real_quick_ratio() <= best or matcher.quick_ratio() <= best:
             continue
         ratio = matcher.ratio()

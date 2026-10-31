@@ -110,6 +110,9 @@ Beides geht auch direkt bei seal und create.
 Weitere Befehle: log, units, recover - siehe "python3 patcher.py -h" und
 manifest.txt Abschnitt 13. Spaeter: doctor, canon, invert.
 
+Farben: am Terminal gruen = Erfolg, rot = Fehler, gelb = Warnung,
+cyan = Hinweis; --color never oder NO_COLOR=1 schaltet sie ab.
+
 Exit-Codes: 0 OK, 1 Bedienfehler, 2 Patch ungueltig, 3 Konflikt,
 4 Journalfehler, 5 interner Fehler, 6 Tests fehlgeschlagen.
 

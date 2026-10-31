@@ -73,6 +73,14 @@ Versionen: siehe manifest.txt Abschnitt 16.
     (im Test lieferte eine KI ganze Dateien plus Erzeugungsskript statt
     eines Patches, weil sie den Prompt nicht kannte).
 
+  Farben (R030, Vorschlag aus dem Praxistest):
+  - gruen = Erfolg, rot = Fehler/Abbruch, gelb = Warnung, cyan = Hinweis;
+    in Konfliktmeldungen "- Patch" rot und "+ Datei" gruen.
+  - Nur am Terminal; --color auto|always|never, NO_COLOR, TERM=dumb.
+    Ausgaben in Dateien/Pipes (Logs, KI) bleiben ohne Steuerzeichen.
+  - Konfliktanzeige vergleicht jetzt zeichenweise: auch eine einzelne,
+    leicht abweichende Zeile ("return 2" statt "return 1") wird gezeigt.
+
   KI-Prompt und Beispiele:
   - Startablauf fuer KIs mit Code-Ausfuehrung: Projekt und patcher.pyz
     einmal anfordern, Hilfe selbst mit -h nachsehen (im Praxistest fragte

@@ -1144,7 +1144,14 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
   scope) sind ab 0.0.1 enthalten.
   Allgemein: -v (ausfuehrlich, bei internen Fehlern mit Details),
              -q (still), -y (keine Rueckfragen; ohne Terminal wird
-             ohnehin nicht gefragt), --allow-mixed-eol, --version
+             ohnehin nicht gefragt), --allow-mixed-eol, --version,
+             --color auto|always|never (0.0.2): gruen = Erfolg, rot =
+             Fehler/Abbruch, gelb = Warnung, cyan = Hinweis; in
+             Konfliktmeldungen "- Patch" rot, "+ Datei" gruen. auto =
+             nur wenn die Ausgabe ein Terminal ist und weder NO_COLOR
+             gesetzt noch TERM=dumb ist (Windows: ANSI wird in der
+             Konsole eingeschaltet, sonst ohne Farbe). In Dateien und
+             Pipes (Logs, Weitergabe an eine KI) nie Steuerzeichen.
   --compare P: Profil als Kurzform, z.B. "python" oder
                "text,whitespace=keep" oder "raw".
   AUSGABE (seal, create): --verify min|std|full (Pruefstufe, 6.6;
@@ -1185,6 +1192,7 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.2-pre1):
   pypatcher/
     __init__.py           __version__, Formatversion
     errors.py             Fehlerklassen mit Exit-Codes
+    console.py            farbige Ausgabe (nur am Terminal, NO_COLOR)
     hashing.py            SHA-256, Zustands-Hash
     profile.py            Vergleichsprofile: Rangfolge, Pruefung,
                           Kennung, Mindestprofile
@@ -1237,6 +1245,12 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.2-pre1):
                           bundle (Einzeldatei)
     test_ki_beispiele.py  alle Beispiele aus ki-beispiele.txt, Pakete
                           aus dem Chat kopiert
+    test_workflow.py      Ignore-Regeln, init --force, run --test,
+                          Konfliktanzeige
+    test_python_units.py  @imports, Zuweisungen als Einheiten
+    test_js_nested.py     innere Funktionen, Objekt-Methoden
+    test_invalid_source.py  Ausgangsdateien mit Syntaxfehler
+    test_console.py       Farben
   ki-prompt.txt           Anleitung fuer KI-Assistenten
   ki-beispiele.txt        Beispiel-Auftraege mit Antworten fuer KIs
   examples/               demo/ + entwurf-beispiel.ppatch (readme.txt),
