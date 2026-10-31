@@ -15,6 +15,7 @@ import os
 from . import adapters, fileio, layout as lay, profile as pf
 from .adapters import ParseError
 from .errors import Conflict, PatchInvalid
+from .hashing import sha256_text
 from .patchfile import hash_match, norm_path
 
 
@@ -227,11 +228,48 @@ def _remove(ua, doc, start, end):
     return doc.with_lines(head + [""] * gap + tail)
 
 
+def _units_at(ua, info, start, end):
+    """Einheiten, die die Zeilen [start, end) genau abdecken: eine Einheit oder
+    mehrere aufeinanderfolgende Geschwister (Leerzeilen dazwischen erlaubt)."""
+    one = ua.at_span(info, start, end)
+    if one is not None:
+        return [one]
+    found, i = [], start
+    while i < end:
+        if not info.lines[i].strip():
+            i += 1
+            continue
+        cands = [u for u in info.units if u.kind != "header" and u.start == i and u.end <= end
+                 and (not found or u.parent is found[0].parent)]
+        if not cands:
+            return None
+        unit = max(cands, key=lambda u: u.end)
+        found.append(unit)
+        i = unit.end
+    return found or None
+
+
 def _unit_after(ua, ctx, ch, nd, start, end, prof, what, key="unit_after"):
     info = _info(ua, nd, what, result=True)
-    unit = ua.at_span(info, start, end)
-    if unit is None:
-        raise PatchInvalid("%s: der neue Block ist keine einzelne Einheit (%s)" % (what, ua.label))
+    units = _units_at(ua, info, start, end)
+    if units is None:
+        raise PatchInvalid("%s: der neue Block besteht nicht aus ganzen Einheiten (%s) - "
+                           "z.B. Code ausserhalb von Funktionen oder unvollstaendige Einheit"
+                           % (what, ua.label))
+    if len(units) > 1:
+        # mehrere Einheiten in einem Block (z.B. drei neue Funktionen in einem UADD):
+        # Pruefung ueber die Hashes aller Einheiten, ohne einzelnen Namen
+        names = ", ".join(u.path for u in units)
+        if ctx.seal:
+            ctx.hint("%s: Block enthaelt %d Einheiten: %s" % (what, len(units), names))
+            ch.pop(key, None)
+        elif ch.get(key):
+            raise Conflict("%s: %s %r erwartet, der Block enthaelt %d Einheiten: %s"
+                           % (what, key, ch[key], len(units), names))
+        combined = sha256_text("\n".join(adapters.unit_hash(nd, info, u, prof) for u in units))
+        ctx.expect(ch, "unit_hash_after", combined, what, "unit")
+        return
+    unit = units[0]
     if ctx.seal and key == "unit" and ch.get("unit") not in (None, unit.path):
         ctx.hint("%s: unit %r korrigiert zu %r" % (what, ch.get("unit"), unit.path))
     ctx.expect(ch, key, unit.path, what, "unit")

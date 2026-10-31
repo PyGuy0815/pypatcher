@@ -725,6 +725,11 @@ Beispiel (Pruefstufe std):
     replace_unit   Einheit ersetzen (neuer Inhalt). Umbenennen einer
                    Funktion = replace_unit mit neuem Namen im new-Block.
     add_unit       neue Einheit einfuegen ("position", Abschnitt 7.5)
+    (0.0.2) Der new-Block von add_unit/replace_unit darf mehrere
+    aufeinanderfolgende Einheiten derselben Ebene enthalten (z.B. drei
+    neue Funktionen, oder Funktion + neue Hilfsfunktion); Code ausserhalb
+    von Einheiten ist nicht erlaubt. Geprueft wird dann ueber die Hashes
+    aller Einheiten (u=), ohne Einheitennamen.
     delete_unit    Einheit entfernen
     copy_unit      Einheit kopieren - in derselben oder aus einer anderen
                    Datei (Abschnitt 7.4)
@@ -1171,7 +1176,9 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
                --no-test         keine Tests, auch nicht aus config.json
                --rollback-on-failure  bei fehlgeschlagenen Tests sofort
                                  zuruecknehmen; sonst bleibt der Patch
-                                 zur Untersuchung angewendet
+                                 zur Untersuchung angewendet. Dauerhaft:
+                                 "rollback_on_failure": true in
+                                 .patcher/config.json
                Exit-Code 6 bei fehlgeschlagenen Tests, 3 bei Abweichungen
                im Journal. Mit -q erscheint die Ausgabe der Tests nur,
                wenn sie fehlschlagen.

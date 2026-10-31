@@ -239,13 +239,14 @@ def _after_apply(args, journal, patch, ctx):
     if command:
         tests_ok = _run_tests(command, journal.root)
         parts.append("Tests OK" if tests_ok else "Tests FEHLGESCHLAGEN")
+    rollback = args.rollback_on_failure or journal.config().get("rollback_on_failure") is True
     if not tests_ok:
-        if args.rollback_on_failure:
+        if rollback:
             journal.rollback_one(journal.history()["applied"][-1])
             parts.append("zurueckgenommen")
         say("FEHLER %s | %s" % (patch["id"], " | ".join(parts)))
         raise TestsFailed("Tests fehlgeschlagen - Patch %s %s" % (
-            patch["id"], "zurueckgenommen" if args.rollback_on_failure else
+            patch["id"], "zurueckgenommen" if rollback else
             "bleibt angewendet (zuruecknehmen: patcher.py rollback)"))
     say("%s %s | %s" % ("OK" if not errors else "FEHLER", patch["id"], " | ".join(parts)))
     return Conflict.exit_code if errors else 0

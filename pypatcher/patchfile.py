@@ -880,7 +880,9 @@ def parse_body(body, where="Patch"):
                 flow.append({"stmt": "file", "index": len(patch["files"])})
                 patch["files"].append(entry)
             if entry is None or entry["action"] != "modify":
-                raise PatchInvalid("%s: %s nur innerhalb eines FILE-Befehls" % (where, cmd))
+                raise PatchInvalid("%s: Zeile %r - %s nur innerhalb eines FILE-Befehls: davor "
+                                   "'FILE <pfad>' schreiben und die Aenderungen eingerueckt "
+                                   "darunter" % (where, line.strip(), cmd))
             entry["changes"].append(reader.change(cmd, pos, keys, refs, line.strip()))
         else:
             raise PatchInvalid("%s: unbekannter Befehl %r" % (where, cmd))

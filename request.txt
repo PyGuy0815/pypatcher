@@ -83,3 +83,8 @@ R029  ERLEDIGT (0.0.2-pre1) Dritter Praxistest: heruntergeladene Hilfsdateien
 R030  ERLEDIGT (0.0.2-pre1) Farbige Ausgabe (Vorschlag aus dem Praxistest): gruen = Erfolg,
                 rot = Fehler/Abbruch, gelb = Warnung, cyan = Hinweis; nur
                 am Terminal, abschaltbar (NO_COLOR, --color never).
+R031  ERLEDIGT (0.0.2-pre1) Vierter Praxistest (KI mit Prompt, Chat-Entwuerfe
+                in drei Teilen): UADD/UNIT mit mehreren Einheiten in einem
+                Block; Meldung "nur innerhalb eines FILE-Befehls" mit Zeile
+                und Korrektur; "rollback_on_failure" in config.json;
+                Prompt: FILE-Pflicht, mehrere Einheiten, REQ, Rollback.

@@ -81,6 +81,17 @@ Versionen: siehe manifest.txt Abschnitt 16.
   - Konfliktanzeige vergleicht jetzt zeichenweise: auch eine einzelne,
     leicht abweichende Zeile ("return 2" statt "return 1") wird gezeigt.
 
+  Aus dem vierten Praxistest (KI mit Prompt, Entwuerfe im Chat):
+  - UADD/UNIT duerfen mehrere ganze Einheiten in einem Block enthalten
+    (die KI fuegte drei neue Funktionen mit einem UADD ein: "der neue
+    Block ist keine einzelne Einheit"). Geprueft ueber die Hashes aller
+    Einheiten; loser Code bleibt verboten (klarere Meldung).
+  - "UNIT nur innerhalb eines FILE-Befehls" nennt die Zeile und wie man
+    es korrigiert.
+  - "rollback_on_failure": true in .patcher/config.json.
+  - ki-prompt.txt: FILE-Pflicht, mehrere Einheiten je Block, REQ,
+    automatisches Zuruecknehmen.
+
   KI-Prompt und Beispiele:
   - Startablauf fuer KIs mit Code-Ausfuehrung: Projekt und patcher.pyz
     einmal anfordern, Hilfe selbst mit -h nachsehen (im Praxistest fragte

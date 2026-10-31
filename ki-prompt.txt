@@ -31,13 +31,17 @@ sichert vorher und kann alles zuruecknehmen.
    MOVE alt neu / COPY alt neu
    FILE pfad              Datei bearbeiten; darunter eingerueckt:
      UNIT einheit @N                   Funktion/Klasse/Regel/Element ersetzen
-     UADD position @N                  neue Einheit einfuegen
+     UADD position @N                  neue Einheit(en) einfuegen
      UDEL einheit                      Einheit loeschen
      TEXT [scope=einheit] @alt @neu    Textblock ersetzen
      TINS before|after [scope=einheit] @anker @neu
      TDEL [scope=einheit] @alt         Textblock loeschen
    Positionen: after:einheit, before:einheit, start-of:einheit,
    end-of:einheit, start, end.
+   UNIT/UADD/UDEL/TEXT... stehen IMMER eingerueckt unter einem FILE.
+   Ein UADD-/UNIT-Block darf mehrere ganze Einheiten derselben Ebene
+   enthalten (z.B. drei neue Funktionen), aber keinen losen Code.
+   Haengt ein Patch von einem frueheren ab: REQ <id> (nach TITLE).
 
 3. EINHEITEN (bevorzugt - robust und je Funktion geprueft)
    Python: name, Klasse.methode, @header (Dateikopf), @imports (Import-
@@ -107,6 +111,9 @@ sichert vorher und kann alles zuruecknehmen.
    Hat das Projekt Tests, den Testbefehl anhaengen - dann genuegt ein
    Befehl, der mit einer Zeile antwortet ("OK <id> | ... | Tests OK"):
      python3 patcher.py run aenderung.ppatch -p <projekt> -y -q --test "<testbefehl>"
+   Mit --rollback-on-failure wird bei fehlgeschlagenen Tests automatisch
+   zurueckgenommen. Dauerhaft in <projekt>/.patcher/config.json:
+     {"test": "<testbefehl>", "rollback_on_failure": true}
 
 9. WENN ETWAS NICHT PASST
    - Meldet das Programm einen Konflikt (Einheit/Block nicht gefunden,
