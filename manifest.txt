@@ -769,6 +769,24 @@ Beispiel (Pruefstufe std):
     copy       Datei kopieren ("to")
     modify     Datei bearbeiten -> Liste "changes" (unten)
 
+  Verzeichnisse (0.0.3) - im Patch: DMOVE alt neu / DCOPY alt neu / DDEL dir
+    move_dir   Verzeichnis mit allen Dateien verschieben ("to")
+    copy_dir   Verzeichnis kopieren ("to")
+    delete_dir Verzeichnis mit allen Dateien loeschen
+    Versiegelte Dateiliste: seal/run tragen alle Dateien des Verzeichnisses
+    mit Hash (Bytes) als Datenblock ein ("hash pfad" je Zeile, Pfad relativ
+    zum Verzeichnis). Beim Anwenden muss das Verzeichnis genau diese
+    Dateien unveraendert enthalten - zusaetzliche, fehlende oder veraenderte
+    Dateien sind ein Konflikt (--json: detail.kind directory_mismatch mit
+    extra/missing/changed). Ein Entwurf ohne Liste wird gegen den
+    aktuellen Inhalt geprueft. Abgelehnt: symbolische Links und
+    Versionsverwaltung (.git ...) im Verzeichnis, Ziel im Quellverzeichnis,
+    vorhandene Zieldateien. Jede Datei wird einzeln gesichert; Rollback
+    stellt alles wieder her. Ignorierte Dateien im Verzeichnis werden
+    mitgenommen (ein Verzeichnis bleibt vollstaendig).
+  Verzeichnisse, die durch delete/move/delete_dir leer werden, entfernt das
+  Programm (0.0.3); Rollback legt sie wieder an.
+
   Einheiten (action = modify, nur Modi mit Einheiten-Adapter, erste
   Version: python):
     replace_unit   Einheit ersetzen (neuer Inhalt). Umbenennen einer
@@ -1317,7 +1335,8 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
       detail.kind block_not_found: {block, closest {line_from, line_to,
                 similarity, indent_only, file_lines} oder null}
                 block_ambiguous: {block, lines}; unit_not_found: {unit,
-                similar, available}; unit_ambiguous: {unit, candidates}
+                similar, available}; unit_ambiguous: {unit, candidates};
+                directory_mismatch: {extra, missing, changed}
 
 Exit-Codes:
   0 OK | 1 Bedienfehler | 2 Patch ungueltig/beschaedigt
@@ -1406,6 +1425,7 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.3-pre1):
     test_field5.py        Einrueckung in Suchbloecken, Pfade mit Leerzeichen
     test_safety.py        geschuetzte Pfade, symbolische Links, help
     test_json_output.py   --json
+    test_dirs.py          DMOVE, DCOPY, DDEL
   ki-prompt.txt           Anleitung fuer KI-Assistenten
   ki-beispiele.txt        Beispiel-Auftraege mit Antworten fuer KIs
   examples/               demo/ + entwurf-beispiel.ppatch (readme.txt),

@@ -70,6 +70,13 @@ Versionen: siehe manifest.txt Abschnitt 16.
   - Konflikte strukturiert: welche Aenderung, aehnlichste Stelle mit
     Zeilen und Text, aehnliche/vorhandene Einheiten.
 
+  Verzeichnisse (R038):
+  - DMOVE, DCOPY, DDEL fuer ganze Verzeichnisse; beim Versiegeln wird die
+    Dateiliste mit Hashes eingetragen - zusaetzliche, fehlende oder
+    veraenderte Dateien brechen ab. Symbolische Links und .git darin
+    werden abgelehnt; Rollback exakt.
+  - Leer gewordene Verzeichnisse werden entfernt (Rollback legt sie an).
+
 0.0.2 (2026-10-31) - Freigabe
 -----------------------------
   Umfang 0.0.2 (Ergebnis von vier Praxistests mit einer anderen KI an

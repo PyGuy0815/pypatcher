@@ -29,6 +29,7 @@ sichert vorher und kann alles zuruecknehmen.
    REP pfad @N            ganze Datei ersetzen (nur bei kompletter Neufassung)
    DEL pfad               Datei loeschen
    MOVE alt neu / COPY alt neu
+   DMOVE altdir neudir / DCOPY altdir neudir / DDEL dir   ganze Verzeichnisse
    FILE pfad              Datei bearbeiten; darunter eingerueckt:
      UNIT einheit @N                   Funktion/Klasse/Regel/Element ersetzen
      UADD position @N                  neue Einheit(en) einfuegen

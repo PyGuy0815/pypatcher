@@ -239,6 +239,7 @@ class Journal(object):
                     if os.path.isfile(target):
                         os.remove(target)
                         fileio.drop_bytecode(target)
+                        self._prune_dirs(os.path.dirname(target))
                     continue
                 data = fileio.encode(doc)
                 fileio.atomic_write(target, data, doc.st_mode)

@@ -681,8 +681,18 @@ def cmd_show(args):
 
 
 def _show_entry(args, n, entry, pad):
-    prof = patchfile.profile_short(entry.get("compare")) or "auto"
     target = " -> " + entry["to"] if entry.get("to") else ""
+    if entry["action"] in patchfile.DIR_ACTIONS:
+        files = entry.get("files")
+        out("%s[%d] %s %s%s  (%s)" % (
+            pad, n, patchfile.CMD_OF[entry["action"]], entry["path"], target,
+            "Verzeichnis, %d Dateien versiegelt" % len(files) if files is not None
+            else "Verzeichnis, Dateiliste beim Anwenden"))
+        if args.diff:
+            for item in files or []:
+                out("      %s  %s" % (patchfile.short(item["hash"]), item["path"]))
+        return
+    prof = patchfile.profile_short(entry.get("compare")) or "auto"
     checks = "Hash" if entry.get("hash_before") or entry.get("hash_after") else "ohne Hash"
     out("%s[%d] %s %s%s  (%s, %s)" % (pad, n, patchfile.CMD_OF[entry["action"]],
                                      entry["path"], target, prof, checks))

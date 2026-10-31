@@ -34,7 +34,9 @@ MODE_SHORT = {"python": "py", "text": "txt", "raw": "raw", "js": "js", "css": "c
               "jsonc": "jsonc"}
 MODE_LONG = dict((v, k) for k, v in MODE_SHORT.items())
 
-FILE_CMDS = {"ADD": "add", "DEL": "delete", "REP": "replace", "MOVE": "move",
+DIR_ACTIONS = ("move_dir", "copy_dir", "delete_dir")
+FILE_CMDS = {"DMOVE": "move_dir", "DCOPY": "copy_dir", "DDEL": "delete_dir",
+             "ADD": "add", "DEL": "delete", "REP": "replace", "MOVE": "move",
              "COPY": "copy", "FILE": "modify"}
 CHANGE_CMDS = {"UNIT": "replace_unit", "UADD": "add_unit", "UDEL": "delete_unit",
                "UCOPY": "copy_unit", "UMOVE": "move_unit", "TEXT": "replace_text",
@@ -169,8 +171,13 @@ class _Writer(object):
     def entry(self, entry):
         action = entry["action"]
         tokens = [CMD_OF[action], _quote(entry["path"])]
-        if action in ("move", "copy"):
+        if action in ("move", "copy", "move_dir", "copy_dir"):
             tokens.append(_quote(entry["to"]))
+        if action in DIR_ACTIONS:
+            if entry.get("files") is not None:  # versiegelte Dateiliste: "hash pfad" je Zeile
+                tokens.append(self.block(["%s %s" % (short(f["hash"], self.hash_len or None), f["path"])
+                                          for f in entry["files"]]))
+            return [" ".join(tokens)]
         prof = profile_short(entry.get("compare"))
         if prof:
             tokens.append(prof)
@@ -725,7 +732,7 @@ class _Reader(object):
         entry = {"action": FILE_CMDS[cmd]}
         if pos and PROFILE_RE.match(pos[-1]) and len(pos) > 1:
             entry["compare"] = profile_long(pos.pop())
-        need = 2 if cmd in ("MOVE", "COPY") else 1
+        need = 2 if cmd in ("MOVE", "COPY", "DMOVE", "DCOPY") else 1
         if len(pos) != need:
             raise PatchInvalid("%s: %d Pfad(e) erwartet%s" % (
                 what, need, " - Pfade mit Leerzeichen in \"...\" setzen" if len(pos) > need else ""))
@@ -744,7 +751,19 @@ class _Reader(object):
             entry["final_newline"] = False
         if "src" in keys:
             entry["source"] = keys["src"]
-        if refs:
+        if refs and entry["action"] in DIR_ACTIONS:
+            if len(refs) != 1:
+                raise PatchInvalid("%s: genau ein Datenblock (Dateiliste) erwartet" % what)
+            files = []
+            for line in self.data(refs[0], entry):
+                if not line.strip():
+                    continue
+                digest, _, rel = line.strip().partition(" ")
+                if not rel:
+                    raise PatchInvalid("%s: Dateiliste - 'hash pfad' erwartet: %r" % (what, line))
+                files.append({"path": rel.strip(), "hash": digest})
+            entry["files"] = files
+        elif refs:
             if cmd not in ("ADD", "REP") or len(refs) != 1:
                 raise PatchInvalid("%s: Datenblock hier nicht erlaubt" % what)
             entry["new"] = self.data(refs[0], entry)
@@ -988,8 +1007,10 @@ def validate(patch, sealed=True):
         what = "Datei %d (%s)" % (n, path)
         if entry.get("action") not in ACTIONS:
             raise PatchInvalid("%s: unbekannte Aktion" % what)
-        if entry["action"] in ("move", "copy"):
+        if entry["action"] in ("move", "copy", "move_dir", "copy_dir"):
             norm_path(entry.get("to"), what + ": Ziel")
+        for item in entry.get("files") or []:
+            norm_path(path + "/" + str(item.get("path")), what + ": Datei der Liste")
         if entry["action"] in ("add", "replace") and "new" not in entry and "source" not in entry:
             raise PatchInvalid("%s: Inhalt fehlt" % what)
         if entry["action"] == "modify" and not entry.get("changes"):

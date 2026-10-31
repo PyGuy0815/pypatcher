@@ -16,7 +16,7 @@ from . import adapters, fileio, layout as lay, profile as pf
 from .adapters import ParseError
 from .errors import Conflict, PatchInvalid
 from .hashing import sha256_text
-from .patchfile import hash_match, norm_path
+from .patchfile import PROTECTED_DIRS, hash_match, norm_path
 
 
 class Ctx(object):
@@ -739,7 +739,89 @@ def act_modify(ctx, entry, path, prof, what):
         ctx.hint("%s: aendert nur Kommentare/Leerraum (Funktions-Hash unveraendert)" % what)
 
 
+def _dir_files(ctx, path, what):
+    """Alle Dateien unter einem Verzeichnis (relativ dazu, sortiert); symbolische
+    Links und Versionsverwaltung darin werden abgelehnt."""
+    ctx.check_path(path)
+    root = ctx.abspath(path)
+    if not os.path.isdir(root):
+        raise Conflict("%s: Verzeichnis existiert nicht" % what)
+    out = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        rel_dir = os.path.relpath(dirpath, root).replace(os.sep, "/")
+        rel_dir = "" if rel_dir == "." else rel_dir + "/"
+        for name in dirnames + filenames:
+            full = os.path.join(dirpath, name)
+            if os.path.islink(full):
+                raise Conflict("%s: %s%s ist ein symbolischer Link - nicht erlaubt"
+                               % (what, rel_dir, name))
+            if name.lower() in PROTECTED_DIRS and name in dirnames:
+                raise Conflict("%s: enthaelt %s%s (Versionsverwaltung) - Verzeichnis "
+                               "bitte ausserhalb von pypatcher verschieben" % (what, rel_dir, name))
+        out.extend(rel_dir + name for name in filenames)
+    return sorted(out)
+
+
+def _dir_action(ctx, entry, path, what, mode):
+    """DMOVE/DCOPY/DDEL: Dateiliste mit Hashes (beim Versiegeln eingetragen,
+    sonst geprueft - keine Datei darf fehlen, hinzukommen oder anders sein)."""
+    raw = pf.complete({"mode": "raw"})
+    names = _dir_files(ctx, path, what)
+    docs = {}
+    for name in names:
+        full = norm_path(path + "/" + name, what)
+        docs[name] = (full, ctx.get(full, raw))
+    current = [{"path": n, "hash": adapters.file_hash(docs[n][1], raw)} for n in names]
+    if ctx.seal or entry.get("files") is None:
+        if not names:
+            raise Conflict("%s: Verzeichnis ist leer" % what)
+        entry["files"] = current
+    else:
+        listed = dict((f["path"], f["hash"]) for f in entry["files"])
+        extra = sorted(set(names) - set(listed))
+        missing = sorted(set(listed) - set(names))
+        changed = sorted(f["path"] for f in current
+                         if f["path"] in listed and not hash_match(listed[f["path"]], f["hash"]))
+        if extra or missing or changed:
+            exc = Conflict("%s: Verzeichnis weicht von der Dateiliste ab%s%s%s" % (
+                what, "\n    zusaetzlich: " + ", ".join(extra) if extra else "",
+                "\n    fehlt: " + ", ".join(missing) if missing else "",
+                "\n    veraendert: " + ", ".join(changed) if changed else ""))
+            exc.detail = {"kind": "directory_mismatch", "extra": extra, "missing": missing,
+                          "changed": changed}
+            raise exc
+    if mode == "delete":
+        for full, _ in docs.values():
+            ctx.set(full, None, raw)
+        return
+    to = norm_path(entry.get("to"), what + ": Ziel")
+    if to == path or to.startswith(path + "/"):
+        raise PatchInvalid("%s: Ziel liegt im Quellverzeichnis" % what)
+    for name, (full, doc) in sorted(docs.items()):
+        target = to + "/" + name
+        if ctx.get(target, raw) is not None:
+            raise Conflict("%s: Ziel %s existiert bereits" % (what, target))
+        ctx.set(target, doc.copy(), raw)
+        if mode == "move":
+            ctx.set(full, None, raw)
+
+
+def act_move_dir(ctx, entry, path, prof, what):
+    _dir_action(ctx, entry, path, what, "move")
+
+
+def act_copy_dir(ctx, entry, path, prof, what):
+    _dir_action(ctx, entry, path, what, "copy")
+
+
+def act_delete_dir(ctx, entry, path, prof, what):
+    _dir_action(ctx, entry, path, what, "delete")
+
+
 ACTIONS = {
+    "move_dir": act_move_dir,
+    "copy_dir": act_copy_dir,
+    "delete_dir": act_delete_dir,
     "add": act_add,
     "delete": act_delete,
     "replace": act_replace,
@@ -802,6 +884,13 @@ def process(patch, ctx, entries=None):
         what = "Datei %d (%s)" % (n, path)
         project_default = pf.lookup(project, path) if ctx.seal else None
         layer = entry.get("compare")
+        if entry["action"] in ("move_dir", "copy_dir", "delete_dir"):
+            try:
+                ACTIONS[entry["action"]](ctx, entry, path, None, what)
+            except (Conflict, PatchInvalid) as exc:
+                exc.path = path
+                raise
+            continue
         if ctx.seal and not pf.has_mode(layer, defaults, project_default) and \
                 _peek_binary(ctx, entry, path):
             layer = dict(layer or {}, mode="raw")

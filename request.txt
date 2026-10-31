@@ -116,5 +116,6 @@ R038  IN ARBEIT  Vorschlaege aus dem sechsten Praxistest: --json-Ausgabe fuer
                 check/run (stabile Fehlercodes fuer KIs/Werkzeuge; ERLEDIGT
                 0.0.3-pre1), doctor
                 (siehe R010), "ignore explain PFAD", Verzeichnis-Befehle
-                (DIRMOVE/DIRDEL mit versiegelter Dateiliste), Fehler-
+                (DMOVE/DCOPY/DDEL mit versiegelter Dateiliste; ERLEDIGT
+                0.0.3-pre1), Fehler-
                 Injektionstests fuer Abbrueche beim Schreiben.
