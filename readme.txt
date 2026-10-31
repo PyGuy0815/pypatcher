@@ -1,7 +1,7 @@
 PYPATCHER - README
 ==================
 
-Version 0.0.2-pre1 (Vorabversion; freigegeben: 0.0.1).
+Version 0.0.2 (freigegeben).
 Die ausfuehrliche Beschreibung steht in manifest.txt.
 
 Was macht der Patcher?

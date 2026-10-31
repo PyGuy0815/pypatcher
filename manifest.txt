@@ -2,11 +2,11 @@
  PYPATCHER - MANIFEST (ausfuehrliche Programmbeschreibung / Konzept)
 ================================================================================
 Programm      : patcher.py
-Version       : 0.0.2-pre1
-Status        : VORABVERSION (freigegeben: 0.0.1)
+Version       : 0.0.2
+Status        : FREIGEGEBEN
 Sprache       : Python >= 3.8, nur Standardbibliothek (keine Fremdpakete)
 Repository    : pypatcher (privat, eigenstaendig)
-Stand         : 2026-10-30
+Stand         : 2026-10-31
 
 Diese Datei ist die verbindliche, ausfuehrliche Beschreibung des Programms.
 Sie wird bei jeder Aenderung am Programm mitgepflegt (siehe Abschnitt 16).
@@ -1193,7 +1193,7 @@ Exit-Codes:
 --------------------------------------------------------------------------------
 14. ARCHITEKTUR
 --------------------------------------------------------------------------------
-Ein Paket mit einem Einstiegsskript (Stand 0.0.2-pre1):
+Ein Paket mit einem Einstiegsskript (Stand 0.0.2):
 
   patcher.py              Einstieg (CLI)
   pypatcher/

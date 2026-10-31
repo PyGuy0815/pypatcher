@@ -14,9 +14,9 @@ R003  OFFEN     Signierte Patches (HMAC-SHA256 oder Ed25519) als
                 zusaetzliche Kopfangabe.
 R004  OFFEN     Patch-Buendel: mehrere Patches in einer Datei/Archiv
                 uebertragen und in Reihenfolge anwenden.
-R005  ERLEDIGT (0.0.2-pre1) Python-Adapter erweitern: Modul-Konstanten/Zuweisungen,
+R005  ERLEDIGT (0.0.2) Python-Adapter erweitern: Modul-Konstanten/Zuweisungen,
                 Import-Block als eigene Einheit "@imports".
-R006  ERLEDIGT (0.0.2-pre1) Konfliktanzeige: aehnlichste Stelle als Diff
+R006  ERLEDIGT (0.0.2) Konfliktanzeige: aehnlichste Stelle als Diff
                 bei nicht gefundenen Suchbloecken, Hinweis bei reiner
                 Einrueckungs-Abweichung, aehnliche/vorhandene Einheiten.
 R007  ERLEDIGT (0.0.1) Binaerdateien ueber mode raw (Base64, nur
@@ -41,7 +41,7 @@ R015  ERLEDIGT (0.0.1) Optionale Komprimierung (--compress, z64);
                 Befehlsliste bleibt lesbar.
 R016  OFFEN     TypeScript (.ts, .tsx) und JSX auf Basis des JS-Tokenizers
                 (hinten angestellt).
-R017  ERLEDIGT (0.0.2-pre1) JS: Funktionen innerhalb von Funktionen und Objekt-Methoden
+R017  ERLEDIGT (0.0.2) JS: Funktionen innerhalb von Funktionen und Objekt-Methoden
                 als Einheiten.
 R018  ERLEDIGT (0.0.1) Ablaufsteuerung im Patch (PRINT, INPUT,
                 IF/ELIF/ELSE/END, LABEL/GOTO, SET, EXIT).
@@ -58,32 +58,32 @@ R023  OFFEN     Weitere Sprachen der C-Familie auf Basis von clike.py:
                 Java, C#, Go, PHP, Rust (je nach Bedarf).
 R024  OFFEN     JSON mit Kommentaren (JSONC, z.B. tsconfig/VS-Code-
                 Einstellungen) und JSON5.
-R025  ERLEDIGT (0.0.2-pre1) Aus dem Praxistest mit einer anderen KI:
+R025  ERLEDIGT (0.0.2) Aus dem Praxistest mit einer anderen KI:
                 Standard-Ignores (.patcherignore wird nie verwaltet,
                 .DS_Store, Thumbs.db, desktop.ini, *.ppatch; "!muster"
                 nimmt eine Vorgabe zurueck), geaenderte Ignore-Regeln wirken
                 sofort, init --force (nur ohne angewendete Patches).
-R026  ERLEDIGT (0.0.2-pre1) Ein Befehl je Patch: run --test BEFEHL (auch
+R026  ERLEDIGT (0.0.2) Ein Befehl je Patch: run --test BEFEHL (auch
                 "test" in config.json), kompakte Ergebniszeile, Exit-Code 6
                 bei fehlgeschlagenen Tests, --rollback-on-failure.
-R027  ERLEDIGT (0.0.2-pre1) ki-prompt.txt: Startablauf fuer KIs mit
+R027  ERLEDIGT (0.0.2) ki-prompt.txt: Startablauf fuer KIs mit
                 Code-Ausfuehrung (patcher.pyz anfordern, Patches unter
                 patches/, ein Befehl je Patch).
-R028  ERLEDIGT (0.0.2-pre1) Fehlerbericht aus dem Praxistest: eine .py-Datei mit
+R028  ERLEDIGT (0.0.2) Fehlerbericht aus dem Praxistest: eine .py-Datei mit
                 Syntaxfehler liess sich weder mit create noch mit einem
                 REP-Entwurf ersetzen ("Datei ist kein gueltiges Python").
                 Ausgangsdatei ungueltig -> Profil text. Dazu: create
                 --compare wirkte nicht auf den Patch (jetzt DEFAULT).
-R029  ERLEDIGT (0.0.2-pre1) Dritter Praxistest: heruntergeladene Hilfsdateien
+R029  ERLEDIGT (0.0.2) Dritter Praxistest: heruntergeladene Hilfsdateien
                 (ZIP) im Projekt machten das Ergebnis von run "FEHLER"
                 (Exit 3), obwohl der Patch korrekt war -> neue, nicht
                 verwaltete Dateien sind ein Hinweis. create mit Dateien
                 statt Verzeichnissen: verstaendliche Meldung. README.md
                 verweist KIs, die das Repository lesen, auf ki-prompt.txt.
-R030  ERLEDIGT (0.0.2-pre1) Farbige Ausgabe (Vorschlag aus dem Praxistest): gruen = Erfolg,
+R030  ERLEDIGT (0.0.2) Farbige Ausgabe (Vorschlag aus dem Praxistest): gruen = Erfolg,
                 rot = Fehler/Abbruch, gelb = Warnung, cyan = Hinweis; nur
                 am Terminal, abschaltbar (NO_COLOR, --color never).
-R031  ERLEDIGT (0.0.2-pre1) Vierter Praxistest (KI mit Prompt, Chat-Entwuerfe
+R031  ERLEDIGT (0.0.2) Vierter Praxistest (KI mit Prompt, Chat-Entwuerfe
                 in drei Teilen): UADD/UNIT mit mehreren Einheiten in einem
                 Block; Meldung "nur innerhalb eines FILE-Befehls" mit Zeile
                 und Korrektur; "rollback_on_failure" in config.json;
