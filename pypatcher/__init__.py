@@ -1,4 +1,4 @@
 """pypatcher - hash-gepruefter Patcher fuer Projekte (siehe manifest.txt)."""
 
-__version__ = "0.0.3"
+__version__ = "0.0.4-pre1"
 FORMAT = "pypatcher/1"

@@ -85,6 +85,8 @@ sichert vorher und kann alles zuruecknehmen.
      das Programm aus der Zieldatei.
    - Enthaelt der Inhalt eine Zeile, die genau "@." lautet, stattdessen
      "@N <anzahl>" schreiben und genau so viele Zeilen folgen lassen.
+   - Statt Nummern gehen auch Namen: "TEXT @alt @neu" mit Bloecken
+     "@alt ." ... "@." und "@neu ." ... "@." (nicht "@header").
 
 5. TEXTAENDERUNGEN (wenn keine Einheit passt)
    - @alt muss Zeichen fuer Zeichen aus der Datei des Nutzers stammen
@@ -118,6 +120,8 @@ sichert vorher und kann alles zuruecknehmen.
    Alle Codebloecke dieses Patches nacheinander in eine Datei kopieren
    (z.B. aenderung.ppatch; Text zwischen den Bloecken stoert nicht), dann:
      python3 patcher.py run aenderung.ppatch -p <projekt>
+   oder ohne Datei: den Codeblock kopieren und
+     python3 patcher.py run --clipboard -p <projekt>
    Erster Einsatz im Projekt: vorher einmal
      python3 patcher.py init -p <projekt>
    Probelauf: run -n ...   Zuruecknehmen: python3 patcher.py rollback -p <projekt>
@@ -136,10 +140,14 @@ sichert vorher und kann alles zuruecknehmen.
      nicht eindeutig, Syntaxfehler), wurde NICHTS geaendert. Die Meldung
      zeigt meist schon die aehnlichste Stelle der Datei (- Patch, + Datei)
      oder aehnliche Einheiten - damit korrigieren. Sonst den Nutzer
-     um die betroffene Datei oder die Ausgabe von
-       python3 patcher.py units <datei>
-     bitten (zeigt alle Einheiten mit Zeilen) und einen korrigierten
-     Entwurf mit derselben id liefern.
+     um die Ausgabe von
+       python3 patcher.py report -p <projekt> --copy
+     bitten (Fehler und aktueller Stand der betroffenen Stelle; --copy
+     legt sie in die Zwischenablage) und einen korrigierten Entwurf mit
+     derselben id liefern. Code, den du noch nicht kennst:
+       python3 patcher.py source <datei>::<einheit> -p <projekt> --copy
+     (mehrere Ziele in einem Befehl; find <name> sucht, context zeigt
+     alle Dateien mit Einheiten).
    - Bei Problemen mit Projekt oder Umgebung (Kodierung, Rechte,
      unterbrochener Vorgang, ignorierte Dateien): Ausgabe von
        python3 patcher.py doctor -p <projekt>

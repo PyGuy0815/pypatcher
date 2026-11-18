@@ -51,12 +51,16 @@ FLOW = ("PRINT", "INPUT", "IF", "ELIF", "ELSE", "END", "LABEL", "GOTO", "SET", "
 FENCE = "```"
 
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
-BLOCK_RE = re.compile(r"^@(\d+)(?:\s+(\d+|\.)(?:\s+([a-z0-9]+))?)?\s*$")
+NAME = r"[A-Za-z_][A-Za-z0-9_-]*"
+# Datenblock: @N oder (nur in Entwuerfen, 0.0.4) @name, z.B. @alt / @neu
+BLOCK_RE = re.compile(r"^@(\d+|" + NAME + r")(?:\s+(\d+|\.)(?:\s+([a-z0-9]+))?)?\s*$")
 BLOCK_FLAGS = ("lit", "b64", "z64")
 # Funktionen, die ein Patch ueber "USES" verlangen kann; aeltere Versionen
 # brechen bei unbekannten Funktionen mit klarer Meldung ab (Abschnitt 6.3).
 FEATURES = ("flow", "z64")
-REF_RE = re.compile(r"^@(\d+)$")
+REF_RE = re.compile(r"^@(\d+|" + NAME + r")$")
+RESERVED_BLOCK_NAMES = ("header",)
+BLOCK_ROLES = {"old": "alt", "new": "neu", "anchor": "anker"}   # UNIT @header (VBA-Kopf) bleibt eine Einheit
 POS_RE = re.compile(r"^(start|end|(after|before|start-of|end-of):.+)$")
 PROFILE_RE = re.compile(r"^(%s)(,[a-z_]+=[^,\s]*)*$" % "|".join(sorted(MODE_LONG, key=len,
                                                                        reverse=True)))
@@ -651,6 +655,10 @@ def load(path, verify=True):
     return patch
 
 
+def _block_key(text):
+    return int(text) if text.isdigit() else text
+
+
 def _blocks(lines, where):
     blocks, i = {}, 0
     while i < len(lines):
@@ -660,9 +668,12 @@ def _blocks(lines, where):
         match = BLOCK_RE.match(lines[i])
         if not match or match.group(2) is None:
             raise PatchInvalid("%s: Datenblock erwartet in Zeile '%s'" % (where, lines[i][:60]))
-        n, count, flag = int(match.group(1)), match.group(2), match.group(3)
+        n, count, flag = _block_key(match.group(1)), match.group(2), match.group(3)
+        if n in RESERVED_BLOCK_NAMES:
+            raise PatchInvalid("%s: @%s ist als Blockname nicht erlaubt (Einheit des VBA-Kopfs) - "
+                               "anderen Namen oder @1, @2 ... verwenden" % (where, n))
         if flag is not None and flag not in BLOCK_FLAGS:
-            raise PatchInvalid("%s: Kodierung %r von Block @%d ist dieser Version unbekannt - "
+            raise PatchInvalid("%s: Kodierung %r von Block @%s ist dieser Version unbekannt - "
                                "neuere pypatcher-Version verwenden" % (where, flag, n))
         i += 1
         if count == ".":
@@ -670,12 +681,12 @@ def _blocks(lines, where):
             while end < len(lines) and lines[end] != "@.":
                 end += 1
             if end == len(lines):
-                raise PatchInvalid("%s: Block @%d ohne Ende '@.'" % (where, n))
+                raise PatchInvalid("%s: Block @%s ohne Ende '@.'" % (where, n))
             content, i = lines[i:end], end + 1
         else:
             content = lines[i:i + int(count)]
             if len(content) != int(count):
-                raise PatchInvalid("%s: Block @%d unvollstaendig" % (where, n))
+                raise PatchInvalid("%s: Block @%s unvollstaendig" % (where, n))
             i += int(count)
         if flag == "z64":
             if n != 0:
@@ -683,17 +694,19 @@ def _blocks(lines, where):
             inner = _blocks(_expand(content, where), where)
             for k in inner:
                 if k in blocks:
-                    raise PatchInvalid("%s: Block @%d doppelt" % (where, k))
+                    raise PatchInvalid("%s: Block @%s doppelt" % (where, k))
             blocks.update(inner)
             blocks["compressed"] = True
             continue
         if n in blocks:
-            raise PatchInvalid("%s: Block @%d doppelt" % (where, n))
+            raise PatchInvalid("%s: Block @%s doppelt" % (where, n))
         blocks[n] = (content, flag)
     return blocks
 
 
-def _split_tokens(line, where):
+def _split_tokens(line, where, names=()):
+    """names: in diesem Patch definierte Blocknamen - "@name" ist nur dann ein
+    Verweis, sonst ein gewoehnlicher Wert (z.B. die Einheit @header)."""
     try:
         tokens = shlex.split(line, posix=True)
     except ValueError as exc:
@@ -703,8 +716,8 @@ def _split_tokens(line, where):
         key, sep, value = token.partition("=")
         if sep and key in KEYS:
             keys[key] = value
-        elif REF_RE.match(token):
-            refs.append(int(token[1:]))
+        elif REF_RE.match(token) and (token[1:].isdigit() or token[1:] in names):
+            refs.append(_block_key(token[1:]))
         else:
             pos.append(token)
     return tokens[0], pos, keys, refs
@@ -718,7 +731,7 @@ class _Reader(object):
 
     def data(self, ref, owner):
         if ref not in self.blocks:
-            raise PatchInvalid("%s: Block @%d fehlt" % (self.where, ref))
+            raise PatchInvalid("%s: Block @%s fehlt" % (self.where, ref))
         self.used.add(ref)
         content, flag = self.blocks[ref]
         if flag == "lit":
@@ -815,7 +828,12 @@ class _Reader(object):
                  "insert_text": ("anchor", "new"), "delete_text": ("old",),
                  }.get(op, ())
         if len(refs) != len(names):
-            raise PatchInvalid("%s: %d Datenblock/-bloecke erwartet" % (what, len(names)))
+            unknown = [p for p in pos if p.startswith("@") and REF_RE.match(p)]
+            hint = (" - %s ist kein Datenblock dieses Patches (Bloecke: '@1 .' ... '@.' bzw. "
+                    "'@name .' ... '@.' nach den Befehlen)" % ", ".join(unknown)) if unknown else ""
+            raise PatchInvalid("%s: %d Datenblock/-bloecke erwartet (%s), %d angegeben%s"
+                               % (what, len(names), " ".join(BLOCK_ROLES[n] for n in names),
+                                  len(refs), hint))
         for name, ref in zip(names, refs):
             ch[name] = self.data(ref, ch)
         return ch
@@ -858,6 +876,7 @@ def parse_body(body, where="Patch"):
     blocks = _blocks(lines[first:], where)
     compressed = bool(blocks.pop("compressed", False))
     reader = _Reader(blocks, where)
+    block_names = set(k for k in blocks if isinstance(k, str))
     patch = {"format": FORMAT, "files": [], "requires": [], "match": "file"}
     if compressed:
         patch["compressed"] = True
@@ -896,7 +915,7 @@ def parse_body(body, where="Patch"):
                 b, a = _split_pair(rest.strip())
                 patch["state_before"], patch["state_after"] = b, a
             continue
-        cmd, pos, keys, refs = _split_tokens(line.strip(), where)
+        cmd, pos, keys, refs = _split_tokens(line.strip(), where, block_names)
         if cmd in FILE_CMDS:
             entry = last_file = reader.entry(cmd, pos, keys, refs, line.strip())
             flow.append({"stmt": "file", "index": len(patch["files"])})
@@ -916,10 +935,10 @@ def parse_body(body, where="Patch"):
             entry["changes"].append(reader.change(cmd, pos, keys, refs, line.strip()))
         else:
             raise PatchInvalid("%s: unbekannter Befehl %r" % (where, cmd))
-    unused = sorted(set(reader.blocks) - reader.used)
+    unused = sorted(set(reader.blocks) - reader.used, key=str)
     if unused:
         raise PatchInvalid("%s: Datenbloecke ohne Befehl: %s" % (where, ", ".join(
-            "@%d" % n for n in unused)))
+            "@%s" % n for n in unused)))
     if desc:
         patch["description"] = "\n".join(desc)
     if has_flow:

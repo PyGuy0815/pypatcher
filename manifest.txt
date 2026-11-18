@@ -2,11 +2,11 @@
  PYPATCHER - MANIFEST (ausfuehrliche Programmbeschreibung / Konzept)
 ================================================================================
 Programm      : patcher.py
-Version       : 0.0.3
-Status        : FREIGEGEBEN
+Version       : 0.0.4-pre1
+Status        : VORABVERSION (freigegeben: 0.0.3)
 Sprache       : Python >= 3.8, nur Standardbibliothek (keine Fremdpakete)
 Repository    : pypatcher (privat, eigenstaendig)
-Stand         : 2026-10-31
+Stand         : 2026-11-18
 
 Diese Datei ist die verbindliche, ausfuehrliche Beschreibung des Programms.
 Sie wird bei jeder Aenderung am Programm mitgepflegt (siehe Abschnitt 16).
@@ -660,6 +660,15 @@ Beispiel (Pruefstufe std):
   @N .                    Zeilen bis zur Zeile "@." (fuer handgeschriebene
                           Entwuerfe, kein Zaehlen noetig)
   @0 <anzahl> z64        Sammelblock: alle Datenbloecke komprimiert (6.10)
+  @name .                 (Entwuerfe, ab 0.0.4) Block mit Namen statt Nummer,
+                          z.B. "TEXT scope=f @alt @neu" mit "@alt ." und
+                          "@neu ." - so schreiben KIs ihn oft aus der
+                          Syntaxuebersicht ab. Name: Buchstabe/_ und dann
+                          Buchstaben, Ziffern, _ -; "@name" in einer
+                          Befehlszeile ist nur ein Verweis, wenn der Block
+                          definiert ist (UNIT @header bleibt eine Einheit;
+                          "header" ist als Blockname gesperrt). Versiegelt
+                          wird mit Nummern.
   Unbekannte Kennungen -> Meldung "neuere Version verwenden".
   lit = Zeilen exakt wie in der Datei (6.1); b64 = Binaerinhalt (mode raw)
   als Base64 mit 76 Zeichen je Zeile.
@@ -1293,6 +1302,37 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
                      (aktiv, zurueckgenommen, ueberfluessig, trifft keine
                      Datei); mit PFAD: ignoriert? durch welche Regel(n)
                      aus welcher Quelle, verwaltet oder neu
+  handshake 0.0.4    patcher.py handshake [-p PROJEKT] [--full] [--copy]
+                     Chatbeginn fuer eine KI ohne Zugriff auf das Projekt:
+                     ki-prompt.txt (ohne den Sandbox-Abschnitt 10, mit
+                     --full komplett) mit dem tatsaechlichen Aufruf und
+                     Projektpfad, Fingerabdruck der Spezifikation, kurze
+                     Projektangaben und Punkt 12 "Arbeitsweise im Chat"
+                     (Abfragen, run --clipboard, report). Die KI soll mit
+                     "PYPATCH/1 BEREIT - Spezifikation <hash>" antworten.
+  context   0.0.4    patcher.py context [PFAD ...] [-p PROJEKT] [--copy]
+                     Ueberblick fuer eine KI: Version, Journal, Test-
+                     befehl, Dateien (ohne ignorierte) mit Art, Laenge
+                     und Einheiten (je Datei hoechstens 40)
+  tree      0.0.4    patcher.py tree [PFAD ...] [-p PROJEKT] [--copy]
+                     Ordnerstruktur ohne ignorierte Dateien
+  find      0.0.4    patcher.py find NAME ... [-p PROJEKT] [--copy]
+                     Einheiten (letzter Namensteil oder ganzer Pfad) und
+                     Dateien projektweit; andere Schreibweise als Hinweis;
+                     Exit-Code 3, wenn ein Name nicht gefunden wird
+  source    0.0.4    patcher.py source ZIEL ... [-p PROJEKT] [--max-lines N]
+                     ZIEL = DATEI, DATEI::EINHEIT oder DATEI:VON-BIS;
+                     Quelltext mit Ueberschrift im Code-Zaun der Sprache,
+                     je Ziel hoechstens N Zeilen (Standard 400, mit
+                     Hinweis auf den Rest). Nur im Projekt: kein .git,
+                     .patcher, "..", keine symbolischen Links.
+  report    0.0.4    patcher.py report [-p PROJEKT] [--copy]
+                     Bericht zum letzten gescheiterten check/apply/run
+                     (gemerkt in .patcher/last-error.json und
+                     last-error.ppatch, geloescht nach einem erfolg-
+                     reichen Lauf): Fehlermeldung, betroffene Aenderung
+                     und der aktuelle Stand der Einheit (bzw. der Datei,
+                     wenn sie kurz ist, sonst ihre Einheiten).
   canon     spaeter  patcher.py canon DATEI [--unit U] [--compare P]
                      Normalform anzeigen (Diagnose)
   invert    spaeter  patcher.py invert PATCH -o DATEI
@@ -1319,8 +1359,19 @@ Zwischenstaende von Textaenderungen duerfen ungueltig sein.
                Standard std), --hash-len N (8-64, Standard 16),
                --max-size N (Pakete mit hoechstens N Zeichen, 6.2),
                --compress (Datenbloecke komprimieren, 6.10).
-  PATCH (show, check, apply, run): Patchdatei oder ein beliebiges Paket;
-               Teile duerfen in einer Datei stehen.
+  PATCH (show, check, apply, run, seal, pack): Patchdatei oder ein
+               beliebiges Paket; Teile duerfen in einer Datei stehen.
+               Ab 0.0.4 auch "-" (von der Eingabe, z.B. eingefuegt und mit
+               Strg+D bzw. Strg+Z Enter beendet; dann -y noetig) oder
+               --clipboard (aus der Zwischenablage; Chat-Text um den
+               Codeblock stoert nicht). Bezugsordner fuer src= ist dann
+               das aktuelle Verzeichnis.
+  --copy (alle Befehle, 0.0.4): Ausgabe wie gewohnt und zusaetzlich (ohne
+               Farbcodes) in die Zwischenablage - z.B. "source ... --copy"
+               und dann im Chat einfuegen.
+  Zwischenablage: macOS pbcopy/pbpaste, Windows PowerShell (Get-/Set-
+               Clipboard), Linux wl-copy/wl-paste, xclip oder xsel. Fehlt
+               das Werkzeug: Meldung und Exit-Code 7.
   --set V=W (check, apply, run): Antwort auf INPUT vorgeben (6.8).
   --answers DATEI (check, apply, run; 0.0.3): Antworten aus einer Datei -
                NAME=WERT je Zeile (# = Kommentar) oder ein JSON-Objekt;
@@ -1371,19 +1422,22 @@ Exit-Codes:
   0 OK | 1 Bedienfehler | 2 Patch ungueltig/beschaedigt
   3 Konflikt (Hash stimmt nicht) | 4 Journal-/Transaktionsfehler
   5 interner Fehler | 6 Tests fehlgeschlagen (apply/run --test)
-  7 Umgebung ungeeignet (doctor findet Fehler)
+  7 Umgebung ungeeignet (doctor findet Fehler; Zwischenablage nicht
+    erreichbar)
 
 
 --------------------------------------------------------------------------------
 14. ARCHITEKTUR
 --------------------------------------------------------------------------------
-Ein Paket mit einem Einstiegsskript (Stand 0.0.3):
+Ein Paket mit einem Einstiegsskript (Stand 0.0.4-pre1):
 
   patcher.py              Einstieg (CLI)
   pypatcher/
     __init__.py           __version__, Formatversion
     errors.py             Fehlerklassen mit Exit-Codes
     console.py            farbige Ausgabe (nur am Terminal, NO_COLOR)
+    assist.py             KI-Chat: Zwischenablage, handshake, context, tree,
+                          find, source, report (0.0.4)
     hashing.py            SHA-256, Zustands-Hash
     profile.py            Vergleichsprofile: Rangfolge, Pruefung,
                           Kennung, Mindestprofile
@@ -1458,6 +1512,8 @@ Ein Paket mit einem Einstiegsskript (Stand 0.0.3):
     test_crash.py         Abbruch bei jedem Schreibvorgang (killer.py)
     test_doctor.py        doctor, ignore, Verzeichnis-Muster
     test_feldtest7.py     Praxistest 7: Bytecode bei MOVE, Rueckfragen, Pfade
+    test_assist.py        0.0.4: benannte Bloecke, Eingabe, Zwischenablage,
+                          handshake, context, tree, find, source, report
   ki-prompt.txt           Anleitung fuer KI-Assistenten
   ki-beispiele.txt        Beispiel-Auftraege mit Antworten fuer KIs
   examples/               demo/ + entwurf-beispiel.ppatch (readme.txt),

@@ -4,13 +4,14 @@ import argparse
 import copy
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import zipapp
 
-from . import __version__, adapters, console, diff, engine, fileio, flow, journal as jr, patchfile
+from . import __version__, adapters, assist, console, diff, engine, fileio, flow, journal as jr, patchfile
 from . import profile as pf
 from .adapters import ParseError
 from .errors import Conflict, PatchInvalid, PatcherError, TestsFailed, UsageError
@@ -259,7 +260,7 @@ def cmd_run(args):
     entries, answers = _plan(patch, args)
     ctx = engine.Ctx(journal.root, seal=not sealed, allow_mixed=args.allow_mixed_eol,
                      config=journal.config(),
-                     source_dir=os.path.dirname(os.path.abspath(args.patch)))
+                     source_dir=_input_dir(args, args.patch))
     engine.process(patch, ctx, entries)
     _ignored_hint(ctx, journal)
     _report_patch(patch, False, answers)
@@ -714,6 +715,9 @@ def cmd_bundle(args):
     with tempfile.TemporaryDirectory() as tmp:
         shutil.copytree(package, os.path.join(tmp, "pypatcher"),
                         ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+        prompt = os.path.join(os.path.dirname(package), "ki-prompt.txt")
+        if os.path.isfile(prompt):          # fuer "handshake" in der Einzeldatei
+            shutil.copy(prompt, os.path.join(tmp, "pypatcher", "ki-prompt.txt"))
         with open(os.path.join(tmp, "__main__.py"), "w", encoding="utf-8") as handle:
             handle.write("import sys\nfrom pypatcher.cli import main\nsys.exit(main())\n")
         zipapp.create_archive(tmp, args.output, interpreter="/usr/bin/env python3",
@@ -747,7 +751,7 @@ def cmd_seal(args):
     config = journal.config() if journal.exists else {}
     patch["generator"] = "pypatcher " + __version__
     patch.setdefault("created", jr.now())
-    source_dir = os.path.dirname(os.path.abspath(args.draft))
+    source_dir = _input_dir(args, args.draft)
     if patch.get("flow"):
         return _seal_flow(patch, args, base, config, source_dir)
     ctx = engine.Ctx(base, seal=True, allow_mixed=args.allow_mixed_eol, config=config,
@@ -979,6 +983,50 @@ def cmd_units(args):
     return 0
 
 
+# -- Arbeit mit einer KI im Chat (0.0.4) -------------------------------------
+
+def _print_lines(lines, **fields):
+    report(**fields)
+    if REPORT is None:
+        for line in lines:
+            print(line)
+    return 0
+
+
+def cmd_handshake(args):
+    project = assist.Project(args.project) if os.path.isdir(args.project) else None
+    lines = assist.handshake(project, args.project, full=args.full)
+    return _print_lines(lines, handshake="\n".join(lines))
+
+
+def cmd_context(args):
+    lines = assist.context(assist.Project(args.project), args.paths)
+    return _print_lines(lines, context="\n".join(lines))
+
+
+def cmd_tree(args):
+    lines = assist.tree(assist.Project(args.project), args.paths)
+    return _print_lines(lines, tree=lines)
+
+
+def cmd_find(args):
+    lines = assist.find(assist.Project(args.project), args.names)
+    _print_lines(lines, find=lines)
+    return 0 if all(not l.endswith(": nicht gefunden") for l in lines) else Conflict.exit_code
+
+
+def cmd_source(args):
+    if args.max_lines < 1:
+        raise UsageError("--max-lines muss mindestens 1 sein")
+    lines = assist.source(assist.Project(args.project), args.targets, args.max_lines)
+    return _print_lines(lines, source="\n".join(lines))
+
+
+def cmd_report(args):
+    lines = assist.report(assist.Project(args.project))
+    return _print_lines(lines, report="\n".join(lines))
+
+
 # -- Hauptprogramm ----------------------------------------------------------
 
 def build_parser():
@@ -990,6 +1038,8 @@ def build_parser():
                         help="Dateien mit gemischten Zeilenenden zulassen")
     common.add_argument("--color", choices=console.MODES, default="auto",
                         help="Farben: auto (nur am Terminal, nicht bei NO_COLOR), always, never")
+    common.add_argument("--copy", action="store_true",
+                        help="Ausgabe zusaetzlich in die Zwischenablage (z.B. fuer den KI-Chat)")
     project = argparse.ArgumentParser(add_help=False)
     project.add_argument("-p", "--project", default=".", help="Projektwurzel (Standard: .)")
     project.add_argument("--json", action="store_true",
@@ -1007,6 +1057,14 @@ def build_parser():
         p.set_defaults(func=func)
         return p
 
+    def patch_input(p, help_text, dest="patch", metavar=None):
+        p.add_argument(dest, nargs="?", metavar=metavar,
+                       help=help_text + "; '-' = von der Eingabe (z.B. eingefuegt, Ende mit "
+                       "Strg+D bzw. Strg+Z Enter)")
+        p.add_argument("--clipboard", action="store_true",
+                       help="Patch aus der Zwischenablage lesen (statt Datei)")
+        p.set_defaults(input_dest=dest)
+
     p = add("init", cmd_init, "Journal anlegen, Ist-Stand als Ausgangszustand", (common, project))
     p.add_argument("--force", action="store_true",
                    help="bestehendes Journal neu anlegen (nur ohne angewendete Patches)")
@@ -1021,10 +1079,28 @@ def build_parser():
     p = add("units", cmd_units, "Einheiten einer Datei mit Hashes")
     p.add_argument("file")
     p.add_argument("--compare", help='Profil, z.B. "python" oder "text,whitespace=keep"')
+    p = add("handshake", cmd_handshake, "Chatbeginn fuer eine KI: Patchformat, Regeln, Abfragen "
+            "(mit --copy in die Zwischenablage)", (common, project))
+    p.add_argument("--full", action="store_true", help="mit Abschnitt fuer KIs mit Sandbox")
+    p = add("context", cmd_context, "Projektueberblick fuer eine KI: Dateien und Einheiten",
+            (common, project))
+    p.add_argument("paths", nargs="*", metavar="PFAD", help="nur diese Dateien/Verzeichnisse")
+    p = add("tree", cmd_tree, "Ordnerstruktur (ohne ignorierte Dateien)", (common, project))
+    p.add_argument("paths", nargs="*", metavar="PFAD", help="nur diese Verzeichnisse")
+    p = add("find", cmd_find, "Einheiten (Funktion, Klasse ...) oder Dateien projektweit suchen",
+            (common, project))
+    p.add_argument("names", nargs="+", metavar="NAME")
+    p = add("source", cmd_source, "Quelltext ausgeben: DATEI, DATEI::EINHEIT oder DATEI:VON-BIS",
+            (common, project))
+    p.add_argument("targets", nargs="+", metavar="ZIEL")
+    p.add_argument("--max-lines", type=int, default=assist.MAX_LINES,
+                   help="hoechstens N Zeilen je Ziel (Standard %d)" % assist.MAX_LINES)
+    add("report", cmd_report, "Bericht zum letzten gescheiterten check/apply/run fuer die KI",
+        (common, project))
     p = add("bundle", cmd_bundle, "pypatcher als eine Datei (patcher.pyz) erzeugen")
     p.add_argument("-o", "--output", default="patcher.pyz", help="Ausgabe (Standard patcher.pyz)")
     p = add("pack", cmd_pack, "Patch/Entwurf umpacken: komprimieren, entpacken, teilen")
-    p.add_argument("patch", help="Patch oder Entwurf (bei Paketen: ein beliebiges)")
+    patch_input(p, "Patch oder Entwurf (bei Paketen: ein beliebiges)")
     p.add_argument("-o", "--output", required=True, help="Ausgabe *.ppatch")
     p.add_argument("--compress", action="store_true", help="Datenbloecke komprimieren")
     p.add_argument("--max-size", type=int, help="in Pakete mit hoechstens N Zeichen teilen")
@@ -1038,7 +1114,7 @@ def build_parser():
 
     p = add("run", cmd_run, "Entwurf (z.B. von einer KI) direkt pruefen und anwenden",
             (common, project))
-    p.add_argument("patch", help="Patch/Entwurf; Teile duerfen in einer Datei stehen")
+    patch_input(p, "Patch/Entwurf; Teile duerfen in einer Datei stehen")
     p.add_argument("-n", "--dry-run", action="store_true", help="nur pruefen, nichts aendern")
     p.add_argument("--set", action="append", metavar="NAME=WERT",
                    help="Antwort auf eine INPUT-Frage vorgeben (mehrfach moeglich)")
@@ -1046,7 +1122,7 @@ def build_parser():
                    help="Antworten aus Datei (NAME=WERT je Zeile oder JSON-Objekt)")
     test_options(p)
     p = add("show", cmd_show, "Patch lesbar anzeigen und Hashes pruefen")
-    p.add_argument("patch", help="Patchdatei (bei Paketen: eine beliebige davon)")
+    patch_input(p, "Patchdatei (bei Paketen: eine beliebige davon)")
     p.add_argument("--no-diff", dest="diff", action="store_false", help="ohne Inhalte")
     p.add_argument("--indent", help="Darstellung einer Einrueckungs-Ebene: Anzahl Leerzeichen, "
                    "'tab' oder 'file' (wie in der Datei, Standard)")
@@ -1063,7 +1139,7 @@ def build_parser():
                        "Zeichen; Befehlsliste bleibt lesbar)")
 
     p = add("seal", cmd_seal, "Entwurf versiegeln (Hashes und Altinhalte eintragen)")
-    p.add_argument("draft", metavar="ENTWURF")
+    patch_input(p, "Entwurf", dest="draft", metavar="ENTWURF")
     p.add_argument("--base", required=True, help="Referenzprojekt (Stand vor dem Patch)")
     p.add_argument("-o", "--output", required=True, help="Ausgabe *.ppatch")
     p.add_argument("--no-layout", action="store_true", help="kein layout als Check eintragen")
@@ -1089,7 +1165,7 @@ def build_parser():
     for name, func, text in (("check", cmd_check, "Probelauf, aendert nichts"),
                              ("apply", cmd_apply, "Patch anwenden")):
         p = add(name, func, text, (common, project))
-        p.add_argument("patch", help="Patchdatei (bei Paketen: eine beliebige davon)")
+        patch_input(p, "Patchdatei (bei Paketen: eine beliebige davon)")
         p.add_argument("--match", choices=("file", "state", "unit"),
                        help="Pruefumfang (Standard: aus dem Patch)")
         p.add_argument("--exact", action="store_true",
@@ -1119,9 +1195,47 @@ def _help(parser, sub, topic):
     return 0
 
 
+class _Tee(object):
+    """--copy: Ausgabe wie gewohnt schreiben und zusaetzlich sammeln."""
+
+    def __init__(self, stream, buffer):
+        self.stream, self.buffer = stream, buffer
+
+    def write(self, text):
+        self.buffer.append(text)
+        return self.stream.write(text)
+
+    def __getattr__(self, name):
+        return getattr(self.stream, name)
+
+
+ANSI_RE = re.compile(r"\033\[[0-9;]*m")
+
+
 def main(argv=None):
-    global REPORT
     args = build_parser().parse_args(argv)
+    if not args.copy:
+        return _main_json(args)
+    buffer, saved = [], (sys.stdout, sys.stderr)
+    sys.stdout, sys.stderr = _Tee(sys.stdout, buffer), _Tee(sys.stderr, buffer)
+    try:
+        code = _main_json(args)
+    finally:
+        sys.stdout, sys.stderr = saved
+    text = ANSI_RE.sub("", "".join(buffer))
+    try:
+        assist.copy(text)
+    except PatcherError as exc:
+        print(console.label("FEHLER: %s" % exc, sys.stderr), file=sys.stderr)
+        return code or exc.exit_code
+    if not args.quiet and not getattr(args, "json", False):
+        print(console.paint("(%d Zeilen in der Zwischenablage)" % text.count("\n"), "info"),
+              file=sys.stderr)
+    return code
+
+
+def _main_json(args):
+    global REPORT
     if not getattr(args, "json", False):
         REPORT = None
         return _main(args)
@@ -1137,12 +1251,64 @@ def main(argv=None):
         REPORT = None
 
 
+def _input_dir(args, path):
+    """Bezugsverzeichnis fuer src= in ADD (Datei: ihr Ordner; Eingabe/Zwischenablage: .)."""
+    return getattr(args, "input_dir", None) or os.path.dirname(os.path.abspath(path))
+
+
+def _resolve_input(args, tmpdir):
+    """Patch aus Datei, '-' (Eingabe) oder --clipboard; Text landet in tmpdir."""
+    dest = getattr(args, "input_dest", None)
+    if dest is None:
+        return
+    value = getattr(args, dest)
+    if args.clipboard:
+        if value is not None:
+            raise UsageError("--clipboard und eine Patchdatei schliessen sich aus")
+        text, origin = assist.paste(), "Zwischenablage"
+    elif value == "-":
+        text, origin = sys.stdin.read(), "Eingabe"
+    elif value is None:
+        raise UsageError("Patchdatei fehlt ('-' = Eingabe, --clipboard = Zwischenablage)")
+    else:
+        return
+    if patchfile.MAGIC not in text:
+        raise PatchInvalid("%s enthaelt keinen pypatcher-Patch (Zeile '%s 1 ...' fehlt)"
+                           % (origin, patchfile.MAGIC))
+    path = os.path.join(tmpdir, "eingabe" + patchfile.EXT)
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(text)
+    setattr(args, dest, path)
+    args.input_dir = os.getcwd()
+
+
+REPORTED = ("check", "apply", "run")
+
+
 def _main(args):
     global QUIET
     QUIET = args.quiet
     console.MODE = args.color
+    tmpdir = tempfile.mkdtemp(prefix="pypatcher-")
     try:
-        return args.func(args)
+        _resolve_input(args, tmpdir)
+        code = args.func(args)
+        if args.command in REPORTED and code == 0:
+            assist.clear_error(args.project)
+        return code
+    except (PatchInvalid, Conflict) as exc:
+        if args.command in REPORTED:
+            assist.save_error(args.project, args.command, getattr(args, "patch", None), exc)
+        return _fail(args, exc)
+    except BaseException as exc:
+        return _fail(args, exc)
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+def _fail(args, error):
+    try:
+        raise error
     except flow.FlowExit as exc:
         report(error={"code": "EXIT", "message": str(exc), "path": None})
         say("ABBRUCH: %s - nichts geaendert." % exc, sys.stderr)

@@ -3,6 +3,38 @@ PYPATCHER - CHANGELOG
 Format: Version (Datum) - Aenderungen. Neueste oben.
 Versionen: siehe manifest.txt Abschnitt 16.
 
+0.0.4-pre1 (in Arbeit)
+----------------------
+  Umfang 0.0.4: Arbeit mit einer KI im Chat ohne Dateiaustausch (Praxis-
+  test mit Copilot, R040-R043).
+
+  Datenbloecke mit Namen (R040):
+  - "@alt ." ... "@." und Verweise "@alt" in Entwuerfen - wie in der
+    Syntaxuebersicht, die KIs abschreiben (vorher: "2 Datenblock/-bloecke
+    erwartet" ohne Grund). Fehlende/falsche Verweise werden jetzt erklaert.
+    UNIT @header bleibt eine Einheit; versiegelt wird mit Nummern.
+
+  Eingabe und Zwischenablage (R041):
+  - PATCH "-" liest von der Eingabe, --clipboard aus der Zwischenablage
+    (show, check, apply, run, seal, pack); Chat-Text um den Codeblock
+    stoert nicht.
+  - --copy bei allen Befehlen: Ausgabe zusaetzlich in die Zwischenablage.
+  - macOS, Windows (PowerShell), Linux (wl-clipboard, xclip, xsel);
+    ohne Werkzeug Exit-Code 7 mit Hinweis.
+
+  Abfragen fuer die KI (R042):
+  - handshake: Chatbeginn aus ki-prompt.txt mit tatsaechlichem Aufruf,
+    Projektpfad, Fingerabdruck und Arbeitsweise im Chat; die Einzeldatei
+    (bundle) enthaelt ki-prompt.txt dafuer.
+  - context (Dateien mit Einheiten), tree, find NAME ..., source
+    DATEI::EINHEIT / DATEI:VON-BIS - nur lesend, ohne ignorierte Dateien,
+    nie ausserhalb des Projekts.
+
+  Fehlerbericht (R043):
+  - report: letzter gescheiterter check/apply/run mit Meldung und dem
+    aktuellen Stand der betroffenen Einheit - einmal kopieren statt
+    Datei und Meldung einzeln.
+
 0.0.3 (2026-10-31) - Freigabe
 -----------------------------
   Umfang 0.0.3: TypeScript/JSX (R016), Java (R032), Visual Basic

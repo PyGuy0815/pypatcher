@@ -1,6 +1,6 @@
 # pypatcher
 
-Hash-gepruefter Patcher fuer Projekte (Version 0.0.3, Python >= 3.8, nur
+Hash-gepruefter Patcher fuer Projekte (Version 0.0.4-pre1, Python >= 3.8, nur
 Standardbibliothek).
 
 Aenderungen werden als kompakte, lesbare Patchdatei (`*.ppatch`)
@@ -19,7 +19,9 @@ python3 patcher.py rollback -p projekt/
 
 Mit KI-Assistenten: `ki-prompt.txt` an den Anfang des Chats geben
 (Beispiele: `ki-beispiele.txt`); die Antwort in eine Datei kopieren und
-mit `run` anwenden.
+mit `run` anwenden. Ohne Dateiaustausch: `handshake --copy` zu Beginn,
+Code fuer die KI mit `source DATEI::EINHEIT --copy`, Patch mit
+`run --clipboard` anwenden, bei Fehlern `report --copy`.
 
 **Hinweis fuer KI-Assistenten, die dieses Repository lesen:** Bevor du
 Aenderungen fuer einen Nutzer als pypatcher-Patch lieferst, lies

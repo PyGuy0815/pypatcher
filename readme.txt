@@ -1,7 +1,7 @@
 PYPATCHER - README
 ==================
 
-Version 0.0.3 (freigegeben).
+Version 0.0.4-pre1 (Vorabversion; freigegeben: 0.0.3).
 Die ausfuehrliche Beschreibung steht in manifest.txt.
 
 Was macht der Patcher?
@@ -95,6 +95,19 @@ Meldung an die KI zurueckgeben.
 ki-beispiele.txt zeigt fertige Auftraege mit Antworten (Python, JS/CSS,
 HTML, JSON, C, Antwort ueber zwei Nachrichten, neue Einheiten). Optional mit dem Prompt
 an die KI geben - die Beispiele werden getestet und sind gueltig.
+
+Ohne Dateiaustausch (z.B. Copilot im Browser): den Chat mit
+   python3 patcher.py handshake -p projekt/ --copy
+beginnen (legt Anleitung, Aufruf und Projektangaben in die Zwischen-
+ablage - im Chat einfuegen). Fragt die KI nach Code, gibt sie einen
+Befehl an, z.B.
+   python3 patcher.py source src/app.py::Login.check -p projekt/ --copy
+(auch find NAME, tree, context). Den Patch aus der Antwort kopieren und
+   python3 patcher.py run --clipboard -p projekt/
+Schlaegt er fehl: python3 patcher.py report -p projekt/ --copy und die
+Ausgabe im Chat einfuegen - sie enthaelt Fehler und aktuellen Code.
+Statt --clipboard geht auch "-" (Patch ins Terminal einfuegen, Ende mit
+Strg+D bzw. unter Windows Strg+Z und Enter; dann mit -y).
 
 Kann die KI Code ausfuehren (Code-Interpreter o.ae.), ihr zusaetzlich die
 Einzeldatei patcher.pyz geben (python3 patcher.py bundle). Sie prueft den

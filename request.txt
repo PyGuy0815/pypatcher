@@ -126,3 +126,18 @@ R039  ERLEDIGT (0.0.3) Siebter Praxistest (Grossputz mit MOVE/DMOVE): mitverscho
                 unverwalteten Dateien gebuendelt; Pfade bei "ignore"
                 relativ zum Projekt; keine stille Zustimmung ohne
                 Terminal (Tests hingen am Terminal).
+R040  ERLEDIGT (0.0.4-pre1) Praxistest mit Copilot: Datenbloecke mit Namen (@alt/@neu wie
+                in der Syntaxuebersicht) und verstaendliche Meldung bei
+                falschen Verweisen.
+R041  ERLEDIGT (0.0.4-pre1) Patch von der Eingabe ("-") und aus der Zwischenablage
+                (--clipboard); --copy fuer jede Ausgabe.
+R042  ERLEDIGT (0.0.4-pre1) Abfragen fuer KIs ohne Projektzugriff: handshake, context,
+                tree, find, source.
+R043  ERLEDIGT (0.0.4-pre1) report: Fehlerbericht mit aktuellem Code fuer die KI.
+R044  OFFEN     Gefuehrter Chat-Modus "patcher.py chat" (Eingabezeile pp>,
+                Verlauf, Abfrage-Bloecke der KI auf einmal ausfuehren und
+                gesammelt kopieren, Patch einfuegen -> pruefen -> anwenden ->
+                testen -> bei Fehler Bericht). Baut auf R041-R043 auf.
+R045  OFFEN     Spaeter pruefen: Zwischenablage auf Patches ueberwachen
+                (chat --watch); Teile einer Funktion ueber die Struktur
+                ansprechen statt ueber Text (derzeit bewusst nicht).
